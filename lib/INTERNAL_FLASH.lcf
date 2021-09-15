@@ -1,0 +1,95 @@
+#/*
+# * File:		iflash.lcf
+# * Purpose:	Linker file for the M52235EVB
+# *
+# * Notes:		Project running in internal Flash
+# *
+# */
+
+KEEP_SECTION { .vectortable }
+KEEP_SECTION { .cfmconfig }
+  
+MEMORY 
+{
+	interrupts (RX) : ORIGIN = 0x00008000, LENGTH = 0x00000400
+	cfmprotrom (RX) : ORIGIN = 0x00008400, LENGTH = 0x00000020
+    rom        (RX) : ORIGIN = 0x00008420, LENGTH = 0x00037BE0
+    ram        (RW) : ORIGIN = 0x20000400, LENGTH = 0x00007C00
+}
+
+SECTIONS 
+{
+    ___IPSBAR           = 0x40000000;
+
+    ___SRAM             = 0x20000000;
+    ___SRAM_SIZE        = (32 * 1024);
+
+    ___FLASH            = 0x00000000;
+    ___FLASH_SIZE       = (256 * 1024);
+
+	___VECTOR_RAM       = ___SRAM;
+    
+    .interrupts :
+	{
+		* (.vectortable)
+    	. = ALIGN (0x4);
+	} > interrupts
+  
+	.cfmprotect :
+	{
+		* (.cfmconfig)
+		. = ALIGN (0x4);
+	} > cfmprotrom
+	
+    .text :
+    {
+        *(.text)
+        *(.rodata)
+         .              = ALIGN(0x10);
+        ___DATA_ROM     = .;
+    } > rom
+
+    .data_bss : AT(___DATA_ROM)
+    {
+        ___DATA_RAM     = .;
+        * (.exception)
+    	. = ALIGN(0x4);
+    	__exception_table_start__ = .;
+    	EXCEPTION
+    	__exception_table_end__   = .;
+    	
+    	___sinit__ = .;
+		STATICINIT
+		
+        *(.data)
+        *(.sdata)
+        ___DATA_END     = .;
+        .               = ALIGN(0x10);
+        
+        __SDA_BASE = .;
+        . = ALIGN(0x4);
+        
+        ___BSS_START    = .;
+        *(.sbss)
+        *(SCOMMON)
+        *(.bss)
+        *(COMMON)
+        ___BSS_END      = .;
+                .               = ALIGN(0x10);
+        ___SP_END       = .;
+        .               = . + (0x400);
+        ___SP_INIT      = .;
+        .               = . + (4);
+        ___HEAP_START   = .;
+        ___HEAP_END     = ___SRAM + ___SRAM_SIZE;
+    } > ram
+
+	___heap_addr = ___HEAP_START;
+	___heap_size = (___HEAP_END - ___HEAP_START - 4) & 0x0FFFFF00;
+	___STACK_SIZE = ___SP_INIT - ___SP_END;
+	
+	___mem_limit = ___HEAP_END;
+	___stack_safety = 16;
+}
+
+

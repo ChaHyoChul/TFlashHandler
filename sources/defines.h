@@ -1,0 +1,142 @@
+#ifndef _DEFINES_H_
+#define _DEFINES_H_
+
+#define SOFTWARE_VERSION	"COMBI STAIN 1.00.023"
+
+
+// Settings
+#define COMPORT_BAUDRATE	(57600)
+
+
+#define NOTCH_SAMPLE			(30)
+#define CENTERING_SAMPLE		(20)
+
+#define M_PI					(3.1415926535)
+#define ONE_CYCLE_PULSE			(64000)
+//#define ONE_CYCLE_PULSE			(12800)
+//#define ONE_CYCLE_PULSE			(25600)
+#define XY_LEAD					(2.0)
+
+#define MAX_MATRIX_SIZE			(7)
+
+
+#define MAX_AXIS			(3)
+#define X_AXIS				(0)
+#define Y_AXIS				(1)
+#define Z_AXIS				(2)
+
+
+// Error List
+
+#define COMMUNICATION_ERROR_BASE	(1000)
+#define COMMUNICATION_ERROR(A)		(COMMUNICATION_ERROR_BASE + A)
+
+#define ERR_NO						(  0)
+#define ERR_ORIGIN_ERROR			(  2)
+#define ERR_TIME_OVER				(  3)
+#define ERR_EMERGENCY				(  4)
+#define ERR_OVER_RUN				(  8)
+#define ERR_MOTOR_ERROR				( 12)
+
+#define ERR_RANGE_OVER         		(215)
+#define ERR_SAMPLING_ERROR			(216)
+#define ERR_UNKNOWN					(217)
+#define ERR_BAD_DATA				(218)
+#define ERR_NOTCH_DATA_ERROR		(221)
+#define ERR_CCD_AREA				(250)
+
+#define ERR_POS_ERROR				(251)
+
+#define ERR_COMMAND_IN_RUNNING		COMMUNICATION_ERROR(1)
+#define ERR_COMMAND_IN_ERROR		COMMUNICATION_ERROR(2)
+#define ERR_WRONG_DATA_RANGE		COMMUNICATION_ERROR(5)
+#define ERR_WRONG_FORMAT			COMMUNICATION_ERROR(6)
+#define ERR_POS_NO_ERROR			COMMUNICATION_ERROR(8)
+#define ERR_WRONG_COMMAND			COMMUNICATION_ERROR(12)
+
+
+// VAR
+#define VAR_TARGET_POSITION		(11)
+#define VAR_JUDGE_LEVEL			(12)
+#define VAR_NOTCH_WIDTH			(13)
+#define VAR_MOTOR_UNIT_CONV		(14)
+#define VAR_CCD_UNIT_CONV		(15)
+#define VAR_FILTER_SIZE		    (16)
+#define VAR_FILTER_EXE_NO		(17)
+#define VAR_MAX_CCD_INTV		(18)
+#define VAR_SCAN_SPEED			(19)
+#define VAR_INOUT_DIST			(20)
+
+#define VAR_MOVE_X_DIST			(21)
+#define VAR_MOVE_Y_DIST			(22)
+#define VAR_NOTCH_POSITION		(23)
+#define VAR_COUNT				(24)
+#define VAR_ELAPSED_TIME		(25)
+#define VAR_MAX_SATURATION		(26)
+#define VAR_MIN_SATURATION		(27)
+#define VAR_MIN_MOTOR_POS		(28)
+#define VAR_STATUS				(29)
+#define VAR_ERROR_NO			(30)
+
+#define VAR_TEST_CCD_VALUE		(31)
+#define VAR_SEND_IMAGE_FLAG		(32)
+#define VAR_SEND_RESULT_FLAG	(33)
+#define VAR_SEND_STED_FLAG		(34)
+#define VAR_DEBUG				(35)
+#define VAR_SEND_OFFSET_FLAG	(36)
+#define VAR_CHECK_CENTER		(37)
+#define VAR_CCD_R0				(38)
+#define VAR_NO_SENSOR_FLAG		(39)
+#define VAR_TEST_STEP			(40)
+
+#define VAR_RESULT_T1			(71)
+#define VAR_RESULT_T2			(72)
+#define VAR_RESULT_L			(73)
+#define VAR_ALIGNER_TYPE		(74)
+#define VAR_WAFER_SIZE			(75)
+#define VAR_WAFER_TYPE			(76)
+#define VAR_RANGEOUT_COUNT		(77)
+#define VAR_SENSOR_TYPE			(78)
+#define VAR_INOUT_MODE			(79)
+#define VAR_EXE_MODE			(80)
+
+#define VAR_CENTER_ONLY			(81)
+#define VAR_RETRY_NO			(82)
+#define VAR_VACUUM_DELAY		(83)
+#define VAR_DYNAX_COMPATIBLE	(84)
+
+// Execution Mode
+#define EXE_MODE_OCH			(2)
+#define EXE_MODE_WCHC			(3)
+#define EXE_MODE_CCD			(91)
+#define EXE_MODE_DEBUG			(92)
+#define EXE_MODE_CHECK_DATA		(90)
+
+#define WFT_NOTCH				(1)
+#define WFT_FLAT				(2)
+
+#define ALT_RXY					(1)
+#define ALT_RXZ					(2)
+
+#define SST_CCD					(0)
+#define SST_LASER				(1)
+#define SST_LASER_KEYENCE		(2)
+
+
+// I/O
+#define DI_VACUUM				(7)
+#define DI_X_POS_LIMIT			(9)
+#define DI_X_NEG_LIMIT			(10)
+#define DI_Y_POS_LIMIT			(13)
+#define DI_Y_NEG_LIMIT			(14)
+
+#define DO_VACUUM				(6)
+#define DO_LIGHT				(7)
+
+#define MAX_DI					(16)
+#define MAX_DO					(8) //(12)
+
+// Etc
+#define EMERGENCY_STOP_DECEL	(768)
+
+#endif //#ifndef _DEFINES_H_

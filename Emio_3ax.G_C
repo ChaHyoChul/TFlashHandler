@@ -1,0 +1,74 @@
+;Please do not modify this file!
+;The file contains internal information about the Processor Expert project generation
+[Options]
+ProjectName=
+ProjectDirectory=
+DestEventsDirectory=
+DestDriversSubDirectory=
+DestDocumentationDirectory=
+DestCompiledFilesSubDirectory=
+DestTemporaryDirectory=
+GenCpuDerivative=
+[GenFiles]
+LinkerFileGenerated=No
+MakefileGenerated=No
+GenSharedModules=0
+GenExtraFiles=0
+GenEventModules=0
+GenAllModules=0
+GenExternModules=0
+GenBeanModules=0
+SignalListFile=
+DestinationCompiler=CodeWarriorMCF
+ProjectModificationStamp=1
+
+[1]
+Generated=No
+GenCompName=
+GenEventModule=
+HeaderAge=-1
+CodeAge=-1
+AsemblAge=-1
+GenNumMethods=10
+Delay100US=No
+SetIntLevel=No
+DisableInt=No
+EnableInt=No
+GetBusFreqHz=No
+GetResetSource=No
+GetSpeedMode=No
+SetSlowSpeed=No
+SetLowSpeed=No
+SetHighSpeed=No
+GenNumEvents=8
+OnAddrRelatedEXP_Selected=1
+OnAddrRelatedEXP_Name=Cpu_OnAddrRelatedEXP
+OnAddrRelatedEXP_Priority=interrupts disabled
+OnInstrRelatedEXP_Selected=1
+OnInstrRelatedEXP_Name=Cpu_OnInstrRelatedEXP
+OnInstrRelatedEXP_Priority=interrupts disabled
+OnTrapEXP_Selected=1
+OnTrapEXP_Name=Cpu_OnTrapEXP
+OnTrapEXP_Priority=interrupts disabled
+OnIntRelatedEXP_Selected=1
+OnIntRelatedEXP_Name=Cpu_OnIntRelatedEXP
+OnIntRelatedEXP_Priority=interrupts disabled
+OnDivideByZeroEXP_Selected=1
+OnDivideByZeroEXP_Name=Cpu_OnDivideByZeroEXP
+OnDivideByZeroEXP_Priority=interrupts disabled
+OnReset_Selected=1
+OnReset_Name=Cpu_OnReset
+OnReset_Priority=interrupts disabled
+OnLvdINT_Selected=1
+OnLvdINT_Name=Cpu_OnLvdINT
+OnLvdINT_Priority=interrupts disabled
+OnCoreWatchdogINT_Selected=1
+OnCoreWatchdogINT_Name=Cpu_OnCoreWatchdogINT
+OnCoreWatchdogINT_Priority=interrupts disabled
+GenSmartUserChangesDetected_Header=No
+GenSmartUserChangesDetected_Code=No
+GenSmartUserChangesDetected_Asembl=No
+
+[UsedSrcFiles]
+
+[_end_]
