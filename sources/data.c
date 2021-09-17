@@ -295,97 +295,16 @@ void init_eeprom()
 	}
 	else
 	{
-		snprintf(str, 63, "EEPROM Data Initialization ...");
+		sprintf(str, "EEPROM Data Initialization ...");
 		SerialWriteBytes(UART_PORT0, str, strlen(str));
 
 		WriteI2C_1B(0x0000, 0x55);
 
 		save_motion_param();
 
-		snprintf(str, 63, "OK\r\n");
+		sprintf(str, "OK\r\n");
 		SerialWriteBytes(UART_PORT0, str, strlen(str));
 	}
-}
-
-// _MB() 함수 문제로, _1B() 함수를 사용하려고 만들었으나, 제대로 동작 안함 
-void save_motion_param_type(int type)
-{
-	int offset_table[] = {
-		0,	// MOTION_PARAM_ORG_SOFT_LIMIT
-		0+4, 	// MOTION_PARAM_ORG_DIR
-		0+4+1,	// MOTION_PARAM_ORG_NEED
-		0+4+1+1,	// MOTION_PARAM_ORG_SPEED
-		0+4+1+1+4,	// MOTION_PARAM_ORG_LOW_SPEED
-		0+4+1+1+4+4,	// MOTION_PARAM_ACCEL
-		0+4+1+1+4+4+4,		// MOTION_PARAM_PTP_SPEED
-		0+4+1+1+4+4+4+4,	// MOTION_PARAM_PTP_LOW_SPEED
-		0+4+1+1+4+4+4+4+4,
-		0+4+1+1+4+4+4+4+4+4,	// MOTION_PARAM_JOG_SPEED
-		0+4+1+1+4+4+4+4+4+4+4,	// MOTION_PARAM_JOG_LOW_SPEED
-		0+4+1+1+4+4+4+4+4+4+4+4,
-		0+4+1+1+4+4+4+4+4+4+4+4+4,
-		0+4+1+1+4+4+4+4+4+4+4+4+4+4,	// MOTION_PARAM_PTP_DIR
-		0+4+1+1+4+4+4+4+4+4+4+4+4+4+1,	// MOTION_PARAM_ENC_SIGN
-		0+4+1+1+4+4+4+4+4+4+4+4+4+4+1+1,	// MOTION_PARAM_LEAD
-		0+4+1+1+4+4+4+4+4+4+4+4+4+4+1+1+8,	// MOTION_PARAM_ENC_PULSE
-		0+4+1+1+4+4+4+4+4+4+4+4+4+4+1+1+8+4,	// MOTION_PARAM_SCALE_FACTOR
-		0+4+1+1+4+4+4+4+4+4+4+4+4+4+1+1+8+4+8,	// MOTION_PARAM_ORG_SENSOR
-		0+4+1+1+4+4+4+4+4+4+4+4+4+4+1+1+8+4+8+1,	// MOTION_PARAM_NEG_LIMIT
-		0+4+1+1+4+4+4+4+4+4+4+4+4+4+1+1+8+4+8+1+1,	// MOTION_PARAM_POS_LIMIT
-		0+4+1+1+4+4+4+4+4+4+4+4+4+4+1+1+8+4+8+1+1+1
-	};
-
-	unsigned short pBase = ADDR_EEP_MOTION_PARAM;
-	unsigned short pOffset = offset_table[type];
-	unsigned short len = offset_table[type+1] - offset_table[type];
-	unsigned char* pval = 0;
-	int i = 0, j = 0;
-
-	for (i = 0; i<3; i++)
-	{
-		pBase = ADDR_EEP_MOTION_PARAM + (sizeof(MOTION_PARAM) * i);
-		pBase += pOffset;
-
-		pval = get_motion_param_ptr(i, type);	// 저장할 파라메타의 주소 
-		if (pval == 0) 
-		{
-			continue;
-		}
-		
-		for (j = 0; j<len; j++)
-		{
-			WriteI2C_1B((unsigned short)(pBase+j), *(pval+j));
-		}
-	}
-}
-
-unsigned char* get_motion_param_ptr(int axis, int type)
-{
-	unsigned char* p = 0;
-	int i = axis;
-
-	switch (type)
-	{
-	case MOTION_PARAM_ORG_SOFT_LIMIT:	p = (unsigned char*)&(g_MotionParam[i].m_uOrgSLimit);	break;
-	case MOTION_PARAM_ORG_SPEED:		p = (unsigned char*)&(g_MotionParam[i].m_uOrgVmax);		break;
-	case MOTION_PARAM_ORG_LOW_SPEED:	p = (unsigned char*)&(g_MotionParam[i].m_uOrgVmin);		break;
-	case MOTION_PARAM_JOG_SPEED:		p = (unsigned char*)&(g_MotionParam[i].m_uJogVmax);		break;
-	case MOTION_PARAM_JOG_LOW_SPEED:	p = (unsigned char*)&(g_MotionParam[i].m_uJogVmin);		break;
-	case MOTION_PARAM_PTP_SPEED:		p = (unsigned char*)&(g_MotionParam[i].m_uNorVmax);		break;
-	case MOTION_PARAM_PTP_LOW_SPEED:	p = (unsigned char*)&(g_MotionParam[i].m_uNorVmin);		break;
-	case MOTION_PARAM_ACCEL:			p = (unsigned char*)&(g_MotionParam[i].m_uNorAcel);		break;
-	case MOTION_PARAM_ORG_DIR:			p = (unsigned char*)&(g_MotionParam[i].m_ucOrgDir);		break;
-	case MOTION_PARAM_PTP_DIR:			p = (unsigned char*)&(g_MotionParam[i].m_ucMoveDir);	break;
-	case MOTION_PARAM_ENC_SIGN:			p = (unsigned char*)&(g_MotionParam[i].m_ucEncSign);	break;
-	case MOTION_PARAM_ORG_NEED:			p = (unsigned char*)&(g_MotionParam[i].m_ucOrgNeed);	break;
-	case MOTION_PARAM_ORG_SENSOR:		p = (unsigned char*)&(g_MotionParam[i].m_ucOrgSensor);	break;
-	case MOTION_PARAM_ENC_PULSE:		p = (unsigned char*)&(g_MotionParam[i].m_ucEncPulse);	break;
-	case MOTION_PARAM_NEG_LIMIT:		p = (unsigned char*)&(g_MotionParam[i].m_ucNegLimit);	break;
-	case MOTION_PARAM_POS_LIMIT:		p = (unsigned char*)&(g_MotionParam[i].m_ucPosLimit);	break;
-	default: return 0;
-	}
-
-	return p;
 }
 
 // bychul2. _MB() 함수 문제로 _1B() 함수 사용 

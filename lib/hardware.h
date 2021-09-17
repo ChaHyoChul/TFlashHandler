@@ -77,11 +77,18 @@ unsigned char FpgaVersion();
 #define	CCW				1		// ������ �ݽð���� ����
 #define	CW				0		// ������ �ð���� ����
 
+/*
 #define	MOVE_TORQUE		60		// ���۽� ���� ���� ���� (���� : 0.03A, ���� : 0 ~ 100) ex) 40 => 1.2A
 #define	HOLD_TORQUE		20		// ������ ���� ���� ���� (���� : 0.03A, ���� : 0 ~ 100) ex) 10 => 0.3A
 
 #define	MOVE_TORQUE_3A	80		// ���۽� ���� ���� ���� (���� : 0.03A, ���� : 0 ~ 100) ex) 80 => 2.4A
 #define	HOLD_TORQUE_3A	20		// ������ ���� ���� ���� (���� : 0.03A, ���� : 0 ~ 100) ex) 20 => 0.6A
+*/
+#define	MOVE_TORQUE		30		// ���۽� ���� ���� ���� (���� : 0.03A, ���� : 0 ~ 100) ex) 40 => 1.2A
+#define	HOLD_TORQUE		5		// ������ ���� ���� ���� (���� : 0.03A, ���� : 0 ~ 100) ex) 10 => 0.3A
+
+#define	MOVE_TORQUE_3A	15		// ���۽� ���� ���� ���� (���� : 0.03A, ���� : 0 ~ 100) ex) 80 => 2.4A
+#define	HOLD_TORQUE_3A	5		// ������ ���� ���� ���� (���� : 0.03A, ���� : 0 ~ 100) ex) 20 => 0.6A
 
 
 // ����� ���� ������ Ȯ�� �� �� �ִ� ���µ�
@@ -248,8 +255,10 @@ unsigned char GetOutput8();
 void SetOutput8(unsigned char data);
 
 
-#define SENS_ON			1		// Active High
-#define SENS_OFF		0		// Active High
+//#define SENS_ON			1		// Active High
+//#define SENS_OFF		0		// Active High
+#define SENS_ON			0		// Active Low
+#define SENS_OFF		1		// Active LOW
 
 // 1 ���� HOME Sensor �Է°��� �����´�. (INPUT1-0, 1-1�� �ӽ��Ҵ�)
 // #define HOME_SENSOR	(~GetInput16() & 0x01)

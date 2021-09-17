@@ -266,7 +266,7 @@ void DoCmd(char *cmd)
 	}
 	else if (strncmp(cmd, "ACD", 3) == 0)
 	{
-		snprintf(str, 127, "ACD %s\r\n", get_axes_sensor());
+		sprintf(str, "ACD %s\r\n", get_axes_sensor());
 		send(str);
 	}
 	else if (strncmp(cmd, "APS", 3) == 0)
@@ -317,12 +317,12 @@ void DoCmd(char *cmd)
 		}
 		
 		io_val = GetInput2(ch_temp);
-		snprintf (str, 127, "IDI %02X", io_val);
+		sprintf (str, "IDI %02X", io_val);
 		
 		for (i = 1; i < idi_no; ++i)
 		{
 			io_val = GetInput2(ch_temp + i);
-			snprintf(str_temp, 31, ",%02X", io_val);
+			sprintf(str_temp, ",%02X", io_val);
 			strcat(str, str_temp);
 		}
 		
@@ -355,12 +355,12 @@ void DoCmd(char *cmd)
 		}
 		
 		io_val = GetOutput2(ch_temp);
-		snprintf (str, 127, "IDO %02X", io_val);
+		sprintf (str, "IDO %02X", io_val);
 		
 		for (i = 1; i < idi_no; ++i)
 		{
 			io_val = GetOutput2(ch_temp + i);
-			snprintf(str_temp, 31, ",%02X", io_val);
+			sprintf(str_temp, ",%02X", io_val);
 			strcat(str, str_temp);
 		}
 		
@@ -453,7 +453,7 @@ void DoCmd(char *cmd)
 			{
 				// get var
 				tmp = get_var(var_no);
-				snprintf(str, 127, "VAR V%02d=%d\r\n", var_no, tmp);
+				sprintf(str, "VAR V%02d=%d\r\n", var_no, tmp);
 				send(str);
 			}
 			else
@@ -738,7 +738,7 @@ void DoCmd(char *cmd)
 				case 'Y': axis = 1; break;
 				case 'Z': axis = 2; break;
 				default:
-					snprintf(str, 127, "JOG E06\r\n");
+					sprintf(str, "JOG E06\r\n");
 					SerialWriteBytes(UART_PORT0, str, strlen(str));
 					return;
 			}
@@ -749,7 +749,7 @@ void DoCmd(char *cmd)
 					case '+': tmp = 1; break;
 					case '-': tmp = 0; break;
 					default:
-						snprintf(str, 127, "JOG E06\r\n");
+						sprintf(str, "JOG E06\r\n");
 						SerialWriteBytes(UART_PORT0, str, strlen(str));
 						return;
 				}
@@ -762,7 +762,7 @@ void DoCmd(char *cmd)
 		}
 		else
 		{
-			snprintf(str, 127, "JOG E06\r\n");
+			sprintf(str, "JOG E06\r\n");
 			SerialWriteBytes(UART_PORT0, str, strlen(str));
 			return;
 		}
@@ -782,7 +782,7 @@ void DoCmd(char *cmd)
 			JogStart(axis, (char)tmp);
 		}
 
-		snprintf(str, 127, "JOG\r\n");
+		sprintf(str, "JOG\r\n");
 		SerialWriteBytes(UART_PORT0, str, strlen(str));
 	}
 	else if (strncmp(cmd, "LMI", 3) == 0)
@@ -917,7 +917,7 @@ void DoCmd(char *cmd)
 		
 		g_UserStop = 10;
 
-		snprintf(str, 127, "ASS\r\n");
+		sprintf(str, "ASS\r\n");
 		SerialWriteBytes(UART_PORT0, str, strlen(str));
 	}
 	else if (strncmp(cmd, "OSL", 3) == 0)
@@ -928,13 +928,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_ORG_SOFT_LIMIT);
-			snprintf(str, 127, "OSL %s\r\n", ints_to_str(ints));	
+			sprintf(str, "OSL %s\r\n", ints_to_str(ints));	
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_ORG_SOFT_LIMIT, ints);
-			snprintf(str, 127, "OSL\r\n");
+			sprintf(str, "OSL\r\n");
 		}
 		send(str);
 	}
@@ -946,13 +946,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_ORG_SPEED);
-			snprintf(str, 127, "HMV %s\r\n", ints_to_str(ints));
+			sprintf(str, "HMV %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_ORG_SPEED, ints);
-			snprintf(str, 127, "HMV\r\n");
+			sprintf(str, "HMV\r\n");
 		}
 		send(str);
 	}
@@ -964,13 +964,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_ORG_LOW_SPEED);
-			snprintf(str, 127, "HMB %s\r\n", ints_to_str(ints));
+			sprintf(str, "HMB %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_ORG_LOW_SPEED, ints);
-			snprintf(str, 127, "HMB\r\n");
+			sprintf(str, "HMB\r\n");
 		}
 		send(str);
 	}
@@ -982,13 +982,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_PTP_SPEED);
-			snprintf(str, 127, "VSO %s\r\n", ints_to_str(ints));
+			sprintf(str, "VSO %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_PTP_SPEED, ints);
-			snprintf(str, 127, "VSO\r\n");
+			sprintf(str, "VSO\r\n");
 		}
 		send(str);
 	}
@@ -1000,13 +1000,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_PTP_SPEED);
-			snprintf(str, 127, "VSN %s\r\n", ints_to_str(ints));
+			sprintf(str, "VSN %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param_no_save(MOTION_PARAM_PTP_SPEED, ints);
-			snprintf(str, 127, "VSN\r\n");
+			sprintf(str, "VSN\r\n");
 		}
 		send(str);
 	}
@@ -1018,13 +1018,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_PTP_LOW_SPEED);
-			snprintf(str, 127, "VSL %s\r\n", ints_to_str(ints));
+			sprintf(str, "VSL %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_PTP_LOW_SPEED, ints);
-			snprintf(str, 127, "VSL\r\n");
+			sprintf(str, "VSL\r\n");
 		}
 		send(str);
 	}
@@ -1036,13 +1036,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_JOG_SPEED);
-			snprintf(str, 127, "VJO %s\r\n", ints_to_str(ints));
+			sprintf(str, "VJO %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_JOG_SPEED, ints);
-			snprintf(str, 127, "VJO\r\n");
+			sprintf(str, "VJO\r\n");
 		}
 		send(str);
 	}
@@ -1054,13 +1054,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_JOG_LOW_SPEED);
-			snprintf(str, 127, "VJL %s\r\n", ints_to_str(ints));
+			sprintf(str, "VJL %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_JOG_LOW_SPEED, ints);
-			snprintf(str, 127, "VJL\r\n");
+			sprintf(str, "VJL\r\n");
 		}
 		send(str);
 	}
@@ -1072,13 +1072,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_ACCEL);
-			snprintf(str, 127, "VST %s\r\n", ints_to_str(ints));
+			sprintf(str, "VST %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_ACCEL, ints);
-			snprintf(str, 127, "VST\r\n");
+			sprintf(str, "VST\r\n");
 		}
 		send(str);
 	}
@@ -1090,13 +1090,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_ORG_DIR);
-			snprintf(str, 127, "POD %s\r\n", ints_to_str(ints));
+			sprintf(str, "POD %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_ORG_DIR, ints);
-			snprintf(str, 127, "POD\r\n");
+			sprintf(str, "POD\r\n");
 		}
 		send(str);
 	}
@@ -1108,13 +1108,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_PTP_DIR);
-			snprintf(str, 127, "PPD %s\r\n", ints_to_str(ints));
+			sprintf(str, "PPD %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_PTP_DIR, ints);
-			snprintf(str, 127, "PPD\r\n");
+			sprintf(str, "PPD\r\n");
 		}
 		send(str);
 	}
@@ -1126,13 +1126,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_ENC_SIGN);
-			snprintf(str, 127, "ENS %s\r\n", ints_to_str(ints));
+			sprintf(str, "ENS %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_ENC_SIGN, ints);
-			snprintf(str, 127, "ENS\r\n");
+			sprintf(str, "ENS\r\n");
 		}
 		send(str);
 	}
@@ -1144,13 +1144,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_ORG_NEED);
-			snprintf(str, 127, "HMN %s\r\n", ints_to_str(ints));
+			sprintf(str, "HMN %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_ORG_NEED, ints);
-			snprintf(str, 127, "HMN\r\n");
+			sprintf(str, "HMN\r\n");
 		}
 		send(str);
 	}
@@ -1162,13 +1162,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_ORG_SENSOR);
-			snprintf(str, 127, "AHM %s\r\n", ints_to_str(ints));
+			sprintf(str, "AHM %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_ORG_SENSOR, ints);
-			snprintf(str, 127, "AHM\r\n");
+			sprintf(str, "AHM\r\n");
 		}
 		send(str);
 	}
@@ -1180,13 +1180,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_NEG_LIMIT);
-			snprintf(str, 127, "ANL %s\r\n", ints_to_str(ints));
+			sprintf(str, "ANL %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_NEG_LIMIT, ints);
-			snprintf(str, 127, "ANL\r\n");
+			sprintf(str, "ANL\r\n");
 		}
 		send(str);
 	}
@@ -1198,13 +1198,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_POS_LIMIT);
-			snprintf(str, 127, "APL %s\r\n", ints_to_str(ints));
+			sprintf(str, "APL %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_POS_LIMIT, ints);
-			snprintf(str, 127, "APL\r\n");
+			sprintf(str, "APL\r\n");
 		}
 		send(str);
 	}
@@ -1216,13 +1216,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			dbls = get_param_f(MOTION_PARAM_LEAD);
-			snprintf(str, 127, "ALD %s\r\n", doubles_to_str(dbls));
+			sprintf(str, "ALD %s\r\n", doubles_to_str(dbls));
 		}
 		else
 		{
 			dbls = str_to_doubles(ch);
 			set_param_f(MOTION_PARAM_LEAD, dbls);
-			snprintf(str, 127, "ALD\r\n");
+			sprintf(str, "ALD\r\n");
 		}
 		send(str);
 	}
@@ -1234,13 +1234,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			ints = get_param(MOTION_PARAM_ENC_PULSE);
-			snprintf(str, 127, "AEN %s\r\n", ints_to_str(ints));
+			sprintf(str, "AEN %s\r\n", ints_to_str(ints));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param(MOTION_PARAM_ENC_PULSE, ints);
-			snprintf(str, 127, "AEN\r\n");
+			sprintf(str, "AEN\r\n");
 		}
 		send(str);
 	}
@@ -1252,13 +1252,13 @@ void DoCmd(char *cmd)
 		if (strlen(ch) == 0)
 		{
 			dbls = get_param_f(MOTION_PARAM_SCALE_FACTOR);
-			snprintf(str, 127, "ASF %s\r\n", doubles_to_str(dbls));
+			sprintf(str, "ASF %s\r\n", doubles_to_str(dbls));
 		}
 		else
 		{
 			ints = str_to_ints(ch);
 			set_param_f(MOTION_PARAM_SCALE_FACTOR, dbls);
-			snprintf(str, 127, "ASF\r\n");
+			sprintf(str, "ASF\r\n");
 		}
 		send(str);
 	}
@@ -1267,7 +1267,7 @@ void DoCmd(char *cmd)
 		if (strlen(cmd) > 0)
 		{
 			//sprintf(str, "NOK\r\n");
-			snprintf(str, 127, "%s E12\r\n", cmd);
+			sprintf(str, "%s E12\r\n", cmd);
 			SerialWriteBytes(UART_PORT0, str, strlen(str));
 			debug(cmd);
 		}

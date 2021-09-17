@@ -65,6 +65,7 @@ unsigned char get_axis_sensor_index(char axis, char type)
 unsigned char get_axis_sensor_state(char axis, char type)
 {
 	unsigned char index = 0;
+	char sz[64];
 	
 	if (axis < 0 || axis >= MAX_AXIS)
 	{
@@ -77,7 +78,7 @@ unsigned char get_axis_sensor_state(char axis, char type)
 	}
 	
 	index = get_axis_sensor_index(axis, type);
-	
+
 	return ((GetInput16() >> index) & 1);
 }
 
@@ -262,20 +263,20 @@ void SendResponseRaw(char* command, int errorCode)
 	{
 		if (strstr(command, "ERR") != 0)
 		{
-			snprintf(str, 63, "%s 000\r\n", command);	
+			sprintf(str, "%s 000\r\n", command);	
 		}
 		else
 		{
-			snprintf(str, 63, "%s\r\n", command);
+			sprintf(str, "%s\r\n", command);
 		}
 	}
 	else if (errorCode < 1000)
 	{
-		snprintf(str, 63, "%s %03d\r\n", command, errorCode);
+		sprintf(str, "%s %03d\r\n", command, errorCode);
 	}
 	else
 	{
-		snprintf(str, 63, "%s E%02d\r\n", command, errorCode-1000);
+		sprintf(str, "%s E%02d\r\n", command, errorCode-1000);
 	}
 
 	send(str);
@@ -294,20 +295,20 @@ void SendResponse()
 	{
 		if (strstr(g_LastCommand, "ERR") != 0)
 		{
-			snprintf(str, 63, "%s 000\r\n", g_LastCommand);	
+			sprintf(str, "%s 000\r\n", g_LastCommand);	
 		}
 		else
 		{
-			snprintf(str, 63, "%s\r\n", g_LastCommand);
+			sprintf(str, "%s\r\n", g_LastCommand);
 		}
 	}
 	else if (g_ErrorCode < 1000)
 	{
-		snprintf(str, 63, "%s %03d\r\n", g_LastCommand, g_ErrorCode);
+		sprintf(str, "%s %03d\r\n", g_LastCommand, g_ErrorCode);
 	}
 	else
 	{
-		snprintf(str, 63, "%s E%02d\r\n", g_LastCommand, g_ErrorCode-1000);
+		sprintf(str, "%s E%02d\r\n", g_LastCommand, g_ErrorCode-1000);
 	}
 
 	send(str);
@@ -1550,7 +1551,7 @@ void JogStart(char axis, char dir)
 {
 	static char str[128];
 	
-	snprintf(str, 63, "JogStart(%d, %d)", axis, dir);
+	sprintf(str, "JogStart(%d, %d)", axis, dir);
 	debug(str);
 	
 	if (dir == 0)	// inverse

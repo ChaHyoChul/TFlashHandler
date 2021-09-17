@@ -61,26 +61,7 @@ typedef struct _MOTION_PARAM
 	unsigned char	m_ucNegLimit;	//19 (1)Negative Limit Sensor
 	unsigned char	m_ucPosLimit;	//20 (1)Positive Limit Sensor
 } MOTION_PARAM;
-/*
-#define MOTION_PARAM_ORG_SOFT_LIMIT		(0)	//(0)
-#define MOTION_PARAM_ORG_SPEED			(3)	//(1)
-#define MOTION_PARAM_ORG_LOW_SPEED		(4) //(2)
-#define MOTION_PARAM_JOG_SPEED			(9) //(3)
-#define MOTION_PARAM_JOG_LOW_SPEED		(10) //(4)
-#define MOTION_PARAM_PTP_SPEED			(6) //(5)
-#define MOTION_PARAM_PTP_LOW_SPEED		(7) //(6)
-#define MOTION_PARAM_ACCEL				(8) //(7)
-#define MOTION_PARAM_ORG_DIR			(1) //(8)
-#define MOTION_PARAM_PTP_DIR			(13) //(9)
-#define MOTION_PARAM_ENC_SIGN			(14) //(10)
-#define MOTION_PARAM_ORG_NEED			(2) //(11)
-#define MOTION_PARAM_ORG_SENSOR			(18) //(12)
-#define MOTION_PARAM_LEAD				(15) //(13)
-#define MOTION_PARAM_ENC_PULSE			(16) //(14)
-#define MOTION_PARAM_SCALE_FACTOR		(17) //(15)
-#define MOTION_PARAM_NEG_LIMIT			(19) //(16)
-#define MOTION_PARAM_POS_LIMIT			(20) //(17)
-*/
+
 #define MOTION_PARAM_ORG_SOFT_LIMIT		(0)
 #define MOTION_PARAM_ORG_SPEED			(1)
 #define MOTION_PARAM_ORG_LOW_SPEED		(2)
@@ -132,9 +113,6 @@ MOTION_PARAM set_motion_param(int axis, MOTION_PARAM param);
 
 // save data to flash
 void init_eeprom();
-
-unsigned char* get_motion_param_ptr(int axis, int type);
-void save_motion_param_type(int type);
 void save_motion_param();
 
 void load_motion_param();

@@ -87,7 +87,7 @@ char* int3_to_str(int* values)
 {
 	static char s[128] = "";
 
-	snprintf(s, 127, "%d,%d,%d", values[0], values[1], values[2]);
+	sprintf(s, "%d,%d,%d", values[0], values[1], values[2]);
 	return s;
 }
 
@@ -153,17 +153,17 @@ INTS str_to_ints(char* str)
 char* ints_to_str(INTS ints)
 {
 	static char buf[64] = "";
-	int i = 0;
-	
-	sprintf(buf, "");
-	
-	if (ints.flag[0]) sprintf(buf, "%d", ints.val[0]);
-	sprintf(buf, "%s,", buf);
-	if (ints.flag[1]) sprintf(buf, "%s%d", buf, ints.val[1]);
-	sprintf(buf, "%s,", buf);
-	if (ints.flag[2]) sprintf(buf, "%s%d", buf, ints.val[2]);
-	
-	return buf;	
+	int index = 0;
+
+	if (ints.flag[0]) snprintf(buf, 63, "%d", ints.val[0]);
+	index = strlen(buf);
+	buf[index++] = ',';
+	if (ints.flag[1]) snprintf((buf+index), 63-index, "%d", ints.val[1]);
+	index = strlen(buf);
+	buf[index++] = ',';
+	if (ints.flag[2]) snprintf((buf+index), 63-index, "%d", ints.val[2]);
+
+	return buf;
 }
 
 DOUBLES str_to_doubles(char* str)
@@ -219,27 +219,22 @@ DOUBLES str_to_doubles(char* str)
 char* doubles_to_str(DOUBLES dbls)
 {
 	static char buf[64] = "";
-	int i = 0;
-	
-	snprintf(buf, 63, "");
+	int index = 0;
 
 	if (dbls.flag[0]) snprintf(buf, 63, "%.3f", dbls.val[0]);
-	snprintf(buf, 63, "%s,", buf);
-	if (dbls.flag[1]) snprintf(buf, 63, "%s%.3f", buf, dbls.val[1]);
-	snprintf(buf, 63, "%s,", buf);
-	if (dbls.flag[2]) snprintf(buf, 63, "%s%.3f", buf, dbls.val[2]);
+	index = strlen(buf);
+	buf[index++] = ',';
+	if (dbls.flag[1]) snprintf((buf+index), 63-index, "%.3f", dbls.val[1]);
+	index = strlen(buf);
+	buf[index++] = ',';
+	if (dbls.flag[2]) snprintf((buf+index), 63-index, "%.3f", dbls.val[2]);
 
-	return buf;	
+	return buf;
 }
 
 int get_axis_sensor(int axis)
 {
 	int sensor = 0;
-	
-	if (axis == 0)
-	{
-		return sensor;
-	}
 
 	if (POS_LIMIT(axis) == SENS_ON)
 	{
