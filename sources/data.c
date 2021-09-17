@@ -57,6 +57,8 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 						10,				// m_ucOrgSensor
 						11,				// m_ucNegLimit
 						12,				// m_ucPosLimit
+						5,				// m_ucHoldTorque
+						10,				// m_ucMoveTroque
 						},
 					// X_AXIS
 						{2147483647,	// m_uOrgSLimit
@@ -80,6 +82,8 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 						10,				// m_ucOrgSensor
 						11,				// m_ucNegLimit
 						12,				// m_ucPosLimit
+						5,				// m_ucHoldTorque
+						10,				// m_ucMoveTroque
 						},
 					// Y_AXIS
 						{2147483647,	// m_uOrgSLimit
@@ -103,6 +107,8 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 						14,				// m_ucOrgSensor
 						11,				// m_ucNegLimit
 						12,				// m_ucPosLimit
+						5,				// m_ucHoldTorque
+						10,				// m_ucMoveTroque
 						}
 						};
 

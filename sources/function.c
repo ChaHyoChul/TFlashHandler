@@ -370,6 +370,8 @@ INTS get_param(int type)
 			case MOTION_PARAM_ENC_PULSE:	ints.val[i] = g_MotionParam[i].m_ucEncPulse;	break;
 			case MOTION_PARAM_NEG_LIMIT:	ints.val[i] = g_MotionParam[i].m_ucNegLimit;	break;
 			case MOTION_PARAM_POS_LIMIT:	ints.val[i] = g_MotionParam[i].m_ucPosLimit;	break;
+			case MOTION_PARAM_HOLD_TROQUE:	ints.val[i] = g_MotionParam[i].m_ucHoldTorque; 	break;
+			case MOTION_PARAM_MOVE_TROQUE:	ints.val[i] = g_MotionParam[i].m_ucMoveTorque; 	break;
 			default:
 				ints.flag[i] = 0;
 		}
@@ -407,6 +409,8 @@ void set_param(int type, INTS ints)
 			case MOTION_PARAM_ENC_PULSE:	g_MotionParam[i].m_ucEncPulse = ints.val[i];	break;
 			case MOTION_PARAM_NEG_LIMIT:	g_MotionParam[i].m_ucNegLimit = ints.val[i];	break;
 			case MOTION_PARAM_POS_LIMIT:	g_MotionParam[i].m_ucPosLimit = ints.val[i];	break;
+			case MOTION_PARAM_HOLD_TROQUE:	g_MotionParam[i].m_ucHoldTorque = ints.val[i]; 	break;
+			case MOTION_PARAM_MOVE_TROQUE:	g_MotionParam[i].m_ucMoveTorque = ints.val[i]; 	break;
 		}
 	}
 	
@@ -443,6 +447,8 @@ void set_param_no_save(int type, INTS ints)
 			case MOTION_PARAM_ENC_PULSE:	g_MotionParam[i].m_ucEncPulse = ints.val[i];	break;
 			case MOTION_PARAM_NEG_LIMIT:	g_MotionParam[i].m_ucNegLimit = ints.val[i];	break;
 			case MOTION_PARAM_POS_LIMIT:	g_MotionParam[i].m_ucPosLimit = ints.val[i];	break;
+			case MOTION_PARAM_HOLD_TROQUE:	g_MotionParam[i].m_ucHoldTorque = ints.val[i]; 	break;
+			case MOTION_PARAM_MOVE_TROQUE:	g_MotionParam[i].m_ucMoveTorque = ints.val[i];	break;
 		}
 	}
 }

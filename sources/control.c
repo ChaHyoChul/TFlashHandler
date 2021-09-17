@@ -1531,7 +1531,7 @@ void InitAxis()
 		
 		SetCounterDirection(axis, (unsigned char)((~g_MotionParam[axis].m_ucOrgDir) & 1));
 
-		MovVar[axis].m_ucHoldTorq = (axis == Z_AXIS) ? HOLD_TORQUE : HOLD_TORQUE_3A;
+		MovVar[axis].m_ucHoldTorq = g_MotionParam[axis].m_ucHoldTorque; //(axis == Z_AXIS) ? HOLD_TORQUE : HOLD_TORQUE_3A;
 		SetHoldTorque(axis);
 
 		DriverEnable(axis);
@@ -1567,7 +1567,7 @@ void JogStart(char axis, char dir)
 	MovVar[axis].m_uS    = g_MotionParam[axis].m_uOrgSLimit;
 	MovVar[axis].m_ucDir = dir;
 	SetSpeed(axis, SPEED_JOG);
-	MovVar[axis].m_ucMoveTorq = (axis == Z_AXIS) ? MOVE_TORQUE : MOVE_TORQUE_3A;
+	MovVar[axis].m_ucMoveTorq = g_MotionParam[axis].m_ucMoveTorque; //(axis == Z_AXIS) ? MOVE_TORQUE : MOVE_TORQUE_3A;
 	
 	if (MoveStart(axis))
 	{
@@ -1668,7 +1668,7 @@ void SetSpeed(char axis, int type)
 			break;
 	}
 	
-	MovVar[axis].m_ucMoveTorq = (axis == Z_AXIS) ? MOVE_TORQUE : MOVE_TORQUE_3A;
+	MovVar[axis].m_ucMoveTorq = g_MotionParam[axis].m_ucMoveTorque; //(axis == Z_AXIS) ? MOVE_TORQUE : MOVE_TORQUE_3A;
 }
 
 

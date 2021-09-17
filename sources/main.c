@@ -1262,6 +1262,40 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
+	else if (strncmp(cmd, "HTQ", 3) == 0)
+	{
+		ch = cha_strstr(cmd, "HTQ");
+		ch = strnosp(ch + 3);
+		if (strlen(ch) == 0)
+		{
+			ints = get_param(MOTION_PARAM_HOLD_TROQUE);
+			sprintf(str, "HTQ %s\r\n", ints_to_str(ints));
+		}
+		else 
+		{
+			ints = str_to_ints(ch);
+			set_param(MOTION_PARAM_HOLD_TROQUE, ints);
+			sprintf(str, "HTQ\r\n");
+		}
+		send(str);
+	} 
+	else if (strncmp(cmd, "MTQ", 3) == 0)
+	{
+		ch = cha_strstr(cmd, "MTQ");
+		ch = strnosp(ch + 3);
+		if (strlen(ch) == 0)
+		{
+			ints = get_param(MOTION_PARAM_MOVE_TROQUE);
+			sprintf(str, "MTQ %s\r\n", ints_to_str(ints));
+		}
+		else 
+		{
+			ints = str_to_ints(ch);
+			set_param(MOTION_PARAM_MOVE_TROQUE, ints);
+			sprintf(str, "MTQ\r\n");
+		}
+		send(str);
+	} 
 	else
 	{
 		if (strlen(cmd) > 0)

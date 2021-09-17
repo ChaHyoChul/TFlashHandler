@@ -60,6 +60,8 @@ typedef struct _MOTION_PARAM
 	unsigned char	m_ucOrgSensor;	//18 (1)Origin Sensor
 	unsigned char	m_ucNegLimit;	//19 (1)Negative Limit Sensor
 	unsigned char	m_ucPosLimit;	//20 (1)Positive Limit Sensor
+	unsigned char 	m_ucHoldTorque;	//21 (1)Hold Torque 
+	unsigned char 	m_ucMoveTorque;	//22 (1)Move Torque 
 } MOTION_PARAM;
 
 #define MOTION_PARAM_ORG_SOFT_LIMIT		(0)
@@ -80,6 +82,8 @@ typedef struct _MOTION_PARAM
 #define MOTION_PARAM_SCALE_FACTOR		(15)
 #define MOTION_PARAM_NEG_LIMIT			(16)
 #define MOTION_PARAM_POS_LIMIT			(17)
+#define MOTION_PARAM_HOLD_TROQUE		(18)
+#define MOTION_PARAM_MOVE_TROQUE		(19)
 
 // Command State
 #define CMD_READY		(0)
