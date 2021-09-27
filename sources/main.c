@@ -1296,6 +1296,19 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	} 
+	///////
+	// Debugging command \
+	// OCP 는 원점복귀를 안하고, 한 것 처럼 설정을 바꾸고, 현재 위치를 0으로 설정한다 
+	else if (strncmp(cmd, "OCP", 3) == 0)
+	{
+		SetOriginCompletedFlag(0, TRUE);
+		CounterReset(0);
+		SetOriginCompletedFlag(1, TRUE);
+		CounterReset(1);
+		SetOriginCompletedFlag(2, TRUE);
+		CounterReset(2);
+		send("OCP\r\n");
+	}
 	else
 	{
 		if (strlen(cmd) > 0)

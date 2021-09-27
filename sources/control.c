@@ -1202,7 +1202,7 @@ char CommOriginAxis()
 	case 0:	// Motion ���������� Origin Parameter �� �����Ѵ�.
 		SetOriginCompletedFlag(g_OriginAxis, 0);
 		
-		MovVar[g_OriginAxis].m_uS = g_MotionParam[g_OriginAxis].m_uOrgSLimit;
+		MovVar[g_OriginAxis].m_uS = g_MotionParam[g_OriginAxis].m_uOrgSLimit;	// 이동 거리를 길게
 		MovVar[g_OriginAxis].m_ucDir = g_MotionParam[g_OriginAxis].m_ucOrgDir;
 		SetSpeed(g_OriginAxis, SPEED_ORG);
 		
@@ -1218,6 +1218,7 @@ char CommOriginAxis()
 		debugf("step=%d", step);
 		break;
 		
+		// Home 센서가 ON 되면 멈춘다 
 	case 1:
 		if (HOME_SENSOR(g_OriginAxis) == SENS_ON)	// NegLimit Sensor�� ON �� �� ���� �̵��Ѵ�.
 		{
@@ -1235,6 +1236,7 @@ char CommOriginAxis()
 
 		break;
 		
+		// 반대 방향으로 이동 시작 
 	case 3:
 		CounterReset(g_OriginAxis);
 		MovVar[g_OriginAxis].m_ucDir = (unsigned char)((~g_MotionParam[g_OriginAxis].m_ucOrgDir) & 1);	// Positive ��������
@@ -1253,6 +1255,7 @@ char CommOriginAxis()
 		debugf("step=%d", step);
 		break;
 
+		//  홈 센서가 OFF 되면 멈춘다 
 	case 4:
 		if (HOME_SENSOR(g_OriginAxis) == SENS_OFF)	// NegLimit Sensor OFF �� �� ���� �̵��Ѵ�.
 		{
@@ -1268,9 +1271,9 @@ char CommOriginAxis()
 			++step;
 			debugf("step=%d", step);
 		}
-		
 		break;
 		
+		// 센서 방향으로 다시 이동 시작 
 	case 6:
 		nNegLimitOutPos[g_OriginAxis] = CounterRead(g_OriginAxis);				// ���������� Positive �������� �̵��Ͽ� ������ OFF �� ��ġ (��ġ ����)
 		MovVar[g_OriginAxis].m_ucDir = g_MotionParam[g_OriginAxis].m_ucOrgDir;	// Negative ��������
@@ -1289,13 +1292,13 @@ char CommOriginAxis()
 		debugf("step=%d", step);
 		break;
 
+		// 홈센서가 감지되면 멈춘다 
 	case 7:
 		if (HOME_SENSOR(g_OriginAxis) == SENS_ON)	// NegLimit Sensor ON �� �� ���� �̵��Ѵ�.
 		{
 			MoveStop(g_OriginAxis);
 			++step;
 		}
-		
 		break;
 
 	case 8:
@@ -1304,9 +1307,9 @@ char CommOriginAxis()
 			++step;
 			debugf("step=%d", step);
 		}
-		
 		break;
 	
+		// 
 	case 9:
 		nNegLimitInPos[g_OriginAxis] = CounterRead(g_OriginAxis);	// ���������� Negative �������� �̵��Ͽ� ������ ON �� ��ġ (��ġ ����)
 
@@ -1346,7 +1349,6 @@ char CommOriginAxis()
 			++step;
 			break;
 		}
-
 		break;
 
 	case 11:
@@ -1355,7 +1357,6 @@ char CommOriginAxis()
 			++step;
 			debugf("step=%d", step);
 		}
-
 		break;
 		
 	case 12:
