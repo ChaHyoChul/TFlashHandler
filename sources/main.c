@@ -259,27 +259,26 @@ void DoCmd(char *cmd)
 		return;
 	}
 
-	if (strncmp(cmd, "VER", 3) == 0)
+	if (IS_COMMAND_N(cmd, "VER"))
 	{
 		sendf("VER STAIN-V2 %s, Firmware:%03X\r\n", SOFTWARE_VERSION, FIRMWARE_VER);
-		sendf("Size char(%d) short(%d) int(%d) float(%d) double(%d)", sizeof(char), sizeof(short), sizeof(int), sizeof(float), sizeof(double));
+		// sendf("Size char(%d) short(%d) int(%d) float(%d) double(%d)", sizeof(char), sizeof(short), sizeof(int), sizeof(float), sizeof(double));
 	}
-	else if (strncmp(cmd, "ACD", 3) == 0)
+	else if (IS_COMMAND_N(cmd, "ACD"))
 	{
 		sprintf(str, "ACD %s\r\n", get_axes_sensor());
 		send(str);
 	}
-	else if (strncmp(cmd, "APS", 3) == 0)
+	else if (IS_COMMAND_N(cmd, "ASP"))
 	{
 		for (i = 0; i < MAX_AXIS; ++i)
 		{
 			motor_pos[i] = get_motor_pos(i);
 		}
-		
 		snprintf(str, 127, "APS %.2f,%.2f,%.2f\r\n", motor_pos[0], motor_pos[1], motor_pos[2]);
 		send(str);
 	}
-	else if (strncmp(cmd, "MPS", 3) == 0)
+	else if (IS_COMMAND_N(cmd, "MPS"))
 	{
 		for (i = 0; i < MAX_AXIS; ++i)
 		{
@@ -289,21 +288,20 @@ void DoCmd(char *cmd)
 		snprintf(str, 127, "MPS %.2f,%.2f,%.2f\r\n", motor_pos[0], motor_pos[1], motor_pos[2]);
 		send(str);
 	}
-	else if (strncmp(cmd, "IDI", 3) == 0)
+	else if (IS_COMMAND(cmd, "IDI"))
 	{
 		char temp[64];
 
 		if (strlen(cmd) < 4)
 		{
-			SetIdiBuffer("IDI E06\r\n");
+			SetIdiBuffer("IDI E06\r\n");	// no uesed
 			return;
 		}
 		
 		ch_temp = atoi(cmd+4);
 		
 		idi_no = 1;
-		//comma_pos = strchr(cmd+4, ',');
-		comma_pos = cha_strchr(cmd+4, ',');
+		comma_pos = strchr(cmd+4, ',');
 
 		if (comma_pos != 0)
 		{
@@ -312,7 +310,7 @@ void DoCmd(char *cmd)
 		
 		if (idi_no < 1)
 		{
-			SetIdiBuffer("IDI E06\r\n");
+			SetIdiBuffer("IDI E06\r\n");	// 채널 개수 
 			return;
 		}
 		
@@ -330,19 +328,18 @@ void DoCmd(char *cmd)
 		
 		SetIdiBuffer(str);
 	}
-	else if (strncmp(cmd, "IDO", 3) == 0)
+	else if (IS_COMMAND(cmd, "IDO"))
 	{
 		if (strlen(cmd) < 4)
 		{
-			SetIdoBuffer("IDO E06\r\n");
+			SetIdoBuffer("IDO E06\r\n");	// no used 
 			return;
 		}
 		
 		ch_temp = atoi(cmd+4);
 		
 		idi_no = 1;
-		//comma_pos = strchr(cmd+4, ',');
-		comma_pos = cha_strchr(cmd+4, ',');
+		comma_pos = strchr(cmd+4, ',');
 		if (comma_pos != 0)
 		{
 			idi_no = atoi(comma_pos + 1);
@@ -350,7 +347,7 @@ void DoCmd(char *cmd)
 		
 		if (idi_no < 1)
 		{
-			SetIdoBuffer("IDO E06\r\n");
+			SetIdoBuffer("IDO E06\r\n");	// 채널 개수 
 			return;
 		}
 		
@@ -368,7 +365,7 @@ void DoCmd(char *cmd)
 		
 		SetIdoBuffer(str);
 	}
-	else if (strncmp(cmd, "IOT", 3) == 0)
+	else if (IS_COMMAND(cmd, "IOT"))
 	{
 		if (strlen(cmd) < 8)
 		{
@@ -376,8 +373,7 @@ void DoCmd(char *cmd)
 			return;
 		}
 		
-		//comma_pos = strchr(cmd+3, '-');
-		comma_pos = cha_strchr(cmd+3, '-');
+		comma_pos = strchr(cmd+3, '-');
 		if (comma_pos == 0)
 		{
 			send("IOT E06\r\n");
@@ -387,8 +383,7 @@ void DoCmd(char *cmd)
 		ch_temp = atoi(cmd+4);
 		iot_bit = atoi(comma_pos+1);
 		
-		//comma_pos = strchr(comma_pos+1, ':');
-		comma_pos = cha_strchr(comma_pos+1, ':');
+		comma_pos = strchr(comma_pos+1, ':');
 		
 		if (comma_pos == 0)
 		{
@@ -414,22 +409,20 @@ void DoCmd(char *cmd)
 		}
 		send("IOT\r\n");
 	}
-	else if (strncmp(cmd, "ERR", 3) == 0)
+	else if (IS_COMMAND(cmd, "ERR"))
 	{
 		SendResponseRaw("ERR", g_ErrorCode);
 	}
-	else if (strncmp(cmd, "DRT", 3) == 0)
+	else if (IS_COMMAND(cmd, "DRT"))
 	{
 		clear_error();
 		send("DRT\r\n");
 	}
-	else if (strncmp(cmd, "VAR", 3) == 0)
+	else if (IS_COMMAND(cmd, "VAR"))
 	{
-	//	ch = strstr(cmd, "VAR");
-		ch = cha_strstr(cmd, "VAR");
-	//	ch = strchr(ch+3, 'V');  
-		ch = cha_strchr(ch+3, 'V');
-
+		ch = strstr(cmd, "VAR");
+		ch = strchr(ch+3, 'V');  
+	
 		if (ch == 0)
 		{
 			send("VAR E01\r\n");
@@ -446,9 +439,8 @@ void DoCmd(char *cmd)
 				return;
 			}
 			
-			//ch = strchr(ch+1, '=');
-			ch = cha_strchr(ch+1, '=');
-
+			ch = strchr(ch+1, '=');
+			
 			if (ch == 0)
 			{
 				// get var
@@ -465,7 +457,7 @@ void DoCmd(char *cmd)
 			}
 		}		
 	}
-	else if (strncmp(cmd, "POR", 3) == 0)
+	else if (IS_COMMAND(cmd, "POR"))
 	{
 		if (! IsStopped())
 		{
@@ -482,14 +474,13 @@ void DoCmd(char *cmd)
 		// check cmd length
 		if (strlen(cmd) < 4)
 		{
-			send("POR E04\r\n");
+			send("POR E04\r\n");	// no used 
 			return;
 		}
 		
 		por_pd_no = atoi(cmd+4);
 		por_no = 1;
-		//por_comma_pos = strchr(cmd+3, ',');
-		por_comma_pos = cha_strchr(cmd+3, ',');
+		por_comma_pos = strchr(cmd+3, ',');
 		if (por_comma_pos != 0)
 		{
 			por_no = atoi(por_comma_pos+1);
@@ -504,7 +495,7 @@ void DoCmd(char *cmd)
 		
 		send("POE\r\n");
 	}
-	else if (strncmp(cmd, "POF", 3) == 0)
+	else if (IS_COMMAND(cmd, "POF"))
 	{
 		if (! IsStopped())
 		{
@@ -521,15 +512,14 @@ void DoCmd(char *cmd)
 		// check length
 		if (strlen(cmd) < 4)
 		{
-			send("POF E04\r\n");
+			send("POF E04\r\n");	// no used 
 			g_PointDataCommandState = CMD_READY;
 			return;
 		}
 		
 		pof_flag = atoi(cmd+4);
 		pof_pd_no = 1;
-		//pof_comma_pos = strchr(cmd+3, ',');
-		pof_comma_pos = cha_strchr(cmd+3, ',');
+		pof_comma_pos = strchr(cmd+3, ',');
 		
 		switch (pof_flag)
 		{
@@ -576,7 +566,7 @@ void DoCmd(char *cmd)
 		
 		send("POF\r\n");
 	}
-	else if (strncmp(cmd, "POS", 3) == 0)
+	else if (IS_COMMAND(cmd, "POS"))
 	{
 		if (g_PointDataCommandState != CMD_POF_RECV)
 		{
@@ -590,8 +580,7 @@ void DoCmd(char *cmd)
 		
 		pd = get_point_data(pof_pd_no);
 		
-		//pos_comma_pos = strchr(g_strtemp+3, ',');
-		pos_comma_pos = cha_strchr(g_strtemp+3, ',');
+		pos_comma_pos = strchr(g_strtemp+3, ',');
 		if (pos_comma_pos == 0)
 		{
 			g_PointDataCommandState = CMD_READY;
@@ -602,8 +591,7 @@ void DoCmd(char *cmd)
 		pd.x = my_atof((char*)(g_strtemp+3));
 		pd.y = my_atof((char*)(pos_comma_pos+1));
 
-		//pos_comma_pos = strchr(pos_comma_pos+1, ',');
-		pos_comma_pos = cha_strchr(pos_comma_pos+1, ',');
+		pos_comma_pos = strchr(pos_comma_pos+1, ',');
 				
 		if (pos_comma_pos == 0)
 		{
@@ -622,7 +610,7 @@ void DoCmd(char *cmd)
 		send("POS\r\n");
 		return;
 	}
-	else if (strncmp(cmd, "POM", 3) == 0)
+	else if (IS_COMMAND(cmd, "POM"))
 	{
 		if (! IsOriginCompleted())
 		{
@@ -658,11 +646,13 @@ void DoCmd(char *cmd)
 		pd = get_point_data(int_temp);
 		
 		// check pd
+		// 2021.09.28 얼라이너 전용 같아서 주석 처리 
+		/*
 		if (fabs(pd.x) > 30.0 || fabs(pd.y) > 30.0)
 		{
 			send("POM E08\r\n");
 			return;
-		}
+		}*/
 		
 		g_MoveOffset[0] = (pd.x - get_motor_pos(0)) / g_MotionParam[0].m_fScaleFactor;
 		g_MoveOffset[1] = (pd.x - get_motor_pos(1)) / g_MotionParam[1].m_fScaleFactor;
@@ -672,7 +662,7 @@ void DoCmd(char *cmd)
 		SetControlCommand(COMM_PTP);
 		SetCommand("POM");
 	}
-	else if (strncmp(cmd, "ORG", 3) == 0)
+	else if (IS_COMMAND(cmd, "ORG"))
 	{
 		if (! IsStopped())
 		{
@@ -691,7 +681,7 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("ORG\r\n");
 	}
-	else if (strncmp(cmd, "ORA", 3) == 0)
+	else if (IS_COMMAND(cmd, "ORA"))
 	{
 		if (! IsStopped())
 		{
@@ -725,12 +715,11 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("ORA\r\n");
 	}
-	else if (strncmp(cmd, "JOG", 3) == 0)
+	else if (IS_COMMAND(cmd, "JOG"))
 	{
 		if (strlen(cmd) > 4)
 		{
-			//ch = (strchr(cmd, 'G')) + 2;
-			ch = (cha_strchr(cmd, 'G')) + 2;
+			ch = (strchr(cmd, 'G')) + 2;
 			
 			switch (*ch)
 			{
@@ -785,7 +774,7 @@ void DoCmd(char *cmd)
 		sprintf(str, "JOG\r\n");
 		SerialWriteBytes(UART_PORT0, str, strlen(str));
 	}
-	else if (strncmp(cmd, "LMI", 3) == 0)
+	else if (IS_COMMAND(cmd, "LMI"))
 	{
 		
 		if (! IsStopped())
@@ -802,8 +791,7 @@ void DoCmd(char *cmd)
 
 		SetCommand("LMI");
 		
-		//ch = strstr(cmd, "LMI");
-		ch = cha_strstr(cmd, "LMI");
+		ch = strstr(cmd, "LMI");
 		ch = ch + 3;
 		ints = str_to_ints(ch);
 		dbls = str_to_doubles(ch);
@@ -815,15 +803,15 @@ void DoCmd(char *cmd)
 		
 		SetControlCommand(COMM_PTP);
 	}
-	else if (strncmp(cmd, "LMA", 3) == 0)
+	else if (IS_COMMAND(cmd, "LMA"))
 	{		
-		if (! IsOriginCompleted())
+		if (!IsOriginCompleted())
 		{
 			SendResponseRaw("LMA", ERR_ORIGIN_ERROR);
 			return;
 		}
 
-		if (! IsStopped())
+		if (!IsStopped())
 		{
 			SendResponseRaw("LMA", ERR_COMMAND_IN_RUNNING);
 			return;
@@ -831,8 +819,7 @@ void DoCmd(char *cmd)
 	
 		SetCommand("LMA");
 			
-		//ch = strstr(cmd, "LMA");
-		ch = cha_strstr(cmd, "LMA");
+		ch = strstr(cmd, "LMA");
 		ch = ch + 3;
 		ints = str_to_ints(ch);
 		dbls = str_to_doubles(ch);
@@ -845,9 +832,8 @@ void DoCmd(char *cmd)
 		SetControlCommand(COMM_PTP);
 		SetCommand("LMA");
 	}
-	else if (strncmp(cmd, "MMI", 3) == 0)
+	else if (IS_COMMAND(cmd, "MMI"))
 	{
-		
 		if (! IsStopped())
 		{
 			SendResponseRaw("MMI", ERR_COMMAND_IN_RUNNING);
@@ -862,8 +848,7 @@ void DoCmd(char *cmd)
 
 		SetCommand("MMI");
 		
-		//ch = strstr(cmd, "MMI");
-		ch = cha_strstr(cmd, "MMI");
+		ch = strstr(cmd, "MMI");
 		ch = ch + 3;
 		ints = str_to_ints(ch);
 		dbls = str_to_doubles(ch);
@@ -877,7 +862,7 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MMI\r\n");
 	}
-	else if (strncmp(cmd, "MMA", 3) == 0)
+	else if (IS_COMMAND(cmd, "MMA"))
 	{		
 		if (! IsOriginCompleted())
 		{
@@ -893,8 +878,7 @@ void DoCmd(char *cmd)
 	
 		SetCommand("MMA");
 			
-		//ch = strstr(cmd, "MMA");
-		ch = cha_strstr(cmd, "MMA");
+		ch = strstr(cmd, "MMA");
 		ch = ch + 3;
 		ints = str_to_ints(ch);
 		dbls = str_to_doubles(ch);
@@ -909,7 +893,7 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MMA\r\n");
 	}
-	else if (strncmp(cmd, "ASS", 3) == 0)
+	else if (IS_COMMAND(cmd, "ASS"))
 	{
 		MoveStop(0);
 		MoveStop(1);
@@ -920,10 +904,9 @@ void DoCmd(char *cmd)
 		sprintf(str, "ASS\r\n");
 		SerialWriteBytes(UART_PORT0, str, strlen(str));
 	}
-	else if (strncmp(cmd, "OSL", 3) == 0)
+	else if (IS_COMMAND(cmd, "OSL"))
 	{
-		//ch = strstr(cmd, "OSL");
-		ch = cha_strstr(cmd, "OSL");
+		ch = strstr(cmd, "OSL");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -938,10 +921,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "HMV", 3) == 0)
+	else if (IS_COMMAND(cmd, "HMV"))
 	{
-		//ch = strstr(cmd, "HMV");
-		ch = cha_strstr(cmd, "HMV");
+		ch = strstr(cmd, "HMV");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -956,10 +938,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "HMB", 3) == 0)
+	else if (IS_COMMAND(cmd, "HMB"))
 	{
-		//ch = strstr(cmd, "HMB");
-		ch = cha_strstr(cmd, "HMB");
+		ch = strstr(cmd, "HMB");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -974,10 +955,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "VSO", 3) == 0)
+	else if (IS_COMMAND(cmd, "VSO"))
 	{
-		//ch = strstr(cmd, "VSO");
-		ch = cha_strstr(cmd, "VSO");
+		ch = strstr(cmd, "VSO");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -992,10 +972,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "VSN", 3) == 0)
+	else if (IS_COMMAND(cmd, "VSN"))
 	{
-		//ch = strstr(cmd, "VSN");
-		ch = cha_strstr(cmd, "VSN");
+		ch = strstr(cmd, "VSN");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1010,10 +989,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "VSL", 3) == 0)
+	else if (IS_COMMAND(cmd, "VSL"))
 	{
-		//ch = strstr(cmd, "VSL");
-		ch = cha_strstr(cmd, "VSL");
+		ch = strstr(cmd, "VSL");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1028,10 +1006,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "VJO", 3) == 0)
+	else if (IS_COMMAND(cmd, "VJO"))
 	{
-		//ch = strstr(cmd, "VJO");
-		ch = cha_strstr(cmd, "VJO");
+		ch = strstr(cmd, "VJO");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1046,10 +1023,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "VJL", 3) == 0)
+	else if (IS_COMMAND(cmd, "VJL"))
 	{
-		//ch = strstr(cmd, "VJL");
-		ch = cha_strstr(cmd, "VJL");
+		ch = strstr(cmd, "VJL");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1064,10 +1040,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "VST", 3) == 0)
+	else if (IS_COMMAND(cmd, "VST"))
 	{
-		//ch = strstr(cmd, "VST");
-		ch = cha_strstr(cmd, "VST");
+		ch = strstr(cmd, "VST");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1082,10 +1057,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "POD", 3) == 0)
+	else if (IS_COMMAND(cmd, "POD"))
 	{
-		//ch = strstr(cmd, "POD");
-		ch = cha_strstr(cmd, "POD");
+		ch = strstr(cmd, "POD");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1100,10 +1074,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "PPD", 3) == 0)
+	else if (IS_COMMAND(cmd, "PPD"))
 	{
-		//ch = strstr(cmd, "PPD");
-		ch = cha_strstr(cmd, "PPD");
+		ch = strstr(cmd, "PPD");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1118,10 +1091,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "ENS", 3) == 0)
+	else if (IS_COMMAND(cmd, "ENS"))
 	{
-		//ch = strstr(cmd, "ENS");
-		ch = cha_strstr(cmd, "ENS");
+		ch = strstr(cmd, "ENS");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1136,10 +1108,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "HMN", 3) == 0)
+	else if (IS_COMMAND(cmd, "HMN"))
 	{
-		//ch = strstr(cmd, "HMN");
-		ch = cha_strstr(cmd, "HMN");
+		ch = strstr(cmd, "HMN");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1154,10 +1125,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "AHM", 3) == 0)
+	else if (IS_COMMAND(cmd, "AHM"))
 	{
-		//ch = strstr(cmd, "AHM");
-		ch = cha_strstr(cmd, "AHM");
+		ch = strstr(cmd, "AHM");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1172,10 +1142,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "ANL", 3) == 0)
+	else if (IS_COMMAND(cmd, "ANL"))
 	{
-		//ch = strstr(cmd, "ANL");
-		ch = cha_strstr(cmd, "ANL");
+		ch = strstr(cmd, "ANL");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1190,10 +1159,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "APL", 3) == 0)
+	else if (IS_COMMAND(cmd, "APL"))
 	{
-		//ch = strstr(cmd, "APL");
-		ch = cha_strstr(cmd, "APL");
+		ch = strstr(cmd, "APL");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1208,10 +1176,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "ALD", 3) == 0)
+	else if (IS_COMMAND(cmd, "ALD"))
 	{
-		//ch = strstr(cmd, "ALD");
-		ch = cha_strstr(cmd, "ALD");
+		ch = strstr(cmd, "ALD");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1226,10 +1193,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "AEN", 3) == 0)
+	else if (IS_COMMAND(cmd, "AEN"))
 	{
-		//ch = strstr(cmd, "AEN");
-		ch = cha_strstr(cmd, "AEN");
+		ch = strstr(cmd, "AEN");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1244,10 +1210,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "ASF", 3) == 0)
+	else if (IS_COMMAND(cmd, "ASF"))
 	{
-		//ch = strstr(cmd, "ASF");
-		ch = cha_strstr(cmd, "ASF");
+		ch = strstr(cmd, "ASF");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1262,9 +1227,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
-	else if (strncmp(cmd, "HTQ", 3) == 0)
+	else if (IS_COMMAND(cmd, "HTQ"))
 	{
-		ch = cha_strstr(cmd, "HTQ");
+		ch = strstr(cmd, "HTQ");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1279,9 +1244,9 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	} 
-	else if (strncmp(cmd, "MTQ", 3) == 0)
+	else if (IS_COMMAND(cmd, "MTQ"))
 	{
-		ch = cha_strstr(cmd, "MTQ");
+		ch = strstr(cmd, "MTQ");
 		ch = strnosp(ch + 3);
 		if (strlen(ch) == 0)
 		{
@@ -1299,7 +1264,7 @@ void DoCmd(char *cmd)
 	///////
 	// Debugging command \
 	// OCP 는 원점복귀를 안하고, 한 것 처럼 설정을 바꾸고, 현재 위치를 0으로 설정한다 
-	else if (strncmp(cmd, "OCP", 3) == 0)
+	else if (IS_COMMAND(cmd, "OCP"))
 	{
 		SetOriginCompletedFlag(0, TRUE);
 		CounterReset(0);

@@ -39,29 +39,30 @@ typedef struct _POINT_DATA
 // ��� ������ �ʿ��� �Ķ����
 typedef struct _MOTION_PARAM
 {
-	unsigned int 	m_uOrgSLimit;	//00 (4)���� ������ ����Ʈ ����Ʈ (���� : pulse, ���� : 0 ~ 2147483647)
-	unsigned char 	m_ucOrgDir;		//01 (1)���� ������ ã�ư� ���� (0 : CW, 1 : CCW)
-	unsigned char	m_ucOrgNeed;	//02 (1)���� ���� �ʿ� ����
-	unsigned int 	m_uOrgVmax;		//03 (4)���� ������ �ִ� �ӵ� (���� : pps, ���� : 0 ~ 524287)
-	unsigned int 	m_uOrgVmin;		//04 (4)���� ������ ���� �ӵ� (���� : pps, ���� : 0 ~ 32767)
-	unsigned int 	m_uOrgAcel;		//05 (4)���� ������ ��/�� �ӵ� (���� : ?, ���� : 0 ~ 1023)
-	unsigned int 	m_uNorVmax;		//06 (4)Normal ���۽� �ִ� �ӵ� (���� : pps, ���� : 0 ~ 524287)
-	unsigned int 	m_uNorVmin;		//07 (4)Normal ���۽� ���� �ӵ� (���� : pps, ���� : 0 ~ 32767)
-	unsigned int 	m_uNorAcel;		//08 (4)Normal ���۽� ��/�� �ӵ� (���� : ?, ���� : 0 ~ 1023)
-	unsigned int	m_uJogVmax;		//09 (4)JOG ���۽� �ִ� �ӵ� (���� :pps : 0 ~ 524287)
-	unsigned int	m_uJogVmin;		//10 (4)JOG ���۽� ���� �ӵ� (���� :pps : 0 ~ 32767)
-	unsigned int	m_uJogAcel;		//11 (4)JOG ���۽� ��/�� �ӵ� (���� :pps : 0 ~ 1023)
-	int 			m_nHomeOff;		//12 (4)�������� Home ��ġ������ Offset (���� : pulse)
-	unsigned char	m_ucMoveDir;	//13 (1)���� �̵� ����
-	unsigned char	m_ucEncSign;	//14 (1)���ڴ� ��ȣ
-	double			m_fLead;		//15 (8)Lead
-	unsigned int	m_ucEncPulse;	//16 (4)���� 1ȸ�� �޽��� (�⺻ : 3200)
-	double			m_fScaleFactor;	//17 (8)���� Scale Facotr ( = m_fLead/m_ucEncPulse )
-	unsigned char	m_ucOrgSensor;	//18 (1)Origin Sensor
-	unsigned char	m_ucNegLimit;	//19 (1)Negative Limit Sensor
-	unsigned char	m_ucPosLimit;	//20 (1)Positive Limit Sensor
-	unsigned char 	m_ucHoldTorque;	//21 (1)Hold Torque 
-	unsigned char 	m_ucMoveTorque;	//22 (1)Move Torque 
+	unsigned int 	m_uOrgSLimit;	//00 4(4)���� ������ ����Ʈ ����Ʈ (���� : pulse, ���� : 0 ~ 2147483647)
+	unsigned char 	m_ucOrgDir;		//01 5(1)���� ������ ã�ư� ���� (0 : CW, 1 : CCW)
+	unsigned char	m_ucOrgNeed;	//02 6(1)���� ���� �ʿ� ����
+	unsigned int 	m_uOrgVmax;		//03 10(4)���� ������ �ִ� �ӵ� (���� : pps, ���� : 0 ~ 524287)
+	unsigned int 	m_uOrgVmin;		//04 14(4)���� ������ ���� �ӵ� (���� : pps, ���� : 0 ~ 32767)
+	unsigned int 	m_uOrgAcel;		//05 18(4)���� ������ ��/�� �ӵ� (���� : ?, ���� : 0 ~ 1023)
+	unsigned int 	m_uNorVmax;		//06 22(4)Normal ���۽� �ִ� �ӵ� (���� : pps, ���� : 0 ~ 524287)
+	unsigned int 	m_uNorVmin;		//07 26(4)Normal ���۽� ���� �ӵ� (���� : pps, ���� : 0 ~ 32767)
+	unsigned int 	m_uNorAcel;		//08 30(4)Normal ���۽� ��/�� �ӵ� (���� : ?, ���� : 0 ~ 1023)
+	unsigned int	m_uJogVmax;		//09 34(4)JOG ���۽� �ִ� �ӵ� (���� :pps : 0 ~ 524287)
+	unsigned int	m_uJogVmin;		//10 38(4)JOG ���۽� ���� �ӵ� (���� :pps : 0 ~ 32767)
+	unsigned int	m_uJogAcel;		//11 42(4)JOG ���۽� ��/�� �ӵ� (���� :pps : 0 ~ 1023)
+	int 			m_nHomeOff;		//12 46(4)�������� Home ��ġ������ Offset (���� : pulse)
+	unsigned char	m_ucMoveDir;	//13 47(1)���� �̵� ����
+	unsigned char	m_ucEncSign;	//14 48(1)���ڴ� ��ȣ
+	double			m_fLead;		//15 56(8)Lead
+	unsigned int	m_ucEncPulse;	//16 60(4)���� 1ȸ�� �޽��� (�⺻ : 3200)
+	double			m_fScaleFactor;	//17 68(8)���� Scale Facotr ( = m_fLead/m_ucEncPulse )
+	unsigned char	m_ucOrgSensor;	//18 69(1)Origin Sensor
+	unsigned char	m_ucNegLimit;	//19 70(1)Negative Limit Sensor
+	unsigned char	m_ucPosLimit;	//20 71(1)Positive Limit Sensor
+	unsigned char 	m_ucHoldTorque;	//21 72(1)Hold Torque 
+	unsigned char 	m_ucMoveTorque;	//22 73(1)Move Torque 
+	unsigned char 	m_reversed[7];	// 
 } MOTION_PARAM;
 
 #define MOTION_PARAM_ORG_SOFT_LIMIT		(0)

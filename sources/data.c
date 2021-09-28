@@ -59,6 +59,7 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 						12,				// m_ucPosLimit
 						5,				// m_ucHoldTorque
 						10,				// m_ucMoveTroque
+						//0,0,0,0,0,0,0,
 						},
 					// X_AXIS
 						{2147483647,	// m_uOrgSLimit
@@ -84,6 +85,7 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 						12,				// m_ucPosLimit
 						5,				// m_ucHoldTorque
 						10,				// m_ucMoveTroque
+						//0,0,0,0,0,0,0,
 						},
 					// Y_AXIS
 						{2147483647,	// m_uOrgSLimit
@@ -109,6 +111,7 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 						12,				// m_ucPosLimit
 						5,				// m_ucHoldTorque
 						10,				// m_ucMoveTroque
+						//0,0,0,0,0,0,0,
 						}
 						};
 
@@ -314,9 +317,11 @@ void init_eeprom()
 }
 
 // bychul2. _MB() 함수 문제로 _1B() 함수 사용 
+// 라이브러리 수정 후 원상복귀 후 테스트 => 저장 안되서 byte 함수로 복구 
 void save_motion_param()
 {
 //	WriteI2C_MB(ADDR_EEP_MOTION_PARAM, (unsigned char *)&g_MotionParam, sizeof(g_MotionParam));
+
 	int i = 0;
 	int len = sizeof(g_MotionParam);
 	unsigned char* p = (unsigned char*)&g_MotionParam;

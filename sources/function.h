@@ -51,6 +51,7 @@ void set_param_f(int type, DOUBLES dbls);
 
 double my_atof(const char* s);
 
+// 아래 함수 필요 없음 
 char* cha_strchr(char* str, char c);
 char* cha_strstr(char* str, char* sub);
 

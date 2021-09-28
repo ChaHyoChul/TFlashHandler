@@ -124,8 +124,7 @@ INTS str_to_ints(char* str)
 			continue;
 		}
 		
-		//s2 = strchr(str, sp);
-		s2 = cha_strchr(str, sp);
+		s2 = strchr(str, sp);
 		if (str == s2)
 		{
 			ints.flag[i] = 0;
@@ -191,8 +190,7 @@ DOUBLES str_to_doubles(char* str)
 			continue;
 		}
 
-		//s2 = strchr(str, sp);
-		s2 = cha_strchr(str, sp);
+		s2 = strchr(str, sp);
 		if (str == s2)
 		{
 			dbls.flag[i] = 0;
