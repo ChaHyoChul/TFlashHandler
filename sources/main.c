@@ -1057,6 +1057,23 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	}
+	else if (IS_COMMAND(cmd, "VJT")) // bychul2 추가 
+	{
+		ch = strstr(cmd, "VJT");
+		ch = strnosp(ch + 3);
+		if (strlen(ch) == 0)
+		{
+			ints = get_param(MOTION_PARAM_JOG_ACCEL);
+			sprintf(str, "VJT %s\r\n", ints_to_str(ints));
+		}
+		else
+		{
+			ints = str_to_ints(ch);
+			set_param(MOTION_PARAM_JOG_ACCEL, ints);
+			sprintf(str, "VJT\r\n");
+		}
+		send(str);
+	}
 	else if (IS_COMMAND(cmd, "POD"))
 	{
 		ch = strstr(cmd, "POD");
@@ -1261,8 +1278,196 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	} 
+	/////////////////////////////////////////////////////////
+	// T-Flask Command 
+	else if (IS_COMMAND_N(cmd, "MRST"))	// Motion Param Reset 
+	{
+		if (! IsStopped())
+		{
+			SendResponseRaw("MRST", ERR_COMMAND_IN_RUNNING);
+			return;
+		}
+
+		if (IsError())
+		{
+			SendResponseRaw("MRST", ERR_COMMAND_IN_ERROR);
+			return;
+		}
+
+		reset_motion_param();
+
+		send("MRST\r\n");
+	}
+	else if (IS_COMMAND_N(cmd, "HOME"))	// 원점복귀 
+	{
+		if (! IsStopped())
+		{
+			SendResponseRaw("HOME", ERR_COMMAND_IN_RUNNING);
+			return;
+		}
+
+		if (IsError())
+		{
+			SendResponseRaw("HOME", ERR_COMMAND_IN_ERROR);
+			return;
+		}
+
+		SetCommand("HOME");
+		SetControlCommand(COMM_HOME);
+		g_ResponseSend = 1;
+		send("HOME\r\n");
+	}
+	else if (IS_COMMAND(cmd, "MGRI"))	// Grip
+	{
+		if (!IsOriginCompleted())
+		{
+			SendResponseRaw("MGRI", ERR_ORIGIN_ERROR);
+			return ;
+		}
+		if (!IsStopped()) {
+			SendResponseRaw("MGRI", ERR_COMMAND_IN_RUNNING);
+			return ;
+		}
+		if (IsError()) {
+			SendResponseRaw("MGRI", ERR_COMMAND_IN_ERROR);
+			return ;
+		}
+
+		// 위치를 계산해 g_MoveOffset[Z_AXIS]에 저장한다 
+		pd = get_point_data(1);
+		g_MoveOffset[X_AXIS] = 0;
+		g_MoveOffset[Y_AXIS] = 0;
+		g_MoveOffset[Z_AXIS] = (pd.z - get_motor_pos(Z_AXIS)) / g_MotionParam[Z_AXIS].m_fScaleFactor;
+
+		SetCommand("MGRI");
+		SetControlCommand(COMM_MGRI);
+		g_ResponseSend = 1;
+		send("MGRI\r\n");
+	}
+	else if (IS_COMMAND(cmd, "MUNG"))	// UnGrip
+	{
+		if (!IsOriginCompleted())
+		{
+			SendResponseRaw("MUNG", ERR_ORIGIN_ERROR);
+			return ;
+		}
+		if (!IsStopped()) {
+			SendResponseRaw("MUNG", ERR_COMMAND_IN_RUNNING);
+			return ;
+		}
+		if (IsError()) {
+			SendResponseRaw("MUNG", ERR_COMMAND_IN_ERROR);
+			return ;
+		}
+
+		// 위치를 계산해 g_MoveOffset[Z_AXIS]에 저장한다 
+		// offset = target_pos - current_pos 
+		pd = get_point_data(2);
+		g_MoveOffset[X_AXIS] = 0;
+		g_MoveOffset[Y_AXIS] = 0;
+		g_MoveOffset[Z_AXIS] = (pd.z - get_motor_pos(Z_AXIS)) / g_MotionParam[Z_AXIS].m_fScaleFactor;
+
+		SetCommand("MUNG");
+		SetControlCommand(COMM_MGRI);
+		g_ResponseSend = 1;
+		send("MUNG\r\n");
+	}
+	else if (IS_COMMAND(cmd, "MLOA"))	// Move Load Position
+	{
+		if (!IsOriginCompleted())
+		{
+			SendResponseRaw("MLOA", ERR_ORIGIN_ERROR);
+			return ;
+		}
+		if (!IsStopped()) {
+			SendResponseRaw("MLOA", ERR_COMMAND_IN_RUNNING);
+			return ;
+		}
+		if (IsError()) {
+			SendResponseRaw("MLOA", ERR_COMMAND_IN_ERROR);
+			return ;
+		}
+
+		// 위치를 계산해 g_MoveOffset에 저장한다 
+		// offset = target_pos - current_pos 
+		pd = get_point_data(3);
+		g_MoveOffset[X_AXIS] = (pd.x - get_motor_pos(X_AXIS)) / g_MotionParam[X_AXIS].m_fScaleFactor;
+		g_MoveOffset[Y_AXIS] = (pd.y - get_motor_pos(Y_AXIS)) / g_MotionParam[Y_AXIS].m_fScaleFactor;
+		g_MoveOffset[Z_AXIS] = 0;
+
+		SetCommand("MLOA");
+		SetControlCommand(COMM_MLOA);
+		g_ResponseSend = 1;
+		send("MLOA\r\n");
+	}
+	else if (IS_COMMAND(cmd, "MASP"))	// Move Aspirate Position 
+	{
+		if (!IsOriginCompleted())
+		{
+			SendResponseRaw("MASP", ERR_ORIGIN_ERROR);
+			return ;
+		}
+		if (!IsStopped()) {
+			SendResponseRaw("MASP", ERR_COMMAND_IN_RUNNING);
+			return ;
+		}
+		if (IsError()) {
+			SendResponseRaw("MASP", ERR_COMMAND_IN_ERROR);
+			return ;
+		}
+
+		// 위치를 계산해 g_MoveOffset에 저장한다 
+		// offset = target_pos - current_pos 
+		pd = get_point_data(4);
+		g_MoveOffset[X_AXIS] = (pd.x - get_motor_pos(X_AXIS)) / g_MotionParam[X_AXIS].m_fScaleFactor;
+		g_MoveOffset[Y_AXIS] = (pd.y - get_motor_pos(Y_AXIS)) / g_MotionParam[Y_AXIS].m_fScaleFactor;
+		g_MoveOffset[Z_AXIS] = 0;
+
+		SetCommand("MASP");
+		SetControlCommand(COMM_MASP);
+		g_ResponseSend = 1;
+		send("MASP\r\n");
+	}
+	else if (IS_COMMAND(cmd, "MDIS"))	// Move Dispense Position 
+	{
+		if (!IsOriginCompleted())
+		{
+			SendResponseRaw("MDIS", ERR_ORIGIN_ERROR);
+			return ;
+		}
+		if (!IsStopped()) {
+			SendResponseRaw("MDIS", ERR_COMMAND_IN_RUNNING);
+			return ;
+		}
+		if (IsError()) {
+			SendResponseRaw("MDIS", ERR_COMMAND_IN_ERROR);
+			return ;
+		}
+
+		// 위치를 계산해 g_MoveOffset에 저장한다 
+		// offset = target_pos - current_pos 
+		pd = get_point_data(5);
+		g_MoveOffset[X_AXIS] = (pd.x - get_motor_pos(X_AXIS)) / g_MotionParam[X_AXIS].m_fScaleFactor;
+		g_MoveOffset[Y_AXIS] = (pd.y - get_motor_pos(Y_AXIS)) / g_MotionParam[Y_AXIS].m_fScaleFactor;
+		g_MoveOffset[Z_AXIS] = 0;
+
+		SetCommand("MDIS");
+		SetControlCommand(COMM_MDIS);
+		g_ResponseSend = 1;
+		send("MDIS\r\n");
+	}
+	else if (IS_COMMAND(cmd, "MSHA"))	// Shake 
+	{
+
+	}
+	else if (IS_COMMAND(cmd, "MWAS"))	
+	{
+		// Waste. TODO: Rot 축 이동 후 Tilt 축을 이동한다 
+	}
+	// Separate Flask의 용액을 나누는 동작 
+	// TODO: Rot 90도(수평) -> Tilt -> Rot 0도  
 	///////
-	// Debugging command \
+	// Debugging command 
 	// OCP 는 원점복귀를 안하고, 한 것 처럼 설정을 바꾸고, 현재 위치를 0으로 설정한다 
 	else if (IS_COMMAND(cmd, "OCP"))
 	{

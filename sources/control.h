@@ -4,7 +4,7 @@
 #include "data.h"
 
 
-// ¸ð¼Ç Á¦¾î ¸í·É¾î
+// ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½É¾ï¿½
 #define	COMM_IDLE			0
 #define	COMM_ORIGIN			1	// 
 #define	COMM_ALIGN			2	// 
@@ -17,6 +17,15 @@
 #define COMM_E_STOP			9
 #define COMM_ERROR_STOP		10
 #define COMM_ORIGIN_A		18
+
+#define COMM_HOME			31	// homming 
+#define COMM_MGRI			32	// grip					PD1
+#define COMM_MUNG			33	// ungrip 				PD2 	
+#define COMM_MLOA			34	// movexy(load) 		PD3
+#define COMM_MASP			35 	// movexy(aspirate) 	PD4
+#define COMM_MDIS			36 	// movexy(dispense) 	PD5  
+#define COMM_MSHA 			37 	// shake 				PD6-7 VAR6(íšŒìˆ˜) VAR7(Delay)  
+#define COMM_MWAS			38 	// waste 				PD8   VAR8(Delay) 
 
 // speed type at SetSpeed()
 #define SPEED_ORG			(0)
@@ -128,6 +137,21 @@ char CommOrigin();
 char CommOriginAxis();
 char CommMove();
 
+/*
+#define COMM_HOME			31	// homming 
+#define COMM_MGRI			32	// grip					PD1
+#define COMM_MUNG			33	// ungrip 				PD2 	
+#define COMM_MLOA			34	// movexy(load) 		PD3
+#define COMM_MASP			35 	// movexy(aspirate) 	PD4
+#define COMM_MDIS			36 	// movexy(dispense) 	PD5  
+#define COMM_MSHA 			37 	// shake 				PD6-7 VAR6(íšŒìˆ˜) VAR7(Delay)  
+#define COMM_MWAS			38 	// waste 				PD8   VAR8(Delay) 
+*/
+char CommHome();
+char CommGripUngrip();
+char CommMoveXY();
+char CommShake();
+char CommWaste();
 
 void UpdateOriginCompletedStatus();
 void SetOriginCompletedFlag(char axis, char flag);
@@ -137,10 +161,10 @@ void HoldMotors();
 void StopMotors();
 
 
-// ¸ð¼Ç °ü·Ã ÆÄ¶ó¹ÌÅÍ ÃÊ±âÈ­
+// ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ä¶ï¿½ï¿½ï¿½ï¿½ ï¿½Ê±ï¿½È­
 void InitAxis();
 
-// ¸ð¼Ç Á¦¾î ·çÆ¾ (1ms Å¸ÀÌ¸Ó ÀÎÅÍ·´Æ®)
+// ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Æ¾ (1ms Å¸ï¿½Ì¸ï¿½ ï¿½ï¿½ï¿½Í·ï¿½Æ®)
 void MainControl();
 
 

@@ -362,7 +362,7 @@ void UpdateState(char state)
 void MainControl()
 {
 	char res = 0;
-	
+
 	switch (g_MotionCommand)
 	{
 	case COMM_IDLE:		break;
@@ -370,6 +370,15 @@ void MainControl()
 	case COMM_PTP:		res = CommMove();	UpdateState(res);	break;
 	case COMM_ORIGIN_A:	res = CommOriginAxis();	UpdateState(res);	break;
 	case COMM_ERROR_STOP:	res = CommErrorStop();	UpdateState(res);	break;
+
+	case COMM_HOME:		res = CommHome(); UpdateState(res); break;
+	case COMM_MGRI:		res = CommGripUngrip(); UpdateState(res); break;
+	case COMM_MUNG:		res = CommGripUngrip(); UpdateState(res); break;
+	case COMM_MLOA:		res = CommMoveXY(); UpdateState(res); break;
+	case COMM_MASP:		res = CommMoveXY(); UpdateState(res); break;
+	case COMM_MDIS:		res = CommMoveXY(); UpdateState(res); break;
+	case COMM_MSHA:		res = CommShake(); UpdateState(res); break;
+	case COMM_MWAS:		res = CommWaste(); UpdateState(res); break;
 	}
 	
 	if (g_UserStop > 0)
@@ -1672,4 +1681,258 @@ void SetSpeed(char axis, int type)
 	MovVar[axis].m_ucMoveTorq = g_MotionParam[axis].m_ucMoveTorque; //(axis == Z_AXIS) ? MOVE_TORQUE : MOVE_TORQUE_3A;
 }
 
+/////////////////////////////////////////////////////////////
+// Gripper(3) -> Rotation(2) -> Tile(1) 순서로 Origin 한다 
+char CommHome()
+{
+	static int step = 0;
+	
+	int axis = 0;
+	
+	switch (step)
+	{
+	// Error Handling 
+	case 91:
+		StopMotors();
+		step++;
+		break;
+	case 92:
+		if (IsStopped()) { step++; }
+	case 93:
+		HoldMotors();
+		step = 0;
+		return ERROR_STOPPED;
+
+	// Start 
+	case 0:
+		for (axis = 0; axis < MAX_AXIS; axis++)
+		{
+			SetOriginCompletedFlag(axis, 0);
+		}
+		step = 3;
+		break;
+
+	case 3:
+		MovVar[Z_AXIS].m_uS = g_MotionParam[Z_AXIS].m_uOrgSLimit;
+		MovVar[Z_AXIS].m_ucDir = g_MotionParam[Z_AXIS].m_ucOrgDir;
+		SetSpeed(Z_AXIS, SPEED_ORG);
+
+		if (NEG_LIMIT(Z_AXIS) != SENS_ON && MoveStart(Z_AXIS)) 
+		{
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		else 
+		{
+			step++;
+		}
+
+		DelayMoveStart();
+		break;
+
+	case 4:
+		if (HOME_SENSOR(Z_AXIS) == SENS_ON)
+		{
+			MoveStop(Z_AXIS); 
+			step++;
+		}	
+		break;
+
+	case 5:
+		if (IsStopped) { step++; } 
+		break;
+
+	case 6:
+		break;
+	}
+}
+
+// g_MoveOffset[] 변수에 위치를 저장해 놓고, 그 위치로 이동한다 
+char CommGripUngrip()
+{
+	static char step = 0;
+	int  axis = 0;
+	char flag = 1;
+	char move_start = 0;
+	char move_status = 0;
+	
+	switch (step)
+	{
+		// Error handling 
+	case 91:
+		StopMotors();
+		step++;
+		break;
+	case 92:
+		if (IsStopped()) { step++; }
+		break;
+	case 93:
+		HoldMotors();
+		step = 0;
+		return ERROR_STOPPED;
+
+		// Start
+		// move_offset 값이 0이면 MoveStart() 함수에서 3번 에러 발생  
+		// offset = target_pos - current_pos 
+		// point data 2번. Z축 위치 사용 
+	case 0:
+		// pd = get_point_data(2);
+		// g_MoveOffset[Z_AXIS] = (pd.z - get_motor_pos(Z_AXIS)) / g_MotionParam[Z_AXIS].m_fScaleFactor;
+		if (g_MoveOffset[Z_AXIS] != 0) 
+		{
+			SetMoveOffset(Z_AXIS, g_MoveOffset[Z_AXIS]);
+			SetSpeed(Z_AXIS, SPEED_NORMAL);
+			move_start = MoveStart(Z_AXIS);
+			if (move_start)
+			{
+				SetErrorCode(ERR_MOTOR_ERROR);
+				step = 91;
+				return NORMAL_RUNNING;
+			}
+			DelayMoveStart();
+			step++;
+		}
+		else 
+		{
+			step = 3;	
+		}
+		break;
+		
+	case 1:
+		move_status = GetMoveStatus(Z_AXIS);
+		switch (move_status)
+		{
+		case MOVE_STS_INPOS:
+			MoveStop(Z_AXIS);
+			break;
+		case MOVE_STS_STOP:
+			break;
+		default:
+			flag = 0;
+			break;
+		}
+		if (flag == 1)
+		{
+			step++;
+		}
+		break;
+
+	case 2:
+		if (IsStopped())
+		{
+			step++;
+		}
+		break;
+
+	case 3:
+		SetHoldTorque(Z_AXIS);
+		g_MoveOffset[Z_AXIS] = 0;
+		step = 0;
+		return NORMAL_FINISHED;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;
+	}
+
+	CHECK_USER_STOP();
+
+	return 0;
+}
+
+// 
+char CommMoveXY()
+{
+	static char step = 0;
+	int  axis = 0;
+	char flag = 1;
+	char move_start = 0;
+	char move_status = 0;
+	POINT_DATA pd;
+
+	switch (step)
+	{
+		// Error handling 
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; } break;
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED; 
+
+	case 0:
+	//	pd = get_point_data(1);
+	//	g_MoveOffset[X_AXIS] = (pd.x - get_motor_pos(X_AXIS)) / g_MotionParam[X_AXIS].m_fScaleFactor;
+	//	g_MoveOffset[Y_AXIS] = (pd.y - get_motor_pos(Y_AXIS)) / g_MotionParam[Y_AXIS].m_fScaleFactor;
+		for (axis = 0; axis < 2; axis++)
+		{
+			if (g_MoveOffset[axis] != 0)
+			{
+				SetMoveOffset(axis, g_MoveOffset[axis]);
+				SetSpeed(axis, SPEED_NORMAL);
+				move_start = MoveStart(axis);
+				if (move_start)
+				{
+					SetErrorCode(ERR_MOTOR_ERROR);
+					step = 91;
+					return NORMAL_RUNNING;
+				}
+			}
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 1:
+		for (axis = 0; axis < 2; axis++)
+		{
+			move_status = GetMoveStatus(axis);
+			switch (move_status)
+			{
+			case MOVE_STS_INPOS: MoveStop(axis); break;
+			case MOVE_STS_STOP:  break;
+			default: flag = 0;
+			}
+		}
+		if (flag == 1) { step++; }
+		break;
+
+	case 2:
+		if (IsStopped())
+		{
+			step++;
+		}
+		break;
+
+	case 3:
+		for (axis = 0; axis < 2; axis++)
+		{
+			SetHoldTorque(axis);
+			g_MoveOffset[axis] = 0;
+		}
+		step = 0;
+		return NORMAL_FINISHED;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;
+	}
+
+	CHECK_USER_STOP();
+
+	return 0;
+}
+
+char CommShake()
+{
+
+//	CHECK_USER_STOP();
+
+	return 0;
+}
+
+char CommWaste()
+{
+
+//	CHECK_USER_STOP();
+
+	return 0;
+}
 

@@ -35,7 +35,7 @@ static POINT_DATA g_PointData[MAX_POINT_DATA] = { 0, };
 
 
 MOTION_PARAM g_MotionParam[MAX_AXIS] = {
-					// R_AXIS
+					// X_AXIS
 						{2147483647,	// m_uOrgSLimit
 						0,				// m_ucOrgDir
 						0,				// m_ucOrgNeed
@@ -47,7 +47,7 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 						256,			// m_uNorAcel
 						2666,			// m_uJogVmax	// 500RPM
 						533,			// m_uJogVmin	// 50RPM
-						256,			// m_uJogAcel
+						6555,			// m_uJogAcel
 						0,				// m_nHomeOff
 						1,				// m_nMoveDir
 						1,				// m_ucEncSign
@@ -61,7 +61,7 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 						10,				// m_ucMoveTroque
 						//0,0,0,0,0,0,0,
 						},
-					// X_AXIS
+					// Y_AXIS
 						{2147483647,	// m_uOrgSLimit
 						0,				// m_ucOrgDir
 						1,				// m_ucOrgNeed
@@ -73,7 +73,7 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 						256,			// m_uNorAcel
 						2665,			// m_uJogVmax	// 500RPM
 						533,			// m_uJogVmin	// 50RPM
-						48,				// m_uJogAcel
+						6555,			// m_uJogAcel
 						-16000,			// m_nHomeOff	// 10mm
 						0,				// m_nMoveDir
 						0,				// m_ucEncSign
@@ -85,9 +85,8 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 						12,				// m_ucPosLimit
 						5,				// m_ucHoldTorque
 						10,				// m_ucMoveTroque
-						//0,0,0,0,0,0,0,
 						},
-					// Y_AXIS
+					// Z_AXIS
 						{2147483647,	// m_uOrgSLimit
 						1,				// m_ucOrgDir	// 0 -> 1
 						1,				// m_ucOrgNeed
@@ -99,7 +98,7 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 						256,			// m_uNorAcel
 						2665,			// m_uJogVmax	// 500RPM
 						533,			// m_uJogVmin	// 50RPM
-						48,				// m_uJogAcel
+						6555,			// m_uJogAcel
 						16000,			// m_nHomeOff	// 10mm
 						0,				// m_nMoveDir	// 1->0
 						1,				// m_ucEncSign
@@ -111,7 +110,6 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 						12,				// m_ucPosLimit
 						5,				// m_ucHoldTorque
 						10,				// m_ucMoveTroque
-						//0,0,0,0,0,0,0,
 						}
 						};
 
@@ -163,7 +161,6 @@ void clear_error()
 	g_MotionCommand = 0;
 	g_PointDataCommandState = CMD_READY;
 }
-
 
 int get_org_offset(int axis)
 {
@@ -407,4 +404,43 @@ void init_data()
 		temp = SST_LASER;
 	}
 
+}
+
+void reset_motion_param()
+{
+	int axis = 0;
+	int i = 0;
+
+	for (axis = 0; axis <= MAX_AXIS; axis++)
+	{
+		g_MotionParam[axis].m_uOrgSLimit 	= 2147483647;	//00 4(4)���� ������ ����Ʈ ����Ʈ (���� : pulse, ���� : 0 ~ 2147483647)
+		g_MotionParam[axis].m_ucOrgDir 		= 1;			//01 5(1)���� ������ ã�ư� ���� (0 : CW, 1 : CCW)
+		g_MotionParam[axis].m_ucOrgNeed 	= 1;			//02 6(1)���� ���� �ʿ� ����
+		g_MotionParam[axis].m_uOrgVmax 		= 5333;			//03 10(4)���� ������ �ִ� �ӵ� (���� : pps, ���� : 0 ~ 524287)
+		g_MotionParam[axis].m_uOrgVmin 		= 533;			//04 14(4)���� ������ ���� �ӵ� (���� : pps, ���� : 0 ~ 32767)
+		g_MotionParam[axis].m_uOrgAcel 		= 48;			//05 18(4)���� ������ ��/�� �ӵ� (���� : ?, ���� : 0 ~ 1023)
+		g_MotionParam[axis].m_uNorVmax 		= 26666;		//06 22(4)Normal ���۽� �ִ� �ӵ� (���� : pps, ���� : 0 ~ 524287)
+		g_MotionParam[axis].m_uNorVmin 		= 2666;			//07 26(4)Normal ���۽� ���� �ӵ� (���� : pps, ���� : 0 ~ 32767)
+		g_MotionParam[axis].m_uNorAcel 		= 256;			//08 30(4)Normal ���۽� ��/�� �ӵ� (���� : ?, ���� : 0 ~ 1023)
+		g_MotionParam[axis].m_uJogVmax 		= 2665;			//09 34(4)JOG ���۽� �ִ� �ӵ� (���� :pps : 0 ~ 524287)
+		g_MotionParam[axis].m_uJogVmin 		= 533;			//10 38(4)JOG ���۽� ���� �ӵ� (���� :pps : 0 ~ 32767)
+		g_MotionParam[axis].m_uJogAcel 		= 6555;			//11 42(4)JOG ���۽� ��/�� �ӵ� (���� :pps : 0 ~ 1023)
+		g_MotionParam[axis].m_nHomeOff 		= 16000;		//12 46(4)�������� Home ��ġ������ Offset (���� : pulse)
+		g_MotionParam[axis].m_ucMoveDir		= 0;			//13 47(1)���� �̵� ����
+		g_MotionParam[axis].m_ucEncSign		= 1;			//14 48(1)���ڴ� ��ȣ
+		g_MotionParam[axis].m_fLead    		= 1.0;			//15 56(8)Lead
+		g_MotionParam[axis].m_ucEncPulse 	= 32000;		//16 60(4)���� 1ȸ�� �޽��� (�⺻ : 3200)
+		g_MotionParam[axis].m_fScaleFactor 	= 1.0/32000.0;	//17 68(8)���� Scale Facotr ( = m_fLead/m_ucEncPulse )
+		g_MotionParam[axis].m_ucOrgSensor 	= 0;			//18 69(1)Origin Sensor
+		g_MotionParam[axis].m_ucNegLimit  	= 0;			//19 70(1)Negative Limit Sensor
+		g_MotionParam[axis].m_ucPosLimit  	= 0;			//20 71(1)Positive Limit Sensor
+		g_MotionParam[axis].m_ucHoldTorque 	= 5;			//21 72(1)Hold Torque 
+		g_MotionParam[axis].m_ucMoveTorque 	= 10;			//22 73(1)Move Torque 
+		for (i = 0; i<7; i++) 
+		{
+			g_MotionParam[axis].m_reversed[i] = 0;	
+ 		}
+	}
+
+	save_motion_param();
 }

@@ -85,6 +85,7 @@ typedef struct _MOTION_PARAM
 #define MOTION_PARAM_POS_LIMIT			(17)
 #define MOTION_PARAM_HOLD_TROQUE		(18)
 #define MOTION_PARAM_MOVE_TROQUE		(19)
+#define MOTION_PARAM_JOG_ACCEL			(20)
 
 // Command State
 #define CMD_READY		(0)
@@ -130,5 +131,7 @@ void save_all();
 void load_all();
 
 void init_data();
+
+void reset_motion_param();
 
 #endif //#ifndef _DATA_H_
