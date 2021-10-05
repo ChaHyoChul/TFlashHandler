@@ -51,6 +51,7 @@ char g_strtemp[128];
 extern MOTION_PARAM g_MotionParam[MAX_AXIS];
 extern MOVE_VARIABLE MovVar[MAX_AXIS];
 
+extern int  g_MovePointDataNo;
 extern int  g_MoveOffset[MAX_AXIS];
 extern char g_MotionCommand;
 extern int  g_ErrorCode;
@@ -1334,11 +1335,11 @@ void DoCmd(char *cmd)
 		}
 
 		// 위치를 계산해 g_MoveOffset[Z_AXIS]에 저장한다 
-		pd = get_point_data(1);
-		g_MoveOffset[X_AXIS] = 0;
-		g_MoveOffset[Y_AXIS] = 0;
-		g_MoveOffset[Z_AXIS] = (pd.z - get_motor_pos(Z_AXIS)) / g_MotionParam[Z_AXIS].m_fScaleFactor;
-
+	//	pd = get_point_data(1);
+	//	g_MoveOffset[X_AXIS] = 0;
+	//	g_MoveOffset[Y_AXIS] = 0;
+	//	g_MoveOffset[Z_AXIS] = (pd.z - get_motor_pos(Z_AXIS)) / g_MotionParam[Z_AXIS].m_fScaleFactor;
+		g_MovePointDataNo = 1;
 		SetCommand("MGRI");
 		SetControlCommand(COMM_MGRI);
 		g_ResponseSend = 1;
@@ -1362,11 +1363,11 @@ void DoCmd(char *cmd)
 
 		// 위치를 계산해 g_MoveOffset[Z_AXIS]에 저장한다 
 		// offset = target_pos - current_pos 
-		pd = get_point_data(2);
-		g_MoveOffset[X_AXIS] = 0;
-		g_MoveOffset[Y_AXIS] = 0;
-		g_MoveOffset[Z_AXIS] = (pd.z - get_motor_pos(Z_AXIS)) / g_MotionParam[Z_AXIS].m_fScaleFactor;
-
+	//	pd = get_point_data(2);
+	//	g_MoveOffset[X_AXIS] = 0;
+	//	g_MoveOffset[Y_AXIS] = 0;
+	//	g_MoveOffset[Z_AXIS] = (pd.z - get_motor_pos(Z_AXIS)) / g_MotionParam[Z_AXIS].m_fScaleFactor;
+		g_MovePointDataNo = 2;
 		SetCommand("MUNG");
 		SetControlCommand(COMM_MGRI);
 		g_ResponseSend = 1;
@@ -1390,11 +1391,11 @@ void DoCmd(char *cmd)
 
 		// 위치를 계산해 g_MoveOffset에 저장한다 
 		// offset = target_pos - current_pos 
-		pd = get_point_data(3);
-		g_MoveOffset[X_AXIS] = (pd.x - get_motor_pos(X_AXIS)) / g_MotionParam[X_AXIS].m_fScaleFactor;
-		g_MoveOffset[Y_AXIS] = (pd.y - get_motor_pos(Y_AXIS)) / g_MotionParam[Y_AXIS].m_fScaleFactor;
-		g_MoveOffset[Z_AXIS] = 0;
-
+	//	pd = get_point_data(3);
+	//	g_MoveOffset[X_AXIS] = (pd.x - get_motor_pos(X_AXIS)) / g_MotionParam[X_AXIS].m_fScaleFactor;
+	//	g_MoveOffset[Y_AXIS] = (pd.y - get_motor_pos(Y_AXIS)) / g_MotionParam[Y_AXIS].m_fScaleFactor;
+	//	g_MoveOffset[Z_AXIS] = 0;
+		g_MovePointDataNo = 3;
 		SetCommand("MLOA");
 		SetControlCommand(COMM_MLOA);
 		g_ResponseSend = 1;
@@ -1418,11 +1419,11 @@ void DoCmd(char *cmd)
 
 		// 위치를 계산해 g_MoveOffset에 저장한다 
 		// offset = target_pos - current_pos 
-		pd = get_point_data(4);
-		g_MoveOffset[X_AXIS] = (pd.x - get_motor_pos(X_AXIS)) / g_MotionParam[X_AXIS].m_fScaleFactor;
-		g_MoveOffset[Y_AXIS] = (pd.y - get_motor_pos(Y_AXIS)) / g_MotionParam[Y_AXIS].m_fScaleFactor;
-		g_MoveOffset[Z_AXIS] = 0;
-
+	//	pd = get_point_data(4);
+	//	g_MoveOffset[X_AXIS] = (pd.x - get_motor_pos(X_AXIS)) / g_MotionParam[X_AXIS].m_fScaleFactor;
+	//	g_MoveOffset[Y_AXIS] = (pd.y - get_motor_pos(Y_AXIS)) / g_MotionParam[Y_AXIS].m_fScaleFactor;
+	//	g_MoveOffset[Z_AXIS] = 0;
+		g_MovePointDataNo = 4;
 		SetCommand("MASP");
 		SetControlCommand(COMM_MASP);
 		g_ResponseSend = 1;
@@ -1446,11 +1447,11 @@ void DoCmd(char *cmd)
 
 		// 위치를 계산해 g_MoveOffset에 저장한다 
 		// offset = target_pos - current_pos 
-		pd = get_point_data(5);
-		g_MoveOffset[X_AXIS] = (pd.x - get_motor_pos(X_AXIS)) / g_MotionParam[X_AXIS].m_fScaleFactor;
-		g_MoveOffset[Y_AXIS] = (pd.y - get_motor_pos(Y_AXIS)) / g_MotionParam[Y_AXIS].m_fScaleFactor;
-		g_MoveOffset[Z_AXIS] = 0;
-
+	//	pd = get_point_data(5);
+	//	g_MoveOffset[X_AXIS] = (pd.x - get_motor_pos(X_AXIS)) / g_MotionParam[X_AXIS].m_fScaleFactor;
+	//	g_MoveOffset[Y_AXIS] = (pd.y - get_motor_pos(Y_AXIS)) / g_MotionParam[Y_AXIS].m_fScaleFactor;
+	//	g_MoveOffset[Z_AXIS] = 0;
+		g_MovePointDataNo = 5;
 		SetCommand("MDIS");
 		SetControlCommand(COMM_MDIS);
 		g_ResponseSend = 1;
@@ -1458,7 +1459,24 @@ void DoCmd(char *cmd)
 	}
 	else if (IS_COMMAND(cmd, "MSHA"))	// Shake 
 	{
+		if (!IsOriginCompleted())
+		{
+			SendResponseRaw("MSHA", ERR_ORIGIN_ERROR);
+			return ;
+		}
+		if (!IsStopped()) {
+			SendResponseRaw("MSHA", ERR_COMMAND_IN_RUNNING);
+			return ;
+		}
+		if (IsError()) {
+			SendResponseRaw("MSHA", ERR_COMMAND_IN_ERROR);
+			return ;
+		}
 
+		SetCommand("MSHA");
+		SetControlCommand(COMM_MSHA);
+		g_ResponseSend = 1;
+		send("MSHA\r\n");
 	}
 	else if (IS_COMMAND(cmd, "MWAS"))	
 	{
