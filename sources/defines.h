@@ -1,7 +1,7 @@
 #ifndef _DEFINES_H_
 #define _DEFINES_H_
 
-#define SOFTWARE_VERSION	"COMBI STAIN 1.00.023"
+#define SOFTWARE_VERSION	"TFLASK-H 1.00.001"
 
 
 // Settings

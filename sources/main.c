@@ -262,8 +262,7 @@ void DoCmd(char *cmd)
 
 	if (IS_COMMAND_N(cmd, "VER"))
 	{
-		sendf("VER STAIN-V2 %s, Firmware:%03X\r\n", SOFTWARE_VERSION, FIRMWARE_VER);
-		// sendf("Size char(%d) short(%d) int(%d) float(%d) double(%d)", sizeof(char), sizeof(short), sizeof(int), sizeof(float), sizeof(double));
+		sendf("VER %s, Firmware:%03X\r\n", SOFTWARE_VERSION, FIRMWARE_VER);
 	}
 	else if (IS_COMMAND_N(cmd, "ACD"))
 	{
