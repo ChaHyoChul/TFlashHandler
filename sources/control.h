@@ -26,6 +26,7 @@
 #define COMM_MDIS			36 	// movexy(dispense) 	PD5  
 #define COMM_MSHA 			37 	// shake 				PD6-7 VAR6(회수) VAR7(Delay)  
 #define COMM_MWAS			38 	// waste 				PD8   VAR8(Delay) 
+#define COMM_MSEP			39 	// separate 			PD9-10 
 
 // speed type at SetSpeed()
 #define SPEED_ORG			(0)
@@ -152,6 +153,7 @@ char CommGripUngrip();
 char CommMoveXY();
 char CommShake();
 char CommWaste();
+char CommSeparate();
 
 void UpdateOriginCompletedStatus();
 void SetOriginCompletedFlag(char axis, char flag);

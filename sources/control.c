@@ -384,6 +384,7 @@ void MainControl()
 	case COMM_MDIS:		res = CommMoveXY(); UpdateState(res); break;
 	case COMM_MSHA:		res = CommShake(); UpdateState(res); break;
 	case COMM_MWAS:		res = CommWaste(); UpdateState(res); break;
+	case COMM_MSEP:		res = CommSeparate(); UpdateState(res); break;
 	}
 	
 	if (g_UserStop > 0)
@@ -1859,17 +1860,11 @@ char CommMoveXY()
 		break;
 
 	case 1:
-		if (move_done(0x03))
-		{
-			step++;
-		}
+		if (move_done(0x03)) { step++; } 
 		break;
 
 	case 2:
-		if (IsStopped())
-		{
-			step++;
-		}
+		if (IsStopped()) { step++; }
 		break;
 
 	case 3:
@@ -1943,13 +1938,17 @@ char CommShake()
 		}
 		break;
 
-	case 3:
+	case 3: 
+		if (IsStopped()) { step++; }
+		break;
+
+	case 4:
 		if (--delay_count > 0) { Delay1ms(); }
 		else { step++; }
 		break;
 
 		// pd7로 이동 
-	case 4:
+	case 5:
 		move_start = move_pd(POINT_SHAKE_2, 0x03);
 		if (move_start)
 		{
@@ -1961,26 +1960,30 @@ char CommShake()
 		step++;
 		break;
 
-	case 5:
+	case 6:
 		if (move_done(0x03)) {
 			delay_count = get_var(VAR_DELAY_MOVE);
 			step++;
 		}
 		break;
 
-	case 6:
+	case 7:
+		if (IsStopped()) { step++; }
+		break;
+
+	case 8:
 		if (--delay_count > 0) { Delay1ms(); }
 		else { step++; }
 		break;
 
 		// count 확인 (var 6)
-	case 7:
+	case 9:
 		if (--shake_count > 0) { step = 1; }
 		else { step++; }
 		break;
 
 		// load 위치(3)로 이동 
-	case 8:
+	case 10:
 		move_start = move_pd(POINT_LOAD, 0x03);
 		if (move_start)
 		{
@@ -1992,14 +1995,14 @@ char CommShake()
 		step++;
 		break;
 
-	case 9:
+	case 11:
 		if (move_done(0x03)) { step++; }
 		break;
 
-	case 10:
+	case 12:
 		if (IsStopped()) { step++; }
 
-	case 11:
+	case 13:
 		HoldMotors();
 		g_MovePointDataNo = 0;
 		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
@@ -2018,8 +2021,269 @@ char CommShake()
 
 char CommWaste()
 {
+	const int POINT_LOAD = 3;
+	const int POINT_WASTE= 8;
+	const int VAR_NUM_WASTE_DELAY = 8;
+	static char step = 0;
+	static int  delay_count = 0;
 
-//	CHECK_USER_STOP();
+	int move_start = 0;
+
+	switch (step)
+	{
+		// Error handling 
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; } break;
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
+
+	case 0: 
+		delay_count = get_var(VAR_NUM_WASTE_DELAY);
+		step = 1;
+		break;
+
+		// pd8로 이동 (x축)
+	case 1:
+		move_start = move_pd(POINT_WASTE, 0x01);
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 2:
+		if (move_done(0x01)) { step++; }
+		break;
+
+	case 3:
+		if (IsStopped()) { step++; }
+		break;
+
+		// pd8로 이동 (y축)
+	case 4:
+		move_start = move_pd(POINT_WASTE, 0x02);
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 5:
+		if (move_done(0x02)) {
+			delay_count = get_var(VAR_NUM_WASTE_DELAY);
+			step++;
+		}
+		break;
+
+	case 6:
+		if (IsStopped()) { step++; }
+		break;
+
+		// delay 
+	case 7:
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step++; }
+		break;
+
+		// load 위치(pd3)로 이동. y축 부터 이동 
+	case 8:
+		move_start = move_pd(POINT_LOAD, 0x02);
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 9:
+		if (move_done(0x02)) { step++; }
+		break;
+
+	case 10:
+		if (IsStopped()) { step++; }
+		break;
+	
+		// load 위치(pd3)로 이동. x축
+	case 11:
+		move_start = move_pd(POINT_LOAD, 0x01);
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 12:
+		if (move_done(0x01)) { step++; }
+		break;
+
+	case 13:
+		if (IsStopped()) { step++; }
+		break;
+
+	case 14:
+		HoldMotors();
+		g_MovePointDataNo = 0;
+		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
+		step = 0;
+		return NORMAL_FINISHED;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;		
+
+	}
+
+	CHECK_USER_STOP();
+
+	return 0;
+}
+
+// pd9.  수직으로 세워서 용액을 나누는 위치 (x,y 동시 이동)
+// pd10. 옆으로 뉘어서 용액을 분리 (y축만 이동)
+// pd3.  Load 위치로 이동 (x->y 순서로 이동)
+char CommSeparate()
+{
+	const int POINT_SEP = 9;
+	const int POINT_SEL = 10;
+	const int POINT_LOAD= 3; 
+
+	static char step = 0;
+	static int delay_count = 0;
+
+	int move_start = 0;
+
+	switch (step)
+	{
+		// Error handling 
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; } break;
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED; 
+
+	case 0: step = 1; break;
+
+		// pd9 로 이동 (x,y 동시)
+	case 1: 
+		move_start = move_pd(POINT_SEP, 0x03);
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR); 
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 2:
+		if (move_done(0x03)) { step++; }
+		break;
+
+	case 3:
+		if (IsStopped()) { delay_count = 500; step++; }
+		break;
+
+	case 4:
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step++; }
+		break;
+
+		// pd10 으로 이동 (y축만)
+	case 5:
+		move_start = move_pd(POINT_SEL, 0x02);
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 6:
+		if (move_done(0x02)) { step++; }
+		break;
+
+	case 7: 
+		if (IsStopped()) { delay_count = 500; step++; }
+		break;
+
+	case 8:
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step++; }
+		break;
+
+		// pd3 으로 이동 (x->y 순서)
+	case 9: 
+		move_start = move_pd(POINT_LOAD, 0x01);
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 10:
+		if (move_done(0x01)) { step++; }
+		break;
+
+	case 11:
+		if (IsStopped()) { delay_count = 500; step++; }
+		break;
+	
+	case 12:
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step++; }
+		break;
+	
+	case 13: 
+		move_start = move_pd(POINT_LOAD, 0x02);
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}		
+		DelayMoveStart();
+		step++;
+		break;
+	
+	case 14:
+		if (move_done(0x02)) { step++; }
+		break;
+
+	case 15:
+		if (IsStopped()) { step++; }
+		break;
+
+	case 16:
+		HoldMotors();
+		g_MovePointDataNo = 0;
+		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
+		step = 0;
+		return NORMAL_FINISHED;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;		
+	}	
 
 	return 0;
 }

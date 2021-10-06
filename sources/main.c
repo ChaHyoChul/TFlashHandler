@@ -1318,7 +1318,7 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("HOME\r\n");
 	}
-	else if (IS_COMMAND(cmd, "MGRI"))	// Grip
+	else if (IS_COMMAND_N(cmd, "MGRI"))	// Grip
 	{
 		if (!IsOriginCompleted())
 		{
@@ -1334,18 +1334,13 @@ void DoCmd(char *cmd)
 			return ;
 		}
 
-		// 위치를 계산해 g_MoveOffset[Z_AXIS]에 저장한다 
-	//	pd = get_point_data(1);
-	//	g_MoveOffset[X_AXIS] = 0;
-	//	g_MoveOffset[Y_AXIS] = 0;
-	//	g_MoveOffset[Z_AXIS] = (pd.z - get_motor_pos(Z_AXIS)) / g_MotionParam[Z_AXIS].m_fScaleFactor;
-		g_MovePointDataNo = 1;
+		g_MovePointDataNo = 1;	// 사용할 POINT_NO 저장 
 		SetCommand("MGRI");
 		SetControlCommand(COMM_MGRI);
 		g_ResponseSend = 1;
 		send("MGRI\r\n");
 	}
-	else if (IS_COMMAND(cmd, "MUNG"))	// UnGrip
+	else if (IS_COMMAND_N(cmd, "MUNG"))	// UnGrip
 	{
 		if (!IsOriginCompleted())
 		{
@@ -1361,19 +1356,13 @@ void DoCmd(char *cmd)
 			return ;
 		}
 
-		// 위치를 계산해 g_MoveOffset[Z_AXIS]에 저장한다 
-		// offset = target_pos - current_pos 
-	//	pd = get_point_data(2);
-	//	g_MoveOffset[X_AXIS] = 0;
-	//	g_MoveOffset[Y_AXIS] = 0;
-	//	g_MoveOffset[Z_AXIS] = (pd.z - get_motor_pos(Z_AXIS)) / g_MotionParam[Z_AXIS].m_fScaleFactor;
-		g_MovePointDataNo = 2;
+		g_MovePointDataNo = 2;	// 사용할 POINT_NO 저장 
 		SetCommand("MUNG");
 		SetControlCommand(COMM_MGRI);
 		g_ResponseSend = 1;
 		send("MUNG\r\n");
 	}
-	else if (IS_COMMAND(cmd, "MLOA"))	// Move Load Position
+	else if (IS_COMMAND_N(cmd, "MLOA"))	// Move Load Position
 	{
 		if (!IsOriginCompleted())
 		{
@@ -1389,19 +1378,13 @@ void DoCmd(char *cmd)
 			return ;
 		}
 
-		// 위치를 계산해 g_MoveOffset에 저장한다 
-		// offset = target_pos - current_pos 
-	//	pd = get_point_data(3);
-	//	g_MoveOffset[X_AXIS] = (pd.x - get_motor_pos(X_AXIS)) / g_MotionParam[X_AXIS].m_fScaleFactor;
-	//	g_MoveOffset[Y_AXIS] = (pd.y - get_motor_pos(Y_AXIS)) / g_MotionParam[Y_AXIS].m_fScaleFactor;
-	//	g_MoveOffset[Z_AXIS] = 0;
-		g_MovePointDataNo = 3;
+		g_MovePointDataNo = 3;	// 사용할 POINT_NO 저장 
 		SetCommand("MLOA");
 		SetControlCommand(COMM_MLOA);
 		g_ResponseSend = 1;
 		send("MLOA\r\n");
 	}
-	else if (IS_COMMAND(cmd, "MASP"))	// Move Aspirate Position 
+	else if (IS_COMMAND_N(cmd, "MASP"))	// Move Aspirate Position 
 	{
 		if (!IsOriginCompleted())
 		{
@@ -1417,19 +1400,13 @@ void DoCmd(char *cmd)
 			return ;
 		}
 
-		// 위치를 계산해 g_MoveOffset에 저장한다 
-		// offset = target_pos - current_pos 
-	//	pd = get_point_data(4);
-	//	g_MoveOffset[X_AXIS] = (pd.x - get_motor_pos(X_AXIS)) / g_MotionParam[X_AXIS].m_fScaleFactor;
-	//	g_MoveOffset[Y_AXIS] = (pd.y - get_motor_pos(Y_AXIS)) / g_MotionParam[Y_AXIS].m_fScaleFactor;
-	//	g_MoveOffset[Z_AXIS] = 0;
-		g_MovePointDataNo = 4;
+		g_MovePointDataNo = 4;	// 사용할 POINT_NO 저장 
 		SetCommand("MASP");
 		SetControlCommand(COMM_MASP);
 		g_ResponseSend = 1;
 		send("MASP\r\n");
 	}
-	else if (IS_COMMAND(cmd, "MDIS"))	// Move Dispense Position 
+	else if (IS_COMMAND_N(cmd, "MDIS"))	// Move Dispense Position 
 	{
 		if (!IsOriginCompleted())
 		{
@@ -1445,19 +1422,13 @@ void DoCmd(char *cmd)
 			return ;
 		}
 
-		// 위치를 계산해 g_MoveOffset에 저장한다 
-		// offset = target_pos - current_pos 
-	//	pd = get_point_data(5);
-	//	g_MoveOffset[X_AXIS] = (pd.x - get_motor_pos(X_AXIS)) / g_MotionParam[X_AXIS].m_fScaleFactor;
-	//	g_MoveOffset[Y_AXIS] = (pd.y - get_motor_pos(Y_AXIS)) / g_MotionParam[Y_AXIS].m_fScaleFactor;
-	//	g_MoveOffset[Z_AXIS] = 0;
-		g_MovePointDataNo = 5;
+		g_MovePointDataNo = 5;	// 사용할 POINT_NO 저장 
 		SetCommand("MDIS");
 		SetControlCommand(COMM_MDIS);
 		g_ResponseSend = 1;
 		send("MDIS\r\n");
 	}
-	else if (IS_COMMAND(cmd, "MSHA"))	// Shake 
+	else if (IS_COMMAND_N(cmd, "MSHA"))	// Shake 
 	{
 		if (!IsOriginCompleted())
 		{
@@ -1478,9 +1449,30 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MSHA\r\n");
 	}
-	else if (IS_COMMAND(cmd, "MWAS"))	
+	else if (IS_COMMAND_N(cmd, "MWAS"))	
 	{
-		// Waste. TODO: Rot 축 이동 후 Tilt 축을 이동한다 
+		if (!IsOriginCompleted())
+		{
+			SendResponseRaw("MWAS", ERR_ORIGIN_ERROR);
+			return ;
+		}
+		if (!IsStopped()) {
+			SendResponseRaw("MWAS", ERR_COMMAND_IN_RUNNING);
+			return ;
+		}
+		if (IsError()) {
+			SendResponseRaw("MWAS", ERR_COMMAND_IN_ERROR);
+			return ;
+		}
+
+		SetCommand("MWAS");
+		SetControlCommand(COMM_MWAS);
+		g_ResponseSend = 1;
+		send("MWAS\r\n");
+	}
+	else if (IS_COMMAND_N(cmd, "MSEP"))
+	{
+		// TODO. multi-layer flask 의 용액을 나누는 동작
 	}
 	// Separate Flask의 용액을 나누는 동작 
 	// TODO: Rot 90도(수평) -> Tilt -> Rot 0도  
