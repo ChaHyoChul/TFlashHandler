@@ -16,8 +16,6 @@ char str[128];	// �ø��� �۽��� ���� ���ڿ�
 char retStr[128];
 char g_strtemp[128];
 
-
-
 #define IS_COMMAND(a, b)	(strstr((a), (b)) != 0)
 #define IS_COMMAND_N(a, b)	((strstr((a), (b)) == a) && (strlen((a)) == strlen((b))))
 
@@ -425,7 +423,7 @@ void DoCmd(char *cmd)
 	
 		if (ch == 0)
 		{
-			send("VAR E01\r\n");
+			send("VAR E06\r\n");
 			return;
 		}
 		else
@@ -435,7 +433,7 @@ void DoCmd(char *cmd)
 			// check var no
 			if (var_no < 1 || var_no > MAX_VARS)
 			{
-				send("VAR E01\r\n");
+				send("VAR E06\r\n");
 				return;
 			}
 			

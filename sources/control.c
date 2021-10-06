@@ -1691,39 +1691,42 @@ void SetSpeed(char axis, int type)
 // Gripper(3) -> Rotation(2) -> Tile(1) 순서로 Origin 한다 
 char CommHome()
 {
+	static int nNegLimitOutPos[MAX_AXIS] = {0, 0, 0};
+	static int nNegLimitInPos[MAX_AXIS]  = {0, 0, 0};
+	static int org_axis = 0;	//  원점복귀 하는 축 번호 Z->Y->X 순서 
 	static int step = 0;
 	
 	int axis = 0;
+	int temp = 0;
+	char move_status = 0;
 	
 	switch (step)
 	{
-	// Error Handling 
-	case 91:
-		StopMotors();
-		step++;
-		break;
-	case 92:
-		if (IsStopped()) { step++; }
-	case 93:
-		HoldMotors();
-		step = 0;
-		return ERROR_STOPPED;
+		// Error Handling 
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; }
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
 
-	// Start 
+		// Start 
 	case 0:
+		org_axis = Z_AXIS;
 		for (axis = 0; axis < MAX_AXIS; axis++)
 		{
 			SetOriginCompletedFlag(axis, 0);
 		}
+		step = 1;
+		break;
+
+	case 1:
 		step = 3;
 		break;
 
 	case 3:
-		MovVar[Z_AXIS].m_uS = g_MotionParam[Z_AXIS].m_uOrgSLimit;
-		MovVar[Z_AXIS].m_ucDir = g_MotionParam[Z_AXIS].m_ucOrgDir;
-		SetSpeed(Z_AXIS, SPEED_ORG);
+		MovVar[org_axis].m_uS 	= g_MotionParam[org_axis].m_uOrgSLimit;
+		MovVar[org_axis].m_ucDir= g_MotionParam[org_axis].m_ucOrgDir;
+		SetSpeed(org_axis, SPEED_ORG); // torque 설정 
 
-		if (NEG_LIMIT(Z_AXIS) != SENS_ON && MoveStart(Z_AXIS)) 
+		if (NEG_LIMIT(org_axis) != SENS_ON && MoveStart(org_axis)) 
 		{
 			step = 91;
 			return NORMAL_RUNNING;
@@ -1736,21 +1739,147 @@ char CommHome()
 		DelayMoveStart();
 		break;
 
+		// Home 센서가 ON 되면 멈춘다 
 	case 4:
-		if (HOME_SENSOR(Z_AXIS) == SENS_ON)
+		if (HOME_SENSOR(org_axis) == SENS_ON)
 		{
-			MoveStop(Z_AXIS); 
+			MoveStop(org_axis); 
 			step++;
 		}	
 		break;
 
 	case 5:
-		if (IsStopped) { step++; } 
+		if (IsStopped()) { step++; } 
 		break;
 
+		// 반대 방햔으로 이동 시작 
 	case 6:
+		CounterReset(org_axis);
+		MovVar[org_axis].m_ucDir = (unsigned char)((~g_MotionParam[org_axis].m_ucOrgDir) & 1);
+		MovVar[org_axis].m_uAcel = 0;					
+
+		if (MoveStart(org_axis))
+		{
+			step = 91;
+			SetErrorCode(ERR_MOTOR_ERROR);
+			return NORMAL_RUNNING;
+		}
+
+		DelayMoveStart();
+		step++;
 		break;
+
+		// HOME 센서가 OFF 되면 멈춘다 
+	case 7:	
+		if (HOME_SENSOR(org_axis) == SENS_OFF)
+		{
+			MoveStop(org_axis);
+			step++;
+		}
+		break;
+
+	case 8:
+		if (IsStopped()) { step++; } 
+		break;
+
+		// 센서 방향으로 다시 이동 시작 
+	case 9: 
+		nNegLimitOutPos[org_axis] = CounterRead(org_axis);
+		MovVar[org_axis].m_ucDir = g_MotionParam[org_axis].m_ucOrgDir;	
+		MovVar[org_axis].m_uAcel = 0;
+
+		if (MoveStart(org_axis))
+		{
+			step = 91;
+			SetErrorCode(ERR_MOTOR_ERROR);
+			return NORMAL_RUNNING;
+		}
+
+		DelayMoveStart();
+		step++;
+		break;
+
+		// HOME 센서가 감지되면 멈춘다 
+	case 10:
+		if (HOME_SENSOR(org_axis) == SENS_ON)
+		{
+			MoveStop(org_axis);
+			step++;
+		}
+		break;
+
+	case 11:
+		if (IsStopped()) 
+		{
+			step++;
+		}
+		break;
+
+	case 12:
+		nNegLimitInPos[org_axis] = CounterRead(org_axis);
+		temp = ((nNegLimitInPos[org_axis] + nNegLimitOutPos[org_axis])/2) - nNegLimitInPos[org_axis]; 
+		if (temp < 0)
+		{
+			temp = -temp;
+		}
+		MovVar[org_axis].m_uS = temp;
+		MovVar[org_axis].m_ucDir = (unsigned char)((~g_MotionParam[org_axis].m_ucOrgDir) & 1);
+
+		SetSpeed(org_axis, SPEED_ORG);
+
+		if (MoveStart(org_axis))
+		{
+			step = 91;
+			SetErrorCode(ERR_MOTOR_ERROR);
+			return NORMAL_RUNNING;
+		}
+
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 13:
+		move_status = GetMoveStatus(org_axis);
+		switch (move_status)
+		{
+		case MOVE_STS_INPOS:
+			MoveStop(org_axis);
+			step++;
+			break;
+		case MOVE_STS_STOP:
+			step++;
+			break;
+		}
+		break;
+
+	case 14:
+		if (IsStopped()) { step++; }
+		break;
+
+	case 15:
+		CounterReset(org_axis);
+		SetSpeed(org_axis, SPEED_NORMAL);
+		SetOriginCompletedFlag(org_axis, 1);
+		step++;
+		break;
+
+	case 16:
+		if (--org_axis >= X_AXIS) { step = 1; }
+		else { step++; }
+		break;
+
+	case 17:
+		step = 0;
+		return NORMAL_FINISHED;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;
 	}
+
+	CHECK_USER_STOP();
+
+	return NORMAL_RUNNING;
 }
 
 // g_MoveOffset[] 변수에 위치를 저장해 놓고, 그 위치로 이동한다 
