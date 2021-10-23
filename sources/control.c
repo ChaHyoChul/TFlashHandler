@@ -355,7 +355,17 @@ void UpdateState(char state)
 		break;
 	
 	case ERROR_STOPPED:
-		SendResponse();
+	// 모터 에러일 때 응답이 두번 나가는 것 방지 
+	//	SendResponse();
+	//	GoToIdle();
+	//	if (g_ResponseSend == 0)
+	//	{
+	//		SendResponse();
+	//	}
+	//	else
+	//	{
+	//		g_ResponseSend = 0;
+	//	}
 		GoToIdle();
 		break;
 	}
@@ -1374,18 +1384,48 @@ char CommOriginAxis()
 		}
 		break;
 		
+		// Offset(0.2) 만큼 이동 
 	case 12:
+		g_MoveOffset[g_OriginAxis] = (0.2 - get_motor_pos(g_OriginAxis)) / g_MotionParam[g_OriginAxis].m_fScaleFactor; // g_MotionParam[g_OriginAxis].fScaleFactor;
+		SetMoveOffset(g_OriginAxis, g_MoveOffset[g_OriginAxis]);
+		move_status = MoveStart(g_OriginAxis);
+		if (move_status) {
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+	case 13:
+		move_status = GetMoveStatus(g_OriginAxis);
+		switch (move_status)
+		{
+		case MOVE_STS_INPOS:
+			MoveStop(g_OriginAxis);
+			step++;
+			break;
+		case MOVE_STS_STOP:
+			step++;
+			break;
+		}
+		break;
+	case 14:
+		if (IsStopped()) { step++; }
+		break;
+		//
+
+	case 15:
 		CounterReset(g_OriginAxis);	// �������� �����Ѵ�.
 		SetSpeed(g_OriginAxis, SPEED_NORMAL);
-		
 		++step;
 		
-	case 13:
+	case 16:
 		//CALL_FUNCTION(CommRST, 91);
 		++step;
 		break;
 		
-	case 14:
+	case 17:
 		step = 0;
 
 		SetOriginCompletedFlag(g_OriginAxis, 1);
@@ -1548,6 +1588,8 @@ void InitAxis()
 		SetCounterDirection(axis, (unsigned char)((~g_MotionParam[axis].m_ucOrgDir) & 1));
 
 		MovVar[axis].m_ucHoldTorq = g_MotionParam[axis].m_ucHoldTorque; //(axis == Z_AXIS) ? HOLD_TORQUE : HOLD_TORQUE_3A;
+		
+		// MovVar[axis].m_ucHoldTorq = 20;
 		SetHoldTorque(axis);
 
 		DriverEnable(axis);
@@ -1693,7 +1735,7 @@ char CommHome()
 {
 	static int nNegLimitOutPos[MAX_AXIS] = {0, 0, 0};
 	static int nNegLimitInPos[MAX_AXIS]  = {0, 0, 0};
-	static int org_axis = 0;	//  원점복귀 하는 축 번호 Z->Y->X 순서 
+	//static int org_axis = 0;	//  원점복귀 하는 축 번호 Z->Y->X 순서 
 	static int step = 0;
 	
 	int axis = 0;
@@ -1709,7 +1751,7 @@ char CommHome()
 
 		// Start 
 	case 0:
-		org_axis = Z_AXIS;
+		g_OriginAxis = Z_AXIS;
 		for (axis = 0; axis < MAX_AXIS; axis++)
 		{
 			SetOriginCompletedFlag(axis, 0);
@@ -1722,11 +1764,11 @@ char CommHome()
 		break;
 
 	case 3:
-		MovVar[org_axis].m_uS 	= g_MotionParam[org_axis].m_uOrgSLimit;
-		MovVar[org_axis].m_ucDir= g_MotionParam[org_axis].m_ucOrgDir;
-		SetSpeed(org_axis, SPEED_ORG); // torque 설정 
+		MovVar[g_OriginAxis].m_uS 	= g_MotionParam[g_OriginAxis].m_uOrgSLimit;
+		MovVar[g_OriginAxis].m_ucDir= g_MotionParam[g_OriginAxis].m_ucOrgDir;
+		SetSpeed(g_OriginAxis, SPEED_ORG); // torque 설정 
 
-		if (NEG_LIMIT(org_axis) != SENS_ON && MoveStart(org_axis)) 
+		if (NEG_LIMIT(g_OriginAxis) != SENS_ON && MoveStart(g_OriginAxis)) 
 		{
 			step = 91;
 			return NORMAL_RUNNING;
@@ -1741,9 +1783,9 @@ char CommHome()
 
 		// Home 센서가 ON 되면 멈춘다 
 	case 4:
-		if (HOME_SENSOR(org_axis) == SENS_ON)
+		if (HOME_SENSOR(g_OriginAxis) == SENS_ON)
 		{
-			MoveStop(org_axis); 
+			MoveStop(g_OriginAxis); 
 			step++;
 		}	
 		break;
@@ -1754,11 +1796,11 @@ char CommHome()
 
 		// 반대 방햔으로 이동 시작 
 	case 6:
-		CounterReset(org_axis);
-		MovVar[org_axis].m_ucDir = (unsigned char)((~g_MotionParam[org_axis].m_ucOrgDir) & 1);
-		MovVar[org_axis].m_uAcel = 0;					
+		CounterReset(g_OriginAxis);
+		MovVar[g_OriginAxis].m_ucDir = (unsigned char)((~g_MotionParam[g_OriginAxis].m_ucOrgDir) & 1);
+		MovVar[g_OriginAxis].m_uAcel = 0;					
 
-		if (MoveStart(org_axis))
+		if (MoveStart(g_OriginAxis))
 		{
 			step = 91;
 			SetErrorCode(ERR_MOTOR_ERROR);
@@ -1771,9 +1813,9 @@ char CommHome()
 
 		// HOME 센서가 OFF 되면 멈춘다 
 	case 7:	
-		if (HOME_SENSOR(org_axis) == SENS_OFF)
+		if (HOME_SENSOR(g_OriginAxis) == SENS_OFF)
 		{
-			MoveStop(org_axis);
+			MoveStop(g_OriginAxis);
 			step++;
 		}
 		break;
@@ -1784,11 +1826,11 @@ char CommHome()
 
 		// 센서 방향으로 다시 이동 시작 
 	case 9: 
-		nNegLimitOutPos[org_axis] = CounterRead(org_axis);
-		MovVar[org_axis].m_ucDir = g_MotionParam[org_axis].m_ucOrgDir;	
-		MovVar[org_axis].m_uAcel = 0;
+		nNegLimitOutPos[g_OriginAxis] = CounterRead(g_OriginAxis);
+		MovVar[g_OriginAxis].m_ucDir = g_MotionParam[g_OriginAxis].m_ucOrgDir;	
+		MovVar[g_OriginAxis].m_uAcel = 0;
 
-		if (MoveStart(org_axis))
+		if (MoveStart(g_OriginAxis))
 		{
 			step = 91;
 			SetErrorCode(ERR_MOTOR_ERROR);
@@ -1801,9 +1843,9 @@ char CommHome()
 
 		// HOME 센서가 감지되면 멈춘다 
 	case 10:
-		if (HOME_SENSOR(org_axis) == SENS_ON)
+		if (HOME_SENSOR(g_OriginAxis) == SENS_ON)
 		{
-			MoveStop(org_axis);
+			MoveStop(g_OriginAxis);
 			step++;
 		}
 		break;
@@ -1814,20 +1856,24 @@ char CommHome()
 			step++;
 		}
 		break;
-
+		
 	case 12:
-		nNegLimitInPos[org_axis] = CounterRead(org_axis);
-		temp = ((nNegLimitInPos[org_axis] + nNegLimitOutPos[org_axis])/2) - nNegLimitInPos[org_axis]; 
+		step = 15;
+		break;
+
+	case 15:
+		nNegLimitInPos[g_OriginAxis] = CounterRead(g_OriginAxis);
+		temp = ((nNegLimitInPos[g_OriginAxis] + nNegLimitOutPos[g_OriginAxis])/2) - nNegLimitInPos[g_OriginAxis]; 
 		if (temp < 0)
 		{
 			temp = -temp;
 		}
-		MovVar[org_axis].m_uS = temp;
-		MovVar[org_axis].m_ucDir = (unsigned char)((~g_MotionParam[org_axis].m_ucOrgDir) & 1);
+		MovVar[g_OriginAxis].m_uS = temp;
+		MovVar[g_OriginAxis].m_ucDir = (unsigned char)((~g_MotionParam[g_OriginAxis].m_ucOrgDir) & 1);
 
-		SetSpeed(org_axis, SPEED_ORG);
+		SetSpeed(g_OriginAxis, SPEED_ORG);
 
-		if (MoveStart(org_axis))
+		if (MoveStart(g_OriginAxis))
 		{
 			step = 91;
 			SetErrorCode(ERR_MOTOR_ERROR);
@@ -1838,12 +1884,12 @@ char CommHome()
 		step++;
 		break;
 
-	case 13:
-		move_status = GetMoveStatus(org_axis);
+	case 16:
+		move_status = GetMoveStatus(g_OriginAxis);
 		switch (move_status)
 		{
 		case MOVE_STS_INPOS:
-			MoveStop(org_axis);
+			MoveStop(g_OriginAxis);
 			step++;
 			break;
 		case MOVE_STS_STOP:
@@ -1852,23 +1898,54 @@ char CommHome()
 		}
 		break;
 
-	case 14:
+	case 17:
 		if (IsStopped()) { step++; }
 		break;
 
-	case 15:
-		CounterReset(org_axis);
-		SetSpeed(org_axis, SPEED_NORMAL);
-		SetOriginCompletedFlag(org_axis, 1);
+		// Offset(0.2) 만큼 이동 
+	case 18:
+		g_MoveOffset[g_OriginAxis] = (0.2 - get_motor_pos(g_OriginAxis)) / g_MotionParam[g_OriginAxis].m_fScaleFactor; 
+		SetMoveOffset(g_OriginAxis, g_MoveOffset[g_OriginAxis]);
+		move_status = MoveStart(g_OriginAxis);
+		if (move_status) {
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+	case 19:
+		move_status = GetMoveStatus(g_OriginAxis);
+		switch (move_status)
+		{
+		case MOVE_STS_INPOS:
+			MoveStop(g_OriginAxis);
+			step++;
+			break;
+		case MOVE_STS_STOP:
+			step++;
+			break;
+		}
+		break;
+	case 20:
+		if (IsStopped()) { step++; }
+		break;
+		//
+
+	case 21:
+		CounterReset(g_OriginAxis);
+		SetSpeed(g_OriginAxis, SPEED_NORMAL);
+		SetOriginCompletedFlag(g_OriginAxis, 1);
 		step++;
 		break;
 
-	case 16:
-		if (--org_axis >= X_AXIS) { step = 1; }
+	case 22:
+		if (--g_OriginAxis >= X_AXIS) { step = 1; }
 		else { step++; }
 		break;
 
-	case 17:
+	case 23:
 		step = 0;
 		return NORMAL_FINISHED;
 
@@ -2284,11 +2361,15 @@ char CommWaste()
 // pd9.  수직으로 세워서 용액을 나누는 위치 (x,y 동시 이동)
 // pd10. 옆으로 뉘어서 용액을 분리 (y축만 이동)
 // pd3.  Load 위치로 이동 (x->y 순서로 이동)
+// var9. 용액을 나누는 위치에서, 용액이 분리 될때까지 대기 시간 
+// var10. 나머지 모터 이동 delay 
 char CommSeparate()
 {
 	const int POINT_SEP = 9;
 	const int POINT_SEL = 10;
 	const int POINT_LOAD= 3; 
+	const int VAR_DELAY_SEP = 9;
+	const int VAR_DELAY_MOV = 10;
 
 	static char step = 0;
 	static int delay_count = 0;
@@ -2322,7 +2403,10 @@ char CommSeparate()
 		break;
 
 	case 3:
-		if (IsStopped()) { delay_count = 500; step++; }
+		if (IsStopped()) { 
+			delay_count = get_var(VAR_DELAY_SEP); 
+			step++; 
+		}
 		break;
 
 	case 4:
@@ -2348,7 +2432,10 @@ char CommSeparate()
 		break;
 
 	case 7: 
-		if (IsStopped()) { delay_count = 500; step++; }
+		if (IsStopped()) { 
+			delay_count = get_var(VAR_DELAY_MOV); 
+			step++; 
+		}
 		break;
 
 	case 8:
@@ -2374,7 +2461,10 @@ char CommSeparate()
 		break;
 
 	case 11:
-		if (IsStopped()) { delay_count = 500; step++; }
+		if (IsStopped()) { 
+			delay_count = get_var(VAR_DELAY_MOV); 
+			step++; 
+		}
 		break;
 	
 	case 12:
@@ -2439,7 +2529,13 @@ int move_pd(int pd_no, char sel_axis)
 	{
 		if ((sel_axis & mask) == mask)
 		{
-			g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+			switch (axis)
+			{
+			case X_AXIS: g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor; break;
+			case Y_AXIS: g_MoveOffset[axis] = (pd.y - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor; break;
+			case Z_AXIS: g_MoveOffset[axis] = (pd.z - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor; break;
+			}
+			// g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
 
 			if (g_MoveOffset[axis] != 0)
 			{
@@ -2489,4 +2585,35 @@ char move_done(char sel_axis)
 	}
 
 	return flag;
+}
+
+
+void ReleaseBreak()
+{
+	SetDOBit(1, 7, 1);
+}
+
+void HoldBreak()
+{
+	SetDOBit(1, 7, 0);
+}
+
+char IsReleaseBreak()
+{
+	unsigned char b = GetDOBit(1, 7);
+	return b;
+}
+
+// 플라스크가 있는지 확인 
+char IsExistFlask()
+{
+	unsigned char b = GetDIBit(1, 7);
+	return b;
+}		
+
+// Grip 센서 확인 
+char IsGrip() 
+{
+	unsigned char b = GetDIBit(1, 5);
+	return b;
 }

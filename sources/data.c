@@ -315,10 +315,11 @@ void init_eeprom()
 
 // bychul2. _MB() 함수 문제로 _1B() 함수 사용 
 // 라이브러리 수정 후 원상복귀 후 테스트 => 저장 안되서 byte 함수로 복구 
+// 라이브러리 두번째 수정 버전은 정상 동작 확인  
 void save_motion_param()
 {
-//	WriteI2C_MB(ADDR_EEP_MOTION_PARAM, (unsigned char *)&g_MotionParam, sizeof(g_MotionParam));
-
+	WriteI2C_MB(ADDR_EEP_MOTION_PARAM, (unsigned char *)&g_MotionParam, sizeof(g_MotionParam));
+/*
 	int i = 0;
 	int len = sizeof(g_MotionParam);
 	unsigned char* p = (unsigned char*)&g_MotionParam;
@@ -328,6 +329,7 @@ void save_motion_param()
 		WriteI2C_1B(ADDR_EEP_MOTION_PARAM+i, *p);
 		p++;
 	}
+	*/
 }
 
 void load_motion_param()
@@ -441,6 +443,71 @@ void reset_motion_param()
 			g_MotionParam[axis].m_reversed[i] = 0;	
  		}
 	}
+
+	// HMV. 원점복귀 속도 
+	g_MotionParam[X_AXIS].m_uOrgVmax = 433;
+	g_MotionParam[Y_AXIS].m_uOrgVmax = 200;
+	g_MotionParam[Z_AXIS].m_uOrgVmax = 5333;
+
+	// VSO. PTP 속도 - High
+	g_MotionParam[X_AXIS].m_uNorVmax = 4000; 
+	g_MotionParam[Y_AXIS].m_uNorVmax = 1800; 
+	g_MotionParam[Z_AXIS].m_uNorVmax = 30000; 
+
+	// VSL. PTP 속도 - Low
+	g_MotionParam[X_AXIS].m_uNorVmin = 560; 
+	g_MotionParam[Y_AXIS].m_uNorVmin = 180; 
+	g_MotionParam[Z_AXIS].m_uNorVmin = 3000; 
+
+	// VST. 가감속 
+	g_MotionParam[X_AXIS].m_uNorAcel = 1600; 
+	g_MotionParam[Y_AXIS].m_uNorAcel = 1600; 
+	g_MotionParam[Z_AXIS].m_uNorAcel = 256; 
+
+	// POD. Origin Dir 
+	g_MotionParam[X_AXIS].m_ucOrgDir = 0; 
+	g_MotionParam[Y_AXIS].m_ucOrgDir = 0; 
+	g_MotionParam[Z_AXIS].m_ucOrgDir = 1; 
+
+	// PPD. PPT Dir 
+	g_MotionParam[X_AXIS].m_ucMoveDir = 1; 
+	g_MotionParam[Y_AXIS].m_ucMoveDir = 1; 
+	g_MotionParam[Z_AXIS].m_ucMoveDir = 0; 
+
+	// ENS
+	g_MotionParam[X_AXIS].m_ucEncSign = 0; 
+	g_MotionParam[Y_AXIS].m_ucEncSign = 0; 
+	g_MotionParam[Z_AXIS].m_ucEncSign = 0; 
+
+	// AHM. 원점 센서 
+
+	// ANL. -Limit 센서 
+
+	// APL. +Limit 센서 
+
+	// ALD. Lead 값 
+	g_MotionParam[X_AXIS].m_fLead = 10000.0; 
+	g_MotionParam[Y_AXIS].m_fLead = 10000.0; 
+	g_MotionParam[Z_AXIS].m_fLead = 1.0; 
+
+	// AEN. Enclode Pulse 
+	g_MotionParam[X_AXIS].m_ucEncPulse = 853333; 
+	g_MotionParam[Y_AXIS].m_ucEncPulse = 266666; 
+	g_MotionParam[Z_AXIS].m_ucEncPulse = 4800; 
+
+	g_MotionParam[X_AXIS].m_fScaleFactor = g_MotionParam[X_AXIS].m_fLead / g_MotionParam[X_AXIS].m_ucEncPulse;
+	g_MotionParam[Y_AXIS].m_fScaleFactor = g_MotionParam[Y_AXIS].m_fLead / g_MotionParam[Y_AXIS].m_ucEncPulse;
+	g_MotionParam[Z_AXIS].m_fScaleFactor = g_MotionParam[Z_AXIS].m_fLead / g_MotionParam[Z_AXIS].m_ucEncPulse;
+
+	// HTQ. 정지 토크
+	g_MotionParam[X_AXIS].m_ucHoldTorque = 25;
+	g_MotionParam[Y_AXIS].m_ucHoldTorque = 25;
+	g_MotionParam[Z_AXIS].m_ucHoldTorque = 10;
+
+	// MTQ. 이동 토크 
+	g_MotionParam[X_AXIS].m_ucMoveTorque = 50;
+	g_MotionParam[Y_AXIS].m_ucMoveTorque = 50;
+	g_MotionParam[Z_AXIS].m_ucMoveTorque = 30;
 
 	save_motion_param();
 }

@@ -181,5 +181,10 @@ unsigned char InverseDir(unsigned char dir);
 void SetMoveOffset(char axis, int offset);	// set to move distance
 void SetSpeed(char axis, int type);			// set speed type
 
+void ReleaseBreak();
+void HoldBreak();
+char IsReleaseBreak();			// 브레이크가 플렸는지 확인 
+char IsExistFlask();			// 플라스크가 있는지 확인 
+char IsGrip();					// Grip 명령 후 Grip 센서를 확인 한다 
 
 #endif /* _CONTROL_H */

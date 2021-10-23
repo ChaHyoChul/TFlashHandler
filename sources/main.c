@@ -104,6 +104,9 @@ int _tmain(void)
 
 	InitAxis();
 	
+	// Release break
+	ReleaseBreak();
+
 //	sprintf(str, "Robots and Design Co., Ltd. - PreAlignerV400\r\n");
 //	SerialWriteBytes(UART_PORT0, str, strlen(str));
 
@@ -273,7 +276,7 @@ void DoCmd(char *cmd)
 		{
 			motor_pos[i] = get_motor_pos(i);
 		}
-		snprintf(str, 127, "APS %.2f,%.2f,%.2f\r\n", motor_pos[0], motor_pos[1], motor_pos[2]);
+		snprintf(str, 127, "ASP %.2f,%.2f,%.2f\r\n", motor_pos[0], motor_pos[1], motor_pos[2]);
 		send(str);
 	}
 	else if (IS_COMMAND_N(cmd, "MPS"))
@@ -660,18 +663,22 @@ void DoCmd(char *cmd)
 		SetControlCommand(COMM_PTP);
 		SetCommand("POM");
 	}
-	else if (IS_COMMAND(cmd, "ORG"))
+/*	else if (IS_COMMAND(cmd, "ORG"))
 	{
 		if (! IsStopped())
 		{
 			SendResponseRaw("ORG", ERR_COMMAND_IN_RUNNING);
 			return;
 		}
-
 		if (IsError())
 		{
 			SendResponseRaw("ORG", ERR_COMMAND_IN_ERROR);
 			return;
+		}
+		if (!IsReleaseBreak()) 
+		{
+			send("ORG E11\r\n");
+			return ;
 		}
 
 		SetCommand("ORG");
@@ -679,7 +686,7 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("ORG\r\n");
 	}
-	else if (IS_COMMAND(cmd, "ORA"))
+*/	else if (IS_COMMAND(cmd, "ORA"))
 	{
 		if (! IsStopped())
 		{
@@ -691,6 +698,11 @@ void DoCmd(char *cmd)
 		{
 			SendResponseRaw("ORA", ERR_COMMAND_IN_ERROR);
 			return;
+		}
+		if (!IsReleaseBreak()) 
+		{
+			send("ORA E11\r\n");
+			return ;
 		}
 
 		if (strlen(cmd) < 4)
@@ -715,6 +727,12 @@ void DoCmd(char *cmd)
 	}
 	else if (IS_COMMAND(cmd, "JOG"))
 	{
+		if (!IsReleaseBreak()) 
+		{
+			send("JOG E11\r\n");
+			return ;
+		}
+
 		if (strlen(cmd) > 4)
 		{
 			ch = (strchr(cmd, 'G')) + 2;
@@ -774,17 +792,20 @@ void DoCmd(char *cmd)
 	}
 	else if (IS_COMMAND(cmd, "LMI"))
 	{
-		
 		if (! IsStopped())
 		{
 			SendResponseRaw("LMI", ERR_COMMAND_IN_RUNNING);
 			return;
 		}
-
 		if (IsError())
 		{
 			SendResponseRaw("LMI", ERR_COMMAND_IN_ERROR);
 			return;
+		}
+		if (!IsReleaseBreak()) 
+		{
+			send("LMI E11\r\n");
+			return ;
 		}
 
 		SetCommand("LMI");
@@ -808,11 +829,15 @@ void DoCmd(char *cmd)
 			SendResponseRaw("LMA", ERR_ORIGIN_ERROR);
 			return;
 		}
-
 		if (!IsStopped())
 		{
 			SendResponseRaw("LMA", ERR_COMMAND_IN_RUNNING);
 			return;
+		}
+		if (!IsReleaseBreak()) 
+		{
+			send("LMA E11\r\n");
+			return ;
 		}
 	
 		SetCommand("LMA");
@@ -837,11 +862,15 @@ void DoCmd(char *cmd)
 			SendResponseRaw("MMI", ERR_COMMAND_IN_RUNNING);
 			return;
 		}
-
 		if (IsError())
 		{
 			SendResponseRaw("MMI", ERR_COMMAND_IN_ERROR);
 			return;
+		}
+		if (!IsReleaseBreak()) 
+		{
+			send("MMI E11\r\n");
+			return ;
 		}
 
 		SetCommand("MMI");
@@ -867,13 +896,17 @@ void DoCmd(char *cmd)
 			SendResponseRaw("MMA", ERR_ORIGIN_ERROR);
 			return;
 		}
-
 		if (! IsStopped())
 		{
 			SendResponseRaw("MMA", ERR_COMMAND_IN_RUNNING);
 			return;
 		}
-	
+		if (!IsReleaseBreak()) 
+		{
+			send("MMA E11\r\n");
+			return ;
+		}
+
 		SetCommand("MMA");
 			
 		ch = strstr(cmd, "MMA");
@@ -1276,6 +1309,16 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	} 
+	else if (IS_COMMAND(cmd, "RBK"))
+	{
+		ReleaseBreak();
+		send("RBK\r\n");
+	}
+	else if (IS_COMMAND(cmd, "HBK"))
+	{
+		HoldBreak();
+		send("HBK\r\n");
+	}
 	/////////////////////////////////////////////////////////
 	// T-Flask Command 
 	else if (IS_COMMAND_N(cmd, "MRST"))	// Motion Param Reset 
@@ -1303,11 +1346,15 @@ void DoCmd(char *cmd)
 			SendResponseRaw("HOME", ERR_COMMAND_IN_RUNNING);
 			return;
 		}
-
 		if (IsError())
 		{
 			SendResponseRaw("HOME", ERR_COMMAND_IN_ERROR);
 			return;
+		}
+		if (!IsReleaseBreak()) 
+		{
+			send("HOME E11\r\n");
+			return ;
 		}
 
 		SetCommand("HOME");
@@ -1355,7 +1402,7 @@ void DoCmd(char *cmd)
 
 		g_MovePointDataNo = 2;	// 사용할 POINT_NO 저장 
 		SetCommand("MUNG");
-		SetControlCommand(COMM_MGRI);
+		SetControlCommand(COMM_MUNG);
 		g_ResponseSend = 1;
 		send("MUNG\r\n");
 	}
@@ -1372,6 +1419,11 @@ void DoCmd(char *cmd)
 		}
 		if (IsError()) {
 			SendResponseRaw("MLOA", ERR_COMMAND_IN_ERROR);
+			return ;
+		}
+		if (!IsReleaseBreak()) 
+		{
+			send("MLOA E11\r\n");
 			return ;
 		}
 
@@ -1396,6 +1448,15 @@ void DoCmd(char *cmd)
 			SendResponseRaw("MASP", ERR_COMMAND_IN_ERROR);
 			return ;
 		}
+		if (!IsReleaseBreak()) 
+		{
+			send("MASP E11\r\n");
+			return ;
+		}
+		if ((get_var(91) == 0) && !IsExistFlask()) {
+			send("MASP E10\r\n");
+			return ;
+		}
 
 		g_MovePointDataNo = 4;	// 사용할 POINT_NO 저장 
 		SetCommand("MASP");
@@ -1416,6 +1477,15 @@ void DoCmd(char *cmd)
 		}
 		if (IsError()) {
 			SendResponseRaw("MDIS", ERR_COMMAND_IN_ERROR);
+			return ;
+		}
+		if (!IsReleaseBreak()) 
+		{
+			send("MDIS E11\r\n");
+			return ;
+		}
+		if ((get_var(91) == 0) && !IsExistFlask()) {
+			send("MDIS E10\r\n");
 			return ;
 		}
 
@@ -1440,6 +1510,15 @@ void DoCmd(char *cmd)
 			SendResponseRaw("MSHA", ERR_COMMAND_IN_ERROR);
 			return ;
 		}
+		if (!IsReleaseBreak()) 
+		{
+			send("MSHA E11\r\n");
+			return ;
+		}
+		if ((get_var(91) == 0) && !IsExistFlask()) {
+			send("MSHA E10\r\n");
+			return ;
+		}
 
 		SetCommand("MSHA");
 		SetControlCommand(COMM_MSHA);
@@ -1461,6 +1540,15 @@ void DoCmd(char *cmd)
 			SendResponseRaw("MWAS", ERR_COMMAND_IN_ERROR);
 			return ;
 		}
+		if (!IsReleaseBreak()) 
+		{
+			send("MWAS E11\r\n");
+			return ;
+		}
+		if ((get_var(91) == 0) && !IsExistFlask()) {
+			send("MWAS E10\r\n");
+			return ;
+		}
 
 		SetCommand("MWAS");
 		SetControlCommand(COMM_MWAS);
@@ -1469,7 +1557,33 @@ void DoCmd(char *cmd)
 	}
 	else if (IS_COMMAND_N(cmd, "MSEP"))
 	{
-		// TODO. multi-layer flask 의 용액을 나누는 동작
+		if (!IsOriginCompleted())
+		{
+			SendResponseRaw("MSEP", ERR_ORIGIN_ERROR);
+			return ;
+		}
+		if (!IsStopped()) {
+			SendResponseRaw("MSEP", ERR_COMMAND_IN_RUNNING);
+			return ;
+		}
+		if (IsError()) {
+			SendResponseRaw("MSEP", ERR_COMMAND_IN_ERROR);
+			return ;
+		}
+		if (!IsReleaseBreak()) 
+		{
+			send("MSEP E11\r\n");
+			return ;
+		}
+		if ((get_var(91) == 0) && !IsExistFlask()) {
+			send("MSEP E10\r\n");
+			return ;
+		}
+
+		SetCommand("MSEP");
+		SetControlCommand(COMM_MSEP);
+		g_ResponseSend = 1;
+		send("MSEP\r\n");
 	}
 	// Separate Flask의 용액을 나누는 동작 
 	// TODO: Rot 90도(수평) -> Tilt -> Rot 0도  
