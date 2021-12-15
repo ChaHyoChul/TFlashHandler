@@ -27,6 +27,7 @@
 #define COMM_MSHA 			37 	// shake 				PD6-7 VAR6(회수) VAR7(Delay)  
 #define COMM_MWAS			38 	// waste 				PD8   VAR8(Delay) 
 #define COMM_MSEP			39 	// separate 			PD9-10 
+#define COMM_AWAS			40 	// async waste 			PD11 -> PD08 (PD11 이동 -> Output On PD8)
 
 // speed type at SetSpeed()
 #define SPEED_ORG			(0)
@@ -154,6 +155,7 @@ char CommMoveXY();
 char CommShake();
 char CommWaste();
 char CommSeparate();
+char CommAsyncWaste();
 
 void UpdateOriginCompletedStatus();
 void SetOriginCompletedFlag(char axis, char flag);
@@ -183,8 +185,12 @@ void SetSpeed(char axis, int type);			// set speed type
 
 void ReleaseBreak();
 void HoldBreak();
+
 char IsReleaseBreak();			// 브레이크가 플렸는지 확인 
 char IsExistFlask();			// 플라스크가 있는지 확인 
 char IsGrip();					// Grip 명령 후 Grip 센서를 확인 한다 
+
+char AsyncWasteOn();
+char AsyncWasteOff();
 
 #endif /* _CONTROL_H */

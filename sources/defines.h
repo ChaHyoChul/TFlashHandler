@@ -1,7 +1,15 @@
 #ifndef _DEFINES_H_
 #define _DEFINES_H_
 
-#define SOFTWARE_VERSION	"TFLASK-H 1.00.001"
+// 2021.11.22
+// #define SOFTWARE_VERSION	"TFLASK-H 1.00.001"
+// #define SOFTWARE_VERSION	"TFLASK-H 1.00.002"
+//  - AWAS (Async Washing) 기능 추가 
+//  - g_MoveStartErrorCode 추가 (GMEC)
+#define SOFTWARE_VERSION	"TFLASK-H 1.00.003"
+//  - g_MoveStartErrorCode[3]으로 각 축의 정보 저장하는 방식으로 수정 
+//  - DRT에서 DriverReset() 함수 호출 
+//  - GDEC 명령 추가. DriverErrorCheck() 함수 결과 리턴 
 
 
 // Settings

@@ -23,6 +23,7 @@ char g_ResponseSend = 0;
 int  g_ScanRate = 32;
 char g_UserStop = 0;
 char g_GoToError = 0;
+char g_MoveStartErrorCode[MAX_AXIS] = {0, 0, 0};		// 2021.11.23 bychul2 MoveStart() 함수 리턴값 저장  
 
 char g_PointDataCommandState = CMD_READY;
 
@@ -157,9 +158,17 @@ void set_error(int err)
 
 void clear_error()
 {
+	char i = 0;
+
 	g_ErrorCode = 0;
 	g_MotionCommand = 0;
 	g_PointDataCommandState = CMD_READY;
+
+	for (i = 0; i<MAX_AXIS; i++)
+	{
+		g_MoveStartErrorCode[i] = 0;
+		DriverReset(i);
+	}
 }
 
 int get_org_offset(int axis)
@@ -479,11 +488,26 @@ void reset_motion_param()
 	g_MotionParam[Y_AXIS].m_ucEncSign = 0; 
 	g_MotionParam[Z_AXIS].m_ucEncSign = 0; 
 
+    /*
+	unsigned char	m_ucOrgSensor;	//18 69(1)Origin Sensor
+	unsigned char	m_ucNegLimit;	//19 70(1)Negative Limit Sensor
+	unsigned char	m_ucPosLimit;	//20 71(1)Positive Limit Sensor
+	*/
+	
 	// AHM. 원점 센서 
+	g_MotionParam[X_AXIS].m_ucOrgSensor = 8;
+	g_MotionParam[Y_AXIS].m_ucOrgSensor = 3;
+	g_MotionParam[Z_AXIS].m_ucOrgSensor = 5;
 
 	// ANL. -Limit 센서 
+	g_MotionParam[X_AXIS].m_ucNegLimit = 8;
+	g_MotionParam[Y_AXIS].m_ucNegLimit = 3;
+	g_MotionParam[Z_AXIS].m_ucNegLimit = 5;
 
 	// APL. +Limit 센서 
+	g_MotionParam[X_AXIS].m_ucPosLimit = 9;
+	g_MotionParam[Y_AXIS].m_ucPosLimit = 2;
+	g_MotionParam[Z_AXIS].m_ucPosLimit = 4;
 
 	// ALD. Lead 값 
 	g_MotionParam[X_AXIS].m_fLead = 10000.0; 

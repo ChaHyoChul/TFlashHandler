@@ -663,6 +663,7 @@ void DoCmd(char *cmd)
 		SetControlCommand(COMM_PTP);
 		SetCommand("POM");
 	}
+
 /*	else if (IS_COMMAND(cmd, "ORG"))
 	{
 		if (! IsStopped())
@@ -1584,6 +1585,42 @@ void DoCmd(char *cmd)
 		SetControlCommand(COMM_MSEP);
 		g_ResponseSend = 1;
 		send("MSEP\r\n");
+	}
+	else if (IS_COMMAND_N(cmd, "AWAS"))	// Async Waste 
+	{
+		if (!IsOriginCompleted())
+		{
+			SendResponseRaw("AWAS", ERR_ORIGIN_ERROR);
+			return ;
+		}
+		if (!IsStopped()) {
+			SendResponseRaw("AWAS", ERR_COMMAND_IN_RUNNING);
+			return ;
+		}
+		if (IsError()) {
+			SendResponseRaw("AWAS", ERR_COMMAND_IN_ERROR);
+			return ;
+		}
+		if (!IsReleaseBreak()) 
+		{
+			send("AWAS E11\r\n");
+			return ;
+		}
+
+		SetCommand("AWAS");
+		SetControlCommand(COMM_AWAS);
+		g_ResponseSend = 1;
+		send("AWAS\r\n");
+	}
+	else if (IS_COMMAND_N(cmd, "GMEC"))	// g_MotorErrorCode를 리턴한다 
+	{
+		sprintf(str, "GMEC %d,%d,%d\r\n", g_MoveStartErrorCode[X_AXIS], g_MoveStartErrorCode[Y_AXIS], g_MoveStartErrorCode[Z_AXIS]);
+		send(str);
+	}
+	else if (IS_COMMAND_N(cmd, "GDEC"))
+	{
+		sprintf(str, "GDEC %d,%d,%d\r\n", DriverErrorCheck(0), DriverErrorCheck(1), DriverErrorCheck(2));
+		send(str);
 	}
 	// Separate Flask의 용액을 나누는 동작 
 	// TODO: Rot 90도(수평) -> Tilt -> Rot 0도  
