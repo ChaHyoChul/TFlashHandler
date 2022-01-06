@@ -6,11 +6,15 @@
 // #define SOFTWARE_VERSION	"TFLASK-H 1.00.002"
 //  - AWAS (Async Washing) 기능 추가 
 //  - g_MoveStartErrorCode 추가 (GMEC)
-#define SOFTWARE_VERSION	"TFLASK-H 1.00.003"
+// #define SOFTWARE_VERSION	"TFLASK-H 1.00.003"
 //  - g_MoveStartErrorCode[3]으로 각 축의 정보 저장하는 방식으로 수정 
 //  - DRT에서 DriverReset() 함수 호출 
 //  - GDEC 명령 추가. DriverErrorCheck() 함수 결과 리턴 
-
+#define SOFTWARE_VERSION	"TFLASK-H 1.00.004"
+//  - MSEP 동작에세 X축 올라오는 속도를 VAR에 등록 하도록 수정 (VAR11)
+//  - MSEP 동작의 동작 옵션 (VAR12)
+//      - VAR12 == 0 : Default 동작 
+//      - VAR12 == 1 : Y축 이동 없이, 바로  X축 이동  
 
 // Settings
 #define COMPORT_BAUDRATE	(57600)
@@ -44,6 +48,8 @@
 #define ERR_TIME_OVER				(  3)
 #define ERR_EMERGENCY				(  4)
 #define ERR_OVER_RUN				(  8)
+#define ERR_ASYNC_WASTE_OUTPUT_ON   (  9)
+#define ERR_ASYNC_WASTE_TIMEOUT     ( 10)
 #define ERR_MOTOR_ERROR				( 12)
 
 #define ERR_RANGE_OVER         		(215)

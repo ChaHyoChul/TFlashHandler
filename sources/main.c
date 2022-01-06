@@ -1637,6 +1637,11 @@ void DoCmd(char *cmd)
 		CounterReset(2);
 		send("OCP\r\n");
 	}
+	else if (IS_COMMAND_N(cmd, "TEST"))
+	{
+		sprintf(str, "TEST %d\r\n", GetWasteAsyncInput());
+		send(str);
+	}
 	else
 	{
 		if (strlen(cmd) > 0)

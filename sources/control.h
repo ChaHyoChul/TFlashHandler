@@ -33,7 +33,7 @@
 #define SPEED_ORG			(0)
 #define SPEED_NORMAL		(1)
 #define SPEED_JOG			(2)
-#define SPEED_SCAN			(3)
+#define SPEED_SEPARATE		(3)
 
 // return code
 #define NORMAL_RUNNING		(0)
@@ -192,5 +192,11 @@ char IsGrip();					// Grip 명령 후 Grip 센서를 확인 한다
 
 char AsyncWasteOn();
 char AsyncWasteOff();
+
+char GetWasteAsyncInput();		// Async Waste 에서 사용하는 input bit를 읽는다 
+								// V13번에 읽을 bit 번호를 저장한다 
+								// V13=15 일 경우, 보드의 16번 input을 읽는다 
+								// bit 번호는 0-base 
+								// 보드의 input 은 1-base 
 
 #endif /* _CONTROL_H */

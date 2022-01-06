@@ -38,6 +38,7 @@ static int uTmp;
 //
 // 
 int move_pd(int pd_no, char sel_axis);
+int move_pd_with_speed(int pd_no, int sel_axis, int spd);
 char move_done(char sel_axis);
 
 //
@@ -1711,8 +1712,8 @@ void SetSpeed(char axis, int type)
 	{
 		case SPEED_ORG:
 			MovVar[axis].m_uVmax = g_MotionParam[axis].m_uOrgVmax;
-			MovVar[axis].m_uVmin = g_MotionParam[axis].m_uOrgVmax;	// 속도가 느려서 max 값을 사용해도 됨 
-			// MovVar[axis].m_uVmin = g_MotionParam[axis].m_uOrgVmin;		// min 값을 사용하도록 하고 min 값을 max의 50% 
+			MovVar[axis].m_uVmin = g_MotionParam[axis].m_uOrgVmax;		// 속도가 느려서 max 값을 사용해도 됨 
+			// MovVar[axis].m_uVmin = g_MotionParam[axis].m_uOrgVmin;	// min 값을 사용하도록 하고 min 값을 max의 50% 
 			MovVar[axis].m_uAcel = g_MotionParam[axis].m_uOrgAcel;
 			break;
 			
@@ -1728,10 +1729,14 @@ void SetSpeed(char axis, int type)
 			MovVar[axis].m_uAcel = g_MotionParam[axis].m_uNorAcel;
 			break;
 
-		case SPEED_SCAN:
-			MovVar[axis].m_uVmax = ((double)scan_rate/100) * g_MotionParam[axis].m_uNorVmax;
-			MovVar[axis].m_uVmin = ((double)scan_rate/100) * g_MotionParam[axis].m_uNorVmin;
-			MovVar[axis].m_uAcel = ((double)scan_rate/100) * g_MotionParam[axis].m_uNorAcel;
+		case SPEED_SEPARATE:
+			switch (axis)
+			{
+				case X_AXIS: MovVar[axis].m_uVmax = get_var(11); break;
+				default: 	 MovVar[axis].m_uVmax = g_MotionParam[axis].m_uNorVmax; break;
+			}
+			MovVar[axis].m_uVmin = g_MotionParam[axis].m_uNorVmin;
+			MovVar[axis].m_uAcel = g_MotionParam[axis].m_uNorAcel;
 			break;
 	}
 	
@@ -2444,8 +2449,15 @@ char CommSeparate()
 		else { step++; }
 		break;
 
-		// pd10 으로 이동 (y축만)
+		// pd10 으로 이동 (y축만 90도 회전)
+		// var12가 1이면 y축 이동을 하지 않는다 
 	case 5:
+		if (get_var(12) == 1) 
+		{
+			step = 9;
+			break;
+		}
+
 		move_start = move_pd(POINT_SEL, 0x02);
 		if (move_start)
 		{
@@ -2475,7 +2487,8 @@ char CommSeparate()
 
 		// pd3 으로 이동 (x->y 순서)
 	case 9: 
-		move_start = move_pd(POINT_LOAD, 0x01);
+		//move_start = move_pd(POINT_LOAD, 0x01);
+		move_start = move_pd_with_speed(POINT_LOAD, 0x01, SPEED_SEPARATE);
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
@@ -2538,12 +2551,24 @@ char CommSeparate()
 }
 
 // PD11 이동 -> Output ON -> PD8 이동 -> Output OFF 
+// Sequence 수정 예정 
+//	- SCARA 출력 신호 확인 -> ON 이면 에러 
+//	- 대기 위치로 이동 
+//	- Output ON 
+//	- SCARA 출력 신호 확인 
+//		- 일정시간 ON 되지 않으면 에러 
+//		- ON 이면 Waste 동작 시작 
+//	- Waste 동작이 끝나면 Output OFF 
+//	- 대기 위치로 이동 
 char CommAsyncWaste()
 {
 	const int POINT_LOAD = 3;
 	const int POINT_WASTE= 8;
 	const int POINT_ASYNC_WASTE = 11;
 	const int VAR_NUM_WASTE_DELAY = 8;
+	const int VAR_NUM_ASYNC_DELAY = 14;
+	const int VAR_NUM_ASYNC_INPUT_NO = 13;
+	const int VAR_NUM_NO_USE_ASYNC_INPUT = 15;
 	static char step = 0;
 	static int  delay_count = 0;
 
@@ -2556,7 +2581,16 @@ char CommAsyncWaste()
 	case 92: if (IsStopped()) { step++; } break;
 	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
 
-	case 0: 
+	case 0:
+		// SCARA의 Input이 ON 되어 있으면, 에러  
+		if (get_var(VAR_NUM_NO_USE_ASYNC_INPUT) == 0 && 
+			GetWasteAsyncInput())
+		{
+			SetErrorCode(ERR_ASYNC_WASTE_OUTPUT_ON);
+			step = 91;
+			break;
+		}
+		// 
 		AsyncWasteOff();
 		delay_count = get_var(VAR_NUM_WASTE_DELAY);
 		step = 1;
@@ -2597,7 +2631,7 @@ char CommAsyncWaste()
 		break;
 	case 5:
 		if (move_done(0x02)) {
-			delay_count = get_var(VAR_NUM_WASTE_DELAY);
+			delay_count = get_var(VAR_NUM_ASYNC_DELAY);
 			step++;
 		}
 		break;
@@ -2608,11 +2642,29 @@ char CommAsyncWaste()
 	case 7:
 		AsyncWasteOn();
 		step++;
+		if (get_var(VAR_NUM_NO_USE_ASYNC_INPUT) != 0)
+		{
+			step++;
+		}
 		break;
-		// Delay 시간 동안 대기 
+		// Async Delay 시간 동안 대기 
+		// SCARA의 출력 신호를 기다린다   
 	case 8:
-		if (--delay_count > 0) { Delay1ms(); }
-		else { step++; }
+		if (--delay_count > 0 ) 
+		{
+			if (GetWasteAsyncInput())
+			{
+				step++; break;
+			}
+			Delay1ms();
+		}
+		else 
+		{
+			// Timeout 에러 
+			SetErrorCode(ERR_ASYNC_WASTE_TIMEOUT);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
 		break;
 
 	case 9: 
@@ -2672,6 +2724,7 @@ char CommAsyncWaste()
 	
 		// load 위치(pd3)로 이동. x축
 	case 17:
+		AsyncWasteOff();
 		move_start = move_pd(POINT_LOAD, 0x01);
 		if (move_start) 
 		{
@@ -2692,7 +2745,6 @@ char CommAsyncWaste()
 		break;
 
 	case 20:
-		AsyncWasteOff();
 		HoldMotors();
 		g_MovePointDataNo = 0;
 		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
@@ -2744,6 +2796,48 @@ int move_pd(int pd_no, char sel_axis)
 			{
 				SetMoveOffset(axis, g_MoveOffset[axis]);
 				SetSpeed(axis, SPEED_NORMAL);
+				g_MoveStartErrorCode[axis] = MoveStart(axis);
+				if (g_MoveStartErrorCode[axis])
+				{
+					return g_MoveStartErrorCode[axis];
+				}
+			}	
+		}
+		else 
+		{
+			g_MoveOffset[axis] = 0;
+		}
+		mask <<= 1;
+	}
+
+	return 0;
+}
+
+int move_pd_with_speed(int pd_no, int sel_axis, int spd)
+{
+	POINT_DATA pd;
+	// int  move_start = 0;
+	char axis;
+	char mask = 1;
+
+	pd = get_point_data(pd_no);
+
+	for (axis = 0; axis < MAX_AXIS; axis++)
+	{
+		if ((sel_axis & mask) == mask)
+		{
+			switch (axis)
+			{
+			case X_AXIS: g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor; break;
+			case Y_AXIS: g_MoveOffset[axis] = (pd.y - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor; break;
+			case Z_AXIS: g_MoveOffset[axis] = (pd.z - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor; break;
+			}
+			// g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+
+			if (g_MoveOffset[axis] != 0)
+			{
+				SetMoveOffset(axis, g_MoveOffset[axis]);
+				SetSpeed(axis, spd);
 				g_MoveStartErrorCode[axis] = MoveStart(axis);
 				if (g_MoveStartErrorCode[axis])
 				{
@@ -2829,4 +2923,17 @@ char AsyncWasteOn()
 char AsyncWasteOff()
 {
 	SetDOBit(1, 6, 0);
+}
+
+// VAR13 번에 bit 번호를 입력 하고, 그 Bit를 사용한다 
+// - bit 번호는 0번부터 시작 
+// - V13 = 0 이면 0번 bit 
+// - 전장 배선은 1번부터 시작. 16번에 연결 => V13=15 입력 
+char GetWasteAsyncInput()
+{
+	char bitno = get_var(13);
+	char ch = (bitno / 8) + 1;
+	char bit= bitno % 8;
+	
+	return GetDIBit(ch, bit);
 }
