@@ -28,6 +28,8 @@
 #define COMM_MWAS			38 	// waste 				PD8   VAR8(Delay) 
 #define COMM_MSEP			39 	// separate 			PD9-10 
 #define COMM_AWAS			40 	// async waste 			PD11 -> PD08 (PD11 이동 -> Output On PD8)
+#define COMM_MWRD			41 	// ready waste
+#define COMM_MWPR			42 	// pour waste
 
 // speed type at SetSpeed()
 #define SPEED_ORG			(0)
@@ -154,8 +156,10 @@ char CommGripUngrip();
 char CommMoveXY();
 char CommShake();
 char CommWaste();
-char CommSeparate();
 char CommAsyncWaste();
+char CommReadyWaste();
+char CommPourWaste();
+char CommSeparate();
 
 void UpdateOriginCompletedStatus();
 void SetOriginCompletedFlag(char axis, char flag);
@@ -198,5 +202,8 @@ char GetWasteAsyncInput();		// Async Waste 에서 사용하는 input bit를 읽�
 								// V13=15 일 경우, 보드의 16번 input을 읽는다 
 								// bit 번호는 0-base 
 								// 보드의 input 은 1-base 
+
+char IsWasteReadyPos();			// 현재 위치가 Waste Ready 위치이면 1 리턴, 그렇지 않으면 0 리턴 
+
 
 #endif /* _CONTROL_H */

@@ -10,11 +10,20 @@
 //  - g_MoveStartErrorCode[3]으로 각 축의 정보 저장하는 방식으로 수정 
 //  - DRT에서 DriverReset() 함수 호출 
 //  - GDEC 명령 추가. DriverErrorCheck() 함수 결과 리턴 
-#define SOFTWARE_VERSION	"TFLASK-H 1.00.004"
+// #define SOFTWARE_VERSION	"TFLASK-H 1.00.004"
 //  - MSEP 동작에세 X축 올라오는 속도를 VAR에 등록 하도록 수정 (VAR11)
 //  - MSEP 동작의 동작 옵션 (VAR12)
 //      - VAR12 == 0 : Default 동작 
 //      - VAR12 == 1 : Y축 이동 없이, 바로  X축 이동  
+// #define SOFTWARE_VERSION	"TFLASK-H 1.00.005"
+//  - Waste 기능 추가 
+//      - MWRD. 버리는 동작의 대기 위치로 이동 
+//      - MWPR. 대기 위치에서 붓는 동작 후 대기 위치로 이동 
+#define SOFTWARE_VERSION	"TFLASK-H 1.00.006"
+//  - Waste 기능 버그 수정 
+//      - MWRD. 명령에서 Point Data 지정 오류 수정 
+//      - AWAS. 명령 디버깅 완료 
+
 
 // Settings
 #define COMPORT_BAUDRATE	(57600)

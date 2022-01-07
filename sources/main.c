@@ -417,6 +417,7 @@ void DoCmd(char *cmd)
 	else if (IS_COMMAND(cmd, "DRT"))
 	{
 		clear_error();
+		AsyncWasteOff();
 		send("DRT\r\n");
 	}
 	else if (IS_COMMAND(cmd, "VAR"))
@@ -1555,6 +1556,72 @@ void DoCmd(char *cmd)
 		SetControlCommand(COMM_MWAS);
 		g_ResponseSend = 1;
 		send("MWAS\r\n");
+	}
+	else if (IS_COMMAND_N(cmd, "MWRD"))	
+	{
+		if (!IsOriginCompleted())
+		{
+			SendResponseRaw("MWRD", ERR_ORIGIN_ERROR);
+			return ;
+		}
+		if (!IsStopped()) {
+			SendResponseRaw("MWRD", ERR_COMMAND_IN_RUNNING);
+			return ;
+		}
+		if (IsError()) {
+			SendResponseRaw("MWRD", ERR_COMMAND_IN_ERROR);
+			return ;
+		}
+		if (!IsReleaseBreak()) 
+		{
+			send("MWRD E11\r\n");
+			return ;
+		}
+		if ((get_var(91) == 0) && !IsExistFlask()) {
+			send("MWRD E10\r\n");
+			return ;
+		}
+
+		SetCommand("MWRD");
+		SetControlCommand(COMM_MWRD);
+		g_ResponseSend = 1;
+		send("MWRD\r\n");
+	}
+	else if (IS_COMMAND_N(cmd, "MWPR"))	
+	{
+		if (!IsOriginCompleted())
+		{
+			SendResponseRaw("MWPR", ERR_ORIGIN_ERROR);
+			return ;
+		}
+		if (!IsStopped()) {
+			SendResponseRaw("MWPR", ERR_COMMAND_IN_RUNNING);
+			return ;
+		}
+		if (IsError()) {
+			SendResponseRaw("MWPR", ERR_COMMAND_IN_ERROR);
+			return ;
+		}
+		if (!IsReleaseBreak()) 
+		{
+			send("MWPR E11\r\n");
+			return ;
+		}
+		if ((get_var(91) == 0) && !IsExistFlask()) {
+			send("MWPR E10\r\n");
+			return ;
+		}
+		if (IsWasteReadyPos() == 0)
+		{
+			// 현재 위치가 Ready 위치가 아님 
+			send("MWPR E14\r\n");
+			return ;
+		}
+
+		SetCommand("MWPR");
+		SetControlCommand(COMM_MWPR);
+		g_ResponseSend = 1;
+		send("MWPR\r\n");
 	}
 	else if (IS_COMMAND_N(cmd, "MSEP"))
 	{

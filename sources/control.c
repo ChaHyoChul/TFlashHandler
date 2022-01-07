@@ -395,8 +395,10 @@ void MainControl()
 	case COMM_MDIS:		res = CommMoveXY(); UpdateState(res); break;
 	case COMM_MSHA:		res = CommShake(); UpdateState(res); break;
 	case COMM_MWAS:		res = CommWaste(); UpdateState(res); break;
-	case COMM_MSEP:		res = CommSeparate(); UpdateState(res); break;
 	case COMM_AWAS:		res = CommAsyncWaste(); UpdateState(res); break;
+	case COMM_MWRD:		res = CommReadyWaste(); UpdateState(res); break;
+	case COMM_MWPR:		res = CommPourWaste(); UpdateState(res); break;
+	case COMM_MSEP:		res = CommSeparate(); UpdateState(res); break;
 	}
 	
 	if (g_UserStop > 0)
@@ -2393,6 +2395,399 @@ char CommWaste()
 	return 0;
 }
 
+// PD11 이동 -> Output ON -> PD8 이동 -> Output OFF 
+// Sequence 수정 예정 
+//	- SCARA 출력 신호 확인 -> ON 이면 에러 
+//	- 대기 위치로 이동 
+//	- Output ON 
+//	- SCARA 출력 신호 확인 
+//		- 일정시간 ON 되지 않으면 에러 
+//		- ON 이면 Waste 동작 시작 
+//	- Waste 동작이 끝나면 Output OFF 
+//	- 대기 위치로 이동 
+char CommAsyncWaste()
+{
+	const int POINT_LOAD = 3;
+	const int POINT_WASTE= 8;
+	const int POINT_ASYNC_WASTE = 11;
+	const int VAR_NUM_WASTE_DELAY = 8;
+	const int VAR_NUM_ASYNC_DELAY = 14;
+	const int VAR_NUM_ASYNC_INPUT_NO = 13;
+	const int VAR_NUM_NO_USE_ASYNC_INPUT = 15;
+	static char step = 0;
+	static int  delay_count = 0;
+
+	int move_start = 0;
+
+	switch (step)
+	{
+		// Error handling 
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; } break;
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
+
+	case 0:
+		AsyncWasteOff();
+		// SCARA의 Input이 ON 되어 있으면, 에러  
+		if (get_var(VAR_NUM_NO_USE_ASYNC_INPUT) == 0 && 
+			GetWasteAsyncInput())
+		{
+			SetErrorCode(ERR_ASYNC_WASTE_OUTPUT_ON);
+			step = 91;
+			break;
+		}
+		// 
+		delay_count = get_var(VAR_NUM_WASTE_DELAY);
+		step = 1;
+		break;
+
+		// pd8로 이동 (x축)
+	case 1:
+		move_start = move_pd(POINT_WASTE, 0x01);
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 2:
+		if (move_done(0x01)) { step++; }
+		break;
+
+	case 3:
+		if (IsStopped()) { step++; }
+		break;
+
+		// pd11로 이동 (y축) 
+	case 4:
+		move_start = move_pd(POINT_ASYNC_WASTE, 0x02);
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+	case 5:
+		if (move_done(0x02)) {
+			delay_count = get_var(VAR_NUM_ASYNC_DELAY);
+			step++;
+		}
+		break;
+	case 6:
+		if (IsStopped()) { step++; }
+		break;
+		// y축 이동 후 Async signal on 
+	case 7:
+		AsyncWasteOn();
+		step++;
+		if (get_var(VAR_NUM_NO_USE_ASYNC_INPUT) != 0)
+		{
+			// SCARA의 Input 신호를 사용하지 않을 경우, step 8을 skip. step 9로 이동 
+			step++;
+		}
+		break;
+		// Async Delay 시간 동안 대기 
+		// SCARA의 출력 신호를 기다린다 (V14)  
+	case 8:
+		if (--delay_count > 0 ) 
+		{
+			if (GetWasteAsyncInput())
+			{
+				step++; break;
+			}
+			Delay1ms();
+		}
+		else 
+		{
+			// Timeout 에러 
+			SetErrorCode(ERR_ASYNC_WASTE_TIMEOUT);
+			step = 91;
+			// 신호를 끈다 
+			AsyncWasteOff();
+			return NORMAL_RUNNING;
+		}
+		break;
+
+	case 9: 
+		step++;
+		break;
+
+		// pd8로 이동 (y축)
+	case 10:
+		move_start = move_pd(POINT_WASTE, 0x02);
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 11:
+		if (move_done(0x02)) {
+			delay_count = get_var(VAR_NUM_WASTE_DELAY);
+			step++;
+		}
+		break;
+
+	case 12:
+		if (IsStopped()) { step++; }
+		break;
+
+		// delay 
+	case 13:
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step++; }
+		break;
+
+		// load 위치(pd3)로 이동. y축 부터 이동 
+	case 14:
+		move_start = move_pd(POINT_LOAD, 0x02);
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 15:
+		if (move_done(0x02)) { step++; }
+		break;
+
+	case 16:
+		if (IsStopped()) { step++; }
+		break;
+	
+		// load 위치(pd3)로 이동. x축
+	case 17:
+		AsyncWasteOff();
+		move_start = move_pd(POINT_LOAD, 0x01);
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 18:
+		if (move_done(0x01)) { step++; }
+		break;
+
+	case 19:
+		if (IsStopped()) { step++; }
+		break;
+
+	case 20:
+		HoldMotors();
+		g_MovePointDataNo = 0;
+		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
+		step = 0;
+		return NORMAL_FINISHED;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;		
+
+	}
+
+	CHECK_USER_STOP();
+
+	return 0;
+}
+
+// X(PD8) -> Y(PD11)
+char CommReadyWaste()
+{
+	const int POINT_LOAD = 8;	// X축 이동 
+	const int POINT_READY = 11;	// Y축 이동 
+	static int step = 0;
+	int move_start = 0;
+
+	switch (step)
+	{
+		// Error handling 
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; } break;
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;		
+
+		// X축 (PD8) 이동 
+	case 0:
+		move_start = move_pd(POINT_LOAD, 0x01);
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+	case 1:
+		if (move_done(0x01)) { step++; }
+		break;
+	case 2:
+		if (IsStopped()) { step++; }
+		break;
+
+		// Y축 (PD11) 이동 
+	case 3: 
+		move_start = move_pd(POINT_READY, 0x02);
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+	case 4:
+		if (move_done(0x02)) { step++; }
+		break;
+	case 5:
+		if (IsStopped()) { step++; }
+		break;
+
+	case 6:
+		HoldMotors();
+		g_MovePointDataNo = 0;
+		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
+		step = 0;
+		return NORMAL_FINISHED;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;
+	}
+
+	CHECK_USER_STOP();
+
+	return 0;
+}
+
+// 실행하기 전에 현재 x, y 위치를 먼저 확인한다 
+// Y(PD8) -> Delay -> Y(PD3) -> X(PD3)
+char CommPourWaste()
+{
+	const int POINT_LOAD = 3;
+	const int POINT_WASTE= 8;
+	const int VAR_NUM_WASTE_DELAY = 8;
+	static char step = 0;
+	static int  delay_count = 0;
+
+	int move_start = 0;
+
+	switch (step)
+	{
+		// Error handling 
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; } break;
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
+
+		// pd8로 이동 (y축)
+	case 0: //4:
+		move_start = move_pd(POINT_WASTE, 0x02);
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 1: //5:
+		if (move_done(0x02)) {
+			delay_count = get_var(VAR_NUM_WASTE_DELAY);
+			step++;
+		}
+		break;
+
+	case 2: //6:
+		if (IsStopped()) { step++; }
+		break;
+
+		// delay 
+	case 3: //7:
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step++; }
+		break;
+
+		// load 위치(pd3)로 이동. y축 부터 이동 
+	case 4: //8:
+		move_start = move_pd(POINT_LOAD, 0x02);
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 5: //9:
+		if (move_done(0x02)) { step++; }
+		break;
+
+	case 6: //10:
+		if (IsStopped()) { step++; }
+		break;
+	
+		// load 위치(pd3)로 이동. x축
+	case 7: //11:
+		move_start = move_pd(POINT_LOAD, 0x01);
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 8: //12:
+		if (move_done(0x01)) { step++; }
+		break;
+
+	case 9: //13:
+		if (IsStopped()) { step++; }
+		break;
+
+	case 10: //14:
+		HoldMotors();
+		g_MovePointDataNo = 0;
+		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
+		step = 0;
+		return NORMAL_FINISHED;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;		
+	}
+
+	CHECK_USER_STOP();
+
+	return 0;
+}
+
 // pd9.  수직으로 세워서 용액을 나누는 위치 (x,y 동시 이동)
 // pd10. 옆으로 뉘어서 용액을 분리 (y축만 이동)
 // pd3.  Load 위치로 이동 (x->y 순서로 이동)
@@ -2550,217 +2945,6 @@ char CommSeparate()
 	return 0;
 }
 
-// PD11 이동 -> Output ON -> PD8 이동 -> Output OFF 
-// Sequence 수정 예정 
-//	- SCARA 출력 신호 확인 -> ON 이면 에러 
-//	- 대기 위치로 이동 
-//	- Output ON 
-//	- SCARA 출력 신호 확인 
-//		- 일정시간 ON 되지 않으면 에러 
-//		- ON 이면 Waste 동작 시작 
-//	- Waste 동작이 끝나면 Output OFF 
-//	- 대기 위치로 이동 
-char CommAsyncWaste()
-{
-	const int POINT_LOAD = 3;
-	const int POINT_WASTE= 8;
-	const int POINT_ASYNC_WASTE = 11;
-	const int VAR_NUM_WASTE_DELAY = 8;
-	const int VAR_NUM_ASYNC_DELAY = 14;
-	const int VAR_NUM_ASYNC_INPUT_NO = 13;
-	const int VAR_NUM_NO_USE_ASYNC_INPUT = 15;
-	static char step = 0;
-	static int  delay_count = 0;
-
-	int move_start = 0;
-
-	switch (step)
-	{
-		// Error handling 
-	case 91: StopMotors(); step++; break;
-	case 92: if (IsStopped()) { step++; } break;
-	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
-
-	case 0:
-		// SCARA의 Input이 ON 되어 있으면, 에러  
-		if (get_var(VAR_NUM_NO_USE_ASYNC_INPUT) == 0 && 
-			GetWasteAsyncInput())
-		{
-			SetErrorCode(ERR_ASYNC_WASTE_OUTPUT_ON);
-			step = 91;
-			break;
-		}
-		// 
-		AsyncWasteOff();
-		delay_count = get_var(VAR_NUM_WASTE_DELAY);
-		step = 1;
-		break;
-
-		// pd8로 이동 (x축)
-	case 1:
-		move_start = move_pd(POINT_WASTE, 0x01);
-		if (move_start) 
-		{
-			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
-			return NORMAL_RUNNING;
-		}
-		DelayMoveStart();
-		step++;
-		break;
-
-	case 2:
-		if (move_done(0x01)) { step++; }
-		break;
-
-	case 3:
-		if (IsStopped()) { step++; }
-		break;
-
-		// pd11로 이동 (y축) 
-	case 4:
-		move_start = move_pd(POINT_ASYNC_WASTE, 0x02);
-		if (move_start) 
-		{
-			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
-			return NORMAL_RUNNING;
-		}
-		DelayMoveStart();
-		step++;
-		break;
-	case 5:
-		if (move_done(0x02)) {
-			delay_count = get_var(VAR_NUM_ASYNC_DELAY);
-			step++;
-		}
-		break;
-	case 6:
-		if (IsStopped()) { step++; }
-		break;
-		// y축 이동 후 Async signal on 
-	case 7:
-		AsyncWasteOn();
-		step++;
-		if (get_var(VAR_NUM_NO_USE_ASYNC_INPUT) != 0)
-		{
-			step++;
-		}
-		break;
-		// Async Delay 시간 동안 대기 
-		// SCARA의 출력 신호를 기다린다   
-	case 8:
-		if (--delay_count > 0 ) 
-		{
-			if (GetWasteAsyncInput())
-			{
-				step++; break;
-			}
-			Delay1ms();
-		}
-		else 
-		{
-			// Timeout 에러 
-			SetErrorCode(ERR_ASYNC_WASTE_TIMEOUT);
-			step = 91;
-			return NORMAL_RUNNING;
-		}
-		break;
-
-	case 9: 
-		step++;
-		break;
-
-		// pd8로 이동 (y축)
-	case 10:
-		move_start = move_pd(POINT_WASTE, 0x02);
-		if (move_start) 
-		{
-			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
-			return NORMAL_RUNNING;
-		}
-		DelayMoveStart();
-		step++;
-		break;
-
-	case 11:
-		if (move_done(0x02)) {
-			delay_count = get_var(VAR_NUM_WASTE_DELAY);
-			step++;
-		}
-		break;
-
-	case 12:
-		if (IsStopped()) { step++; }
-		break;
-
-		// delay 
-	case 13:
-		if (--delay_count > 0) { Delay1ms(); }
-		else { step++; }
-		break;
-
-		// load 위치(pd3)로 이동. y축 부터 이동 
-	case 14:
-		move_start = move_pd(POINT_LOAD, 0x02);
-		if (move_start) 
-		{
-			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
-			return NORMAL_RUNNING;
-		}
-		DelayMoveStart();
-		step++;
-		break;
-
-	case 15:
-		if (move_done(0x02)) { step++; }
-		break;
-
-	case 16:
-		if (IsStopped()) { step++; }
-		break;
-	
-		// load 위치(pd3)로 이동. x축
-	case 17:
-		AsyncWasteOff();
-		move_start = move_pd(POINT_LOAD, 0x01);
-		if (move_start) 
-		{
-			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
-			return NORMAL_RUNNING;
-		}
-		DelayMoveStart();
-		step++;
-		break;
-
-	case 18:
-		if (move_done(0x01)) { step++; }
-		break;
-
-	case 19:
-		if (IsStopped()) { step++; }
-		break;
-
-	case 20:
-		HoldMotors();
-		g_MovePointDataNo = 0;
-		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
-		step = 0;
-		return NORMAL_FINISHED;
-
-	default:
-		step = 0;
-		return NORMAL_FINISHED;		
-
-	}
-
-	CHECK_USER_STOP();
-
-	return 0;
-}
 
 // pd_no 위치로 이동 
 // axis 는 이동할 축 번호 비트만 1 
@@ -2937,3 +3121,23 @@ char GetWasteAsyncInput()
 	
 	return GetDIBit(ch, bit);
 }
+
+// 현재 위치가 Waste Ready 위치이면 1 리턴, 그렇지 않으면 0 리턴 
+// X(P08), Y(P11)
+char IsWasteReadyPos()
+{
+	double curr_x = get_motor_pos(X_AXIS);
+	double curr_y = get_motor_pos(Y_AXIS);
+	POINT_DATA pd08 = get_point_data(8);
+	POINT_DATA pd11 = get_point_data(11);
+	char ret = 0;
+
+	if (fabs(pd08.x - curr_x) < 2.0 && 
+		fabs(pd11.y - curr_y) < 2.0)
+	{
+		ret = 1;
+	}
+
+	return ret;
+}
+
