@@ -21,6 +21,7 @@ extern int  g_OriginNeed[3];
 extern int  g_OriginCompletedAxes[3];
 
 extern char g_MoveStartErrorCode[3];
+extern int g_MoveStartErrorLine;
 
 typedef struct _POINT_DATA
 {

@@ -24,6 +24,7 @@ int  g_ScanRate = 32;
 char g_UserStop = 0;
 char g_GoToError = 0;
 char g_MoveStartErrorCode[MAX_AXIS] = {0, 0, 0};		// 2021.11.23 bychul2 MoveStart() 함수 리턴값 저장  
+int  g_MoveStartErrorLine = 0;
 
 char g_PointDataCommandState = CMD_READY;
 
@@ -164,6 +165,7 @@ void clear_error()
 	g_MotionCommand = 0;
 	g_PointDataCommandState = CMD_READY;
 
+	g_MoveStartErrorLine = 0;
 	for (i = 0; i<MAX_AXIS; i++)
 	{
 		g_MoveStartErrorCode[i] = 0;

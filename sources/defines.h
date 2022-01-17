@@ -19,11 +19,14 @@
 //  - Waste 기능 추가 
 //      - MWRD. 버리는 동작의 대기 위치로 이동 
 //      - MWPR. 대기 위치에서 붓는 동작 후 대기 위치로 이동 
-#define SOFTWARE_VERSION	"TFLASK-H 1.00.006"
+// #define SOFTWARE_VERSION	"TFLASK-H 1.00.006"
 //  - Waste 기능 버그 수정 
 //      - MWRD. 명령에서 Point Data 지정 오류 수정 
 //      - AWAS. 명령 디버깅 완료 
-
+#define SOFTWARE_VERSION	"TFLASK-H 1.00.007"
+//  - ORA 명령에도 origin offset 적용 
+//  - motor error 발생하는 라인 번호 저장. GMEX 명령으로 확인 
+//  - home 명령 중 모터 이동사이 200ms delay 
 
 // Settings
 #define COMPORT_BAUDRATE	(57600)

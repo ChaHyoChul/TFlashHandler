@@ -1681,7 +1681,11 @@ void DoCmd(char *cmd)
 	}
 	else if (IS_COMMAND_N(cmd, "GMEC"))	// g_MotorErrorCode를 리턴한다 
 	{
-		sprintf(str, "GMEC %d,%d,%d\r\n", g_MoveStartErrorCode[X_AXIS], g_MoveStartErrorCode[Y_AXIS], g_MoveStartErrorCode[Z_AXIS]);
+		sprintf(str, "GMEC %d,%d,%d,%d\r\n", 
+			g_MoveStartErrorCode[X_AXIS], 
+			g_MoveStartErrorCode[Y_AXIS], 
+			g_MoveStartErrorCode[Z_AXIS], 
+			g_MoveStartErrorLine);
 		send(str);
 	}
 	else if (IS_COMMAND_N(cmd, "GDEC"))
