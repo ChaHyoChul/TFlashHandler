@@ -1421,6 +1421,9 @@ char CommOriginAxis()
 			}
 			// g_MoveOffset[g_OriginAxis] = (0.2 - get_motor_pos(g_OriginAxis)) / g_MotionParam[g_OriginAxis].m_fScaleFactor; // g_MotionParam[g_OriginAxis].fScaleFactor;
 			g_MoveOffset[g_OriginAxis] = (org_offset - get_motor_pos(g_OriginAxis)) / g_MotionParam[g_OriginAxis].m_fScaleFactor; // g_MotionParam[g_OriginAxis].fScaleFactor;SetMoveOffset(g_OriginAxis, g_MoveOffset[g_OriginAxis]);
+			SetMoveOffset(g_OriginAxis, g_MoveOffset[g_OriginAxis]);
+
+			SetSpeed(g_OriginAxis, SPEED_ORG);
 			g_MoveStartErrorCode[g_OriginAxis] = MoveStart(g_OriginAxis);
 			g_MoveStartErrorLine = 1425;
 			if (g_MoveStartErrorCode[g_OriginAxis]) 
@@ -1971,6 +1974,7 @@ char CommHome()
 		g_MoveOffset[g_OriginAxis] = (org_offset - get_motor_pos(g_OriginAxis)) / g_MotionParam[g_OriginAxis].m_fScaleFactor; 
 		SetMoveOffset(g_OriginAxis, g_MoveOffset[g_OriginAxis]);
 		// 2021.11.22
+		SetSpeed(g_OriginAxis, SPEED_ORG);
 		g_MoveStartErrorCode[g_OriginAxis] = MoveStart(g_OriginAxis);
 		g_MoveStartErrorLine = 1975;
 		if (g_MoveStartErrorCode[g_OriginAxis]) 
