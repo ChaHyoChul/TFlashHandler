@@ -1744,8 +1744,8 @@ void SetSpeed(char axis, int type)
 	{
 		case SPEED_ORG:
 			MovVar[axis].m_uVmax = g_MotionParam[axis].m_uOrgVmax;
-			MovVar[axis].m_uVmin = g_MotionParam[axis].m_uOrgVmax;		// 속도가 느려서 max 값을 사용해도 됨 
-			// MovVar[axis].m_uVmin = g_MotionParam[axis].m_uOrgVmin;	// min 값을 사용하도록 하고 min 값을 max의 50% 
+			// MovVar[axis].m_uVmin = g_MotionParam[axis].m_uOrgVmax;		// 속도가 느려서 max 값을 사용해도 됨 
+			MovVar[axis].m_uVmin = g_MotionParam[axis].m_uOrgVmin;	// min 값을 사용하도록 하고 min 값을 max의 50% 
 			MovVar[axis].m_uAcel = g_MotionParam[axis].m_uOrgAcel;
 			break;
 			

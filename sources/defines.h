@@ -27,9 +27,12 @@
 //  - ORA 명령에도 origin offset 적용 
 //  - motor error 발생하는 라인 번호 저장. GMEX 명령으로 확인 
 //  - home 명령 중 모터 이동사이 200ms delay 
-#define SOFTWARE_VERSION	"TFLASK-H 1.00.008"
+// #define SOFTWARE_VERSION	"TFLASK-H 1.00.008"
 //  - Origin Offset 위치로 이동하기 전에 SetSpeed() 함수 실행 
 //    (간헐적으로 Home 실행 중 Y축 Origin Offset 위치로 이동 명령에서 012 에러 대응) 
+#define SOFTWARE_VERSION	"TFLASK-H 1.00.009"
+//  - 008 수정에도 동일한 문제가 발생해서 
+//    SetSpeed() 함수에서 ORG Speed에 max, min 값 모두 사용하도록 수정 
 
 
 // Settings
