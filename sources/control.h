@@ -30,6 +30,7 @@
 #define COMM_AWAS			40 	// async waste 			PD11 -> PD08 (PD11 이동 -> Output On PD8)
 #define COMM_MWRD			41 	// ready waste
 #define COMM_MWPR			42 	// pour waste
+#define COMM_HOMF			43	// homming other version 
 
 // speed type at SetSpeed()
 #define SPEED_ORG			(0)
@@ -152,6 +153,7 @@ char CommMove();
 #define COMM_MWAS			38 	// waste 				PD8   VAR8(Delay) 
 */
 char CommHome();
+char CommHomeOption1();
 char CommGripUngrip();
 char CommMoveXY();
 char CommShake();

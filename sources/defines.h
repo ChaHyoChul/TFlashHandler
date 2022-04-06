@@ -30,10 +30,13 @@
 // #define SOFTWARE_VERSION	"TFLASK-H 1.00.008"
 //  - Origin Offset 위치로 이동하기 전에 SetSpeed() 함수 실행 
 //    (간헐적으로 Home 실행 중 Y축 Origin Offset 위치로 이동 명령에서 012 에러 대응) 
-#define SOFTWARE_VERSION	"TFLASK-H 1.00.009"
+// #define SOFTWARE_VERSION	"TFLASK-H 1.00.009"
 //  - 008 수정에도 동일한 문제가 발생해서 
 //    SetSpeed() 함수에서 ORG Speed에 max, min 값 모두 사용하도록 수정 
 
+#define SOFTWARE_VERSION	"TFLASK-H 1.00.010"
+//  - HOMF 명령 추가
+//  - HOME 동작 시퀀스 수정. (+방향이동->센서ON->-방향이동->센서OFF->Offset이동)
 
 // Settings
 #define COMPORT_BAUDRATE	(57600)

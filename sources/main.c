@@ -1364,6 +1364,29 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("HOME\r\n");
 	}
+	else if (IS_COMMAND_N(cmd, "HOMF"))	// 원점복귀 other version 
+	{
+		if (! IsStopped())
+		{
+			SendResponseRaw("HOMF", ERR_COMMAND_IN_RUNNING);
+			return;
+		}
+		if (IsError())
+		{
+			SendResponseRaw("HOMF", ERR_COMMAND_IN_ERROR);
+			return;
+		}
+		if (!IsReleaseBreak()) 
+		{
+			send("HOMF E11\r\n");
+			return ;
+		}
+
+		SetCommand("HOMF");
+		SetControlCommand(COMM_HOMF);
+		g_ResponseSend = 1;
+		send("HOMF\r\n");
+	}
 	else if (IS_COMMAND_N(cmd, "MGRI"))	// Grip
 	{
 		if (!IsOriginCompleted())

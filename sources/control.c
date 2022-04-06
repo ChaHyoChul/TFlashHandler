@@ -388,6 +388,7 @@ void MainControl()
 	case COMM_ERROR_STOP:	res = CommErrorStop();	UpdateState(res);	break;
 
 	case COMM_HOME:		res = CommHome(); UpdateState(res); break;
+	case COMM_HOMF:		res = CommHomeOption1(); UpdateState(res); break;
 	case COMM_MGRI:		res = CommGripUngrip(); UpdateState(res); break;
 	case COMM_MUNG:		res = CommGripUngrip(); UpdateState(res); break;
 	case COMM_MLOA:		res = CommMoveXY(); UpdateState(res); break;
@@ -468,6 +469,7 @@ void SystemCheck()
 	case COMM_ERROR_STOP:
 	case COMM_ORIGIN_A:
 	case COMM_HOME:
+	case COMM_HOMF:
 		return;
 	}
 	
@@ -3204,3 +3206,194 @@ char IsWasteReadyPos()
 	return ret;
 }
 
+/////////////////////////////////////////////////////////////
+// Home 동작 기능 
+// - Home 센서를 감지 하고 있으면, + 방향으로 빠져 나온다 
+// - - 방향으로 이동해서 Home 센서를 찾는다 
+// - + 방향으로 이동해서 Home 센서를 빠져 나온다 
+// - 현재 위치를 0으로 셋팅 
+// - Offset 만큼 이동 한다 
+// - 현재 위치를 0으로 셋팅 
+// Gripper(3) -> Rotation(2) -> Tile(1) 순서로 Origin 한다 
+char CommHomeOption1()
+{
+	static int nNegLimitOutPos[MAX_AXIS] = {0, 0, 0};
+	static int nNegLimitInPos[MAX_AXIS]  = {0, 0, 0};
+	//static int org_axis = 0;	//  원점복귀 하는 축 번호 Z->Y->X 순서 
+	static int step = 0;
+	static int delay_count = 0;
+	
+	int axis = 0;
+	int temp = 0;
+	char move_status = 0;
+	char move_start = 0;
+	double org_offset = 0;
+	POINT_DATA pd_org_offset;
+	
+	switch (step)
+	{
+		// Error Handling 
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; }
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
+
+		// Start 
+	case 0:
+		g_OriginAxis = Z_AXIS;
+		for (axis = 0; axis < MAX_AXIS; axis++)
+		{
+			SetOriginCompletedFlag(axis, 0);
+		}
+		step = 1;
+		break;
+
+	case 1:
+		step = 3;
+		break;
+
+		// - 방향으로 이동 
+	case 3:
+		MovVar[g_OriginAxis].m_uS 	= g_MotionParam[g_OriginAxis].m_uOrgSLimit;
+		MovVar[g_OriginAxis].m_ucDir= g_MotionParam[g_OriginAxis].m_ucOrgDir;
+		SetSpeed(g_OriginAxis, SPEED_ORG); // torque 설정 
+
+		g_MoveStartErrorCode[g_OriginAxis] = MoveStart(g_OriginAxis);
+		g_MoveStartErrorLine = 3259;
+		if (NEG_LIMIT(g_OriginAxis) != SENS_ON && g_MoveStartErrorCode[g_OriginAxis]) // MoveStart(g_OriginAxis)) 
+		{
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		else 
+		{
+			step++;
+		}
+
+		DelayMoveStart();
+		break;
+
+		// Home 센서가 ON 되면 멈춘다 
+	case 4:
+		if (HOME_SENSOR(g_OriginAxis) == SENS_ON)
+		{
+			MoveStop(g_OriginAxis); 
+			step++;
+		}	
+		break;
+
+	case 5:
+		if (IsStopped()) { Delay1ms(); step++; } 
+		break;
+
+		// + 방향으로 이동 (반대 방향으로 이동 시작) 
+	case 6:
+		MovVar[g_OriginAxis].m_ucDir = (unsigned char)((~g_MotionParam[g_OriginAxis].m_ucOrgDir) & 1);
+		MovVar[g_OriginAxis].m_uAcel = 0;					
+
+		// 2021.11.22
+		g_MoveStartErrorCode[g_OriginAxis] = MoveStart(g_OriginAxis); 
+		g_MoveStartErrorLine = 3293;
+		if (g_MoveStartErrorCode[g_OriginAxis])
+		{
+			step = 91;
+			SetErrorCode(ERR_MOTOR_ERROR);
+			return NORMAL_RUNNING;
+		}
+
+		DelayMoveStart();
+		step++;
+		break;
+
+		// HOME 센서가 OFF 되면 멈춘다 
+	case 7:	
+		if (HOME_SENSOR(g_OriginAxis) == SENS_OFF)
+		{
+			MoveStop(g_OriginAxis);
+			step++;
+		}
+		break;
+
+	case 8:
+		if (IsStopped()) { Delay1ms(); step++; } 
+		break;
+
+	case 9:
+		CounterReset(g_OriginAxis);
+		step++;
+		break;
+
+		// Offset(0.2) 만큼 이동 
+	case 10:
+		pd_org_offset = get_point_data(12);
+		switch (g_OriginAxis)
+		{
+		case X_AXIS: org_offset = pd_org_offset.x; break;
+		case Y_AXIS: org_offset = pd_org_offset.y; break;
+		case Z_AXIS: org_offset = pd_org_offset.z; break;
+		default: org_offset = 0.2; break;
+		}
+		// g_MoveOffset[g_OriginAxis] = (0.2 - get_motor_pos(g_OriginAxis)) / g_MotionParam[g_OriginAxis].m_fScaleFactor; 
+		g_MoveOffset[g_OriginAxis] = (org_offset - get_motor_pos(g_OriginAxis)) / g_MotionParam[g_OriginAxis].m_fScaleFactor; 
+		SetMoveOffset(g_OriginAxis, g_MoveOffset[g_OriginAxis]);
+		// 2021.11.22
+		SetSpeed(g_OriginAxis, SPEED_ORG);
+		g_MoveStartErrorCode[g_OriginAxis] = MoveStart(g_OriginAxis);
+		g_MoveStartErrorLine = 3339;
+		if (g_MoveStartErrorCode[g_OriginAxis]) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+	case 11:
+		move_status = GetMoveStatus(g_OriginAxis);
+		switch (move_status)
+		{
+		case MOVE_STS_INPOS:
+			MoveStop(g_OriginAxis);
+			step++;
+			break;
+		case MOVE_STS_STOP:
+			step++;
+			break;
+		}
+		break;
+	case 12:
+		if (IsStopped()) { Delay1ms(); step++; }
+		break;
+		//
+
+	case 13:
+		CounterReset(g_OriginAxis);
+		SetSpeed(g_OriginAxis, SPEED_NORMAL);
+		SetOriginCompletedFlag(g_OriginAxis, 1);
+		delay_count = 20;
+		step++;
+		break;
+
+	case 14:
+		if (--delay_count > 0) { Delay1ms(); break; }
+		step++;
+		break;
+
+	case 15:
+		if (--g_OriginAxis >= X_AXIS) { step = 1; }
+		else { step++; }
+		break;
+
+	case 16:
+		step = 0;
+		return NORMAL_FINISHED;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;
+	}
+
+	CHECK_USER_STOP();
+
+	return NORMAL_RUNNING;
+}
