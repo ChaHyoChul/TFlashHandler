@@ -50,10 +50,14 @@ extern MOTION_PARAM g_MotionParam[MAX_AXIS];
 extern MOVE_VARIABLE MovVar[MAX_AXIS];
 
 extern int  g_MovePointDataNo;
+extern int 	g_MoveRatio;	// 이동 속도 비율 
+extern int 	g_MoveRatioSeparate;	// Separate 동작의 X축 Up 속도 
+extern int 	g_ShakeCount;
+extern int 	g_ShakeAngle;
 extern int  g_MoveOffset[MAX_AXIS];
+extern int  g_OriginAxis;
 extern char g_MotionCommand;
 extern int  g_ErrorCode;
-extern int  g_OriginAxis;
 
 extern POINT_DATA g_PointData[MAX_POINT_DATA];
 
@@ -75,6 +79,16 @@ static char g_ResponseBuffer[128] = "";
 
 static unsigned long g_LoopTime = 0;
 static unsigned long g_CommReceiveTime = 0;
+
+//
+char checkBeforeRun(char* cmd, 
+	char checkOriginCompleted,
+	char checkStopped, 
+	char checkError, 
+	char checkReleaseBreak, 
+	char checkExistFlask, 
+	char checkGripperPos);
+
 
 
 int _tmain(void)
@@ -255,6 +269,9 @@ void DoCmd(char *cmd)
 	char sz[32];
 	
 	char dbg[64];
+
+	char originComplete, stopped, error, releaseBreak, existFlask, gripperGrip;
+
 
 	if (cmd == 0 || strlen(cmd) == 0)
 	{
@@ -664,31 +681,7 @@ void DoCmd(char *cmd)
 		SetControlCommand(COMM_PTP);
 		SetCommand("POM");
 	}
-
-/*	else if (IS_COMMAND(cmd, "ORG"))
-	{
-		if (! IsStopped())
-		{
-			SendResponseRaw("ORG", ERR_COMMAND_IN_RUNNING);
-			return;
-		}
-		if (IsError())
-		{
-			SendResponseRaw("ORG", ERR_COMMAND_IN_ERROR);
-			return;
-		}
-		if (!IsReleaseBreak()) 
-		{
-			send("ORG E11\r\n");
-			return ;
-		}
-
-		SetCommand("ORG");
-		SetControlCommand(COMM_ORIGIN);
-		g_ResponseSend = 1;
-		send("ORG\r\n");
-	}
-*/	else if (IS_COMMAND(cmd, "ORA"))
+	else if (IS_COMMAND(cmd, "ORA"))
 	{
 		if (! IsStopped())
 		{
@@ -1323,7 +1316,7 @@ void DoCmd(char *cmd)
 	}
 	/////////////////////////////////////////////////////////
 	// T-Flask Command 
-	else if (IS_COMMAND_N(cmd, "MRST"))	// Motion Param Reset 
+	else if (IS_COMMAND(cmd, "MRST"))	// Motion Param Reset 
 	{
 		if (! IsStopped())
 		{
@@ -1341,21 +1334,32 @@ void DoCmd(char *cmd)
 
 		send("MRST\r\n");
 	}
-	else if (IS_COMMAND_N(cmd, "HOME"))	// 원점복귀 
+	else if (IS_COMMAND(cmd, "HOME"))	// 원점복귀 other version 
 	{
-		if (! IsStopped())
+		//if (! IsStopped())
+		//{
+		//	SendResponseRaw("HOME", ERR_COMMAND_IN_RUNNING);
+		//	return;
+		//}
+		//if (IsError())
+		//{
+		//	SendResponseRaw("HOME", ERR_COMMAND_IN_ERROR);
+		//	return;
+		//}
+		//if (!IsReleaseBreak()) 
+		//{
+		//	send("HOME E11\r\n");
+		//	return ;
+		//}
+		// originComplete, stopped, error, releaseBreak, existFlask 
+		originComplete = 0;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 1;
+		existFlask = 0;
+		gripperGrip = 0;
+		if (!checkBeforeRun("HOME", originComplete, stopped, errno, releaseBreak, existFlask, gripperGrip)) 
 		{
-			SendResponseRaw("HOME", ERR_COMMAND_IN_RUNNING);
-			return;
-		}
-		if (IsError())
-		{
-			SendResponseRaw("HOME", ERR_COMMAND_IN_ERROR);
-			return;
-		}
-		if (!IsReleaseBreak()) 
-		{
-			send("HOME E11\r\n");
 			return ;
 		}
 
@@ -1364,42 +1368,29 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("HOME\r\n");
 	}
-	else if (IS_COMMAND_N(cmd, "HOMF"))	// 원점복귀 other version 
+	else if (IS_COMMAND(cmd, "MGRI"))	// Grip
 	{
-		if (! IsStopped())
+		//if (!IsOriginCompleted())
+		//{
+		//	SendResponseRaw("MGRI", ERR_ORIGIN_ERROR);
+		//	return ;
+		//}
+		//if (!IsStopped()) {
+		//	SendResponseRaw("MGRI", ERR_COMMAND_IN_RUNNING);
+		//	return ;
+		//}
+		//if (IsError()) {
+		//	SendResponseRaw("MGRI", ERR_COMMAND_IN_ERROR);
+		//	return ;
+		//}
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 0;
+		existFlask = 1;
+		gripperGrip = 0;
+		if (!checkBeforeRun("MGRI", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
 		{
-			SendResponseRaw("HOMF", ERR_COMMAND_IN_RUNNING);
-			return;
-		}
-		if (IsError())
-		{
-			SendResponseRaw("HOMF", ERR_COMMAND_IN_ERROR);
-			return;
-		}
-		if (!IsReleaseBreak()) 
-		{
-			send("HOMF E11\r\n");
-			return ;
-		}
-
-		SetCommand("HOMF");
-		SetControlCommand(COMM_HOMF);
-		g_ResponseSend = 1;
-		send("HOMF\r\n");
-	}
-	else if (IS_COMMAND_N(cmd, "MGRI"))	// Grip
-	{
-		if (!IsOriginCompleted())
-		{
-			SendResponseRaw("MGRI", ERR_ORIGIN_ERROR);
-			return ;
-		}
-		if (!IsStopped()) {
-			SendResponseRaw("MGRI", ERR_COMMAND_IN_RUNNING);
-			return ;
-		}
-		if (IsError()) {
-			SendResponseRaw("MGRI", ERR_COMMAND_IN_ERROR);
 			return ;
 		}
 
@@ -1409,19 +1400,29 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MGRI\r\n");
 	}
-	else if (IS_COMMAND_N(cmd, "MUNG"))	// UnGrip
+	else if (IS_COMMAND(cmd, "MUNG"))	// UnGrip
 	{
-		if (!IsOriginCompleted())
+		//if (!IsOriginCompleted())
+		//{
+		//	SendResponseRaw("MUNG", ERR_ORIGIN_ERROR);
+		//	return ;
+		//}
+		//if (!IsStopped()) {
+		//	SendResponseRaw("MUNG", ERR_COMMAND_IN_RUNNING);
+		//	return ;
+		//}
+		//if (IsError()) {
+		//	SendResponseRaw("MUNG", ERR_COMMAND_IN_ERROR);
+		//	return ;
+		//}
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 0;
+		existFlask = 0;
+		gripperGrip = 0;
+		if (!checkBeforeRun("MUNG", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
 		{
-			SendResponseRaw("MUNG", ERR_ORIGIN_ERROR);
-			return ;
-		}
-		if (!IsStopped()) {
-			SendResponseRaw("MUNG", ERR_COMMAND_IN_RUNNING);
-			return ;
-		}
-		if (IsError()) {
-			SendResponseRaw("MUNG", ERR_COMMAND_IN_ERROR);
 			return ;
 		}
 
@@ -1431,56 +1432,94 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MUNG\r\n");
 	}
-	else if (IS_COMMAND_N(cmd, "MLOA"))	// Move Load Position
+	else if (IS_COMMAND(cmd, "MLOA"))	// Move Load Position
 	{
-		if (!IsOriginCompleted())
+		//if (!IsOriginCompleted())
+		//{
+		//	SendResponseRaw("MLOA", ERR_ORIGIN_ERROR);
+		//	return ;
+		//}
+		//if (!IsStopped()) {
+		//	SendResponseRaw("MLOA", ERR_COMMAND_IN_RUNNING);
+		//	return ;
+		//}
+		//if (IsError()) {
+		//	SendResponseRaw("MLOA", ERR_COMMAND_IN_ERROR);
+		//	return ;
+		//}
+		//if (!IsReleaseBreak()) 
+		//{
+		//	send("MLOA E11\r\n");
+		//	return ;
+		//}
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 1;
+		existFlask = 0;
+		gripperGrip = 0;
+		if (!checkBeforeRun("MLOA", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
 		{
-			SendResponseRaw("MLOA", ERR_ORIGIN_ERROR);
-			return ;
-		}
-		if (!IsStopped()) {
-			SendResponseRaw("MLOA", ERR_COMMAND_IN_RUNNING);
-			return ;
-		}
-		if (IsError()) {
-			SendResponseRaw("MLOA", ERR_COMMAND_IN_ERROR);
-			return ;
-		}
-		if (!IsReleaseBreak()) 
-		{
-			send("MLOA E11\r\n");
 			return ;
 		}
 
+		g_MoveRatio = atoi(cmd + 4); 	// 이동 속도 비율 
+
+		if (g_MoveRatio <= 0 || g_MoveRatio > 100) 
+		{
+			g_MoveRatio = 100;
+			send("MLOA E06\r\n");
+			return;
+		}
+
 		g_MovePointDataNo = 3;	// 사용할 POINT_NO 저장 
+		
 		SetCommand("MLOA");
 		SetControlCommand(COMM_MLOA);
 		g_ResponseSend = 1;
 		send("MLOA\r\n");
 	}
-	else if (IS_COMMAND_N(cmd, "MASP"))	// Move Aspirate Position 
+	else if (IS_COMMAND(cmd, "MASP"))	// Move Aspirate Position 
 	{
-		if (!IsOriginCompleted())
+		//if (!IsOriginCompleted())
+		//{
+		//	SendResponseRaw("MASP", ERR_ORIGIN_ERROR);
+		//	return ;
+		//}
+		//if (!IsStopped()) {
+		//	SendResponseRaw("MASP", ERR_COMMAND_IN_RUNNING);
+		//	return ;
+		//}
+		//if (IsError()) {
+		//	SendResponseRaw("MASP", ERR_COMMAND_IN_ERROR);
+		//	return ;
+		//}
+		//if (!IsReleaseBreak()) 
+		//{
+		//	send("MASP E11\r\n");
+		//	return ;
+		//}
+		//if ((get_var(91) == 0) && !IsExistFlask()) {
+		//	send("MASP E10\r\n");
+		//	return ;
+		//}
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 1;
+		existFlask = 1;
+		gripperGrip = 1;
+		if (!checkBeforeRun("MASP", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
 		{
-			SendResponseRaw("MASP", ERR_ORIGIN_ERROR);
 			return ;
 		}
-		if (!IsStopped()) {
-			SendResponseRaw("MASP", ERR_COMMAND_IN_RUNNING);
-			return ;
-		}
-		if (IsError()) {
-			SendResponseRaw("MASP", ERR_COMMAND_IN_ERROR);
-			return ;
-		}
-		if (!IsReleaseBreak()) 
+
+		g_MoveRatio = atoi(cmd + 4); 	// 이동 속도 비율 
+		if (g_MoveRatio <= 0 || g_MoveRatio > 100) 
 		{
-			send("MASP E11\r\n");
-			return ;
-		}
-		if ((get_var(91) == 0) && !IsExistFlask()) {
-			send("MASP E10\r\n");
-			return ;
+			g_MoveRatio = 100;
+			send("MASP E06\r\n");
+			return;
 		}
 
 		g_MovePointDataNo = 4;	// 사용할 POINT_NO 저장 
@@ -1489,29 +1528,47 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MASP\r\n");
 	}
-	else if (IS_COMMAND_N(cmd, "MDIS"))	// Move Dispense Position 
+	else if (IS_COMMAND(cmd, "MDIS"))	// Move Dispense Position 
 	{
-		if (!IsOriginCompleted())
+		//if (!IsOriginCompleted())
+		//{
+		//	SendResponseRaw("MDIS", ERR_ORIGIN_ERROR);
+		//	return ;
+		//}
+		//if (!IsStopped()) {
+		//	SendResponseRaw("MDIS", ERR_COMMAND_IN_RUNNING);
+		//	return ;
+		//}
+		//if (IsError()) {
+		//	SendResponseRaw("MDIS", ERR_COMMAND_IN_ERROR);
+		//	return ;
+		//}
+		//if (!IsReleaseBreak()) 
+		//{
+		//	send("MDIS E11\r\n");
+		//	return ;
+		//}
+		//if ((get_var(91) == 0) && !IsExistFlask()) {
+		//	send("MDIS E10\r\n");
+		//	return ;
+		//}
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 1;
+		existFlask = 1;
+		gripperGrip = 1;
+		if (!checkBeforeRun("MDIS", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
 		{
-			SendResponseRaw("MDIS", ERR_ORIGIN_ERROR);
 			return ;
 		}
-		if (!IsStopped()) {
-			SendResponseRaw("MDIS", ERR_COMMAND_IN_RUNNING);
-			return ;
-		}
-		if (IsError()) {
-			SendResponseRaw("MDIS", ERR_COMMAND_IN_ERROR);
-			return ;
-		}
-		if (!IsReleaseBreak()) 
+
+		g_MoveRatio = atoi(cmd + 4); 	// 이동 속도 비율 
+		if (g_MoveRatio <= 0 || g_MoveRatio > 100) 
 		{
-			send("MDIS E11\r\n");
-			return ;
-		}
-		if ((get_var(91) == 0) && !IsExistFlask()) {
-			send("MDIS E10\r\n");
-			return ;
+			g_MoveRatio = 100;
+			send("MDIS E06\r\n");
+			return;
 		}
 
 		g_MovePointDataNo = 5;	// 사용할 POINT_NO 저장 
@@ -1520,28 +1577,58 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MDIS\r\n");
 	}
-	else if (IS_COMMAND_N(cmd, "MSHA"))	// Shake 
+	else if (IS_COMMAND(cmd, "MSHA"))	// Shake. param is speed, count, angle  
 	{
-		if (!IsOriginCompleted())
+		//if (!IsOriginCompleted())
+		//{
+		//	SendResponseRaw("MSHA", ERR_ORIGIN_ERROR);
+		//	return ;
+		//}
+		//if (!IsStopped()) {
+		//	SendResponseRaw("MSHA", ERR_COMMAND_IN_RUNNING);
+		//	return ;
+		//}
+		//if (IsError()) {
+		//	SendResponseRaw("MSHA", ERR_COMMAND_IN_ERROR);
+		//	return ;
+		//}
+		//if (!IsReleaseBreak()) 
+		//{
+		//	send("MSHA E11\r\n");
+		//	return ;
+		//}
+		//if ((get_var(91) == 0) && !IsExistFlask()) {
+		//	send("MSHA E10\r\n");
+		//	return ;
+		//}
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 1;
+		existFlask = 1;
+		gripperGrip = 1;
+		if (!checkBeforeRun("MSHA", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
 		{
-			SendResponseRaw("MSHA", ERR_ORIGIN_ERROR);
 			return ;
 		}
-		if (!IsStopped()) {
-			SendResponseRaw("MSHA", ERR_COMMAND_IN_RUNNING);
+
+		ch = strstr(cmd, "MSHA");
+		ch = ch + 4; 
+		ints = str_to_ints(ch);		// speed, count, angle 
+		g_MoveRatio = ints.val[0];
+		g_ShakeCount = ints.val[1];
+		g_ShakeAngle = ints.val[2];
+
+		if (g_MoveRatio <= 0 || g_MoveRatio > 100) {
+			send("MSHA E06\r\n");
 			return ;
 		}
-		if (IsError()) {
-			SendResponseRaw("MSHA", ERR_COMMAND_IN_ERROR);
+		if (g_ShakeCount <= 0 || g_ShakeCount > 100) {
+			send("MSHA E06\r\n");
 			return ;
 		}
-		if (!IsReleaseBreak()) 
-		{
-			send("MSHA E11\r\n");
-			return ;
-		}
-		if ((get_var(91) == 0) && !IsExistFlask()) {
-			send("MSHA E10\r\n");
+		if (g_ShakeAngle <= 0 || g_ShakeAngle > 90) {
+			send("MSHA E06\r\n");
 			return ;
 		}
 
@@ -1550,29 +1637,145 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MSHA\r\n");
 	}
-	else if (IS_COMMAND_N(cmd, "MWAS"))	
+//	else if (IS_COMMAND_N(cmd, "MSEP"))
+//	{
+//		//if (!IsOriginCompleted())
+//		//{
+//		//	SendResponseRaw("MSEP", ERR_ORIGIN_ERROR);
+//		//	return ;
+//		//}
+//		//if (!IsStopped()) {
+//		//	SendResponseRaw("MSEP", ERR_COMMAND_IN_RUNNING);
+//		//	return ;
+//		//}
+//		//if (IsError()) {
+//		//	SendResponseRaw("MSEP", ERR_COMMAND_IN_ERROR);
+//		//	return ;
+//		//}
+//		//if (!IsReleaseBreak()) 
+//		//{
+//		//	send("MSEP E11\r\n");
+//		//	return ;
+//		//}
+//		//if ((get_var(91) == 0) && !IsExistFlask()) {
+//		//	send("MSEP E10\r\n");
+//		//	return ;
+//		//}
+//		originComplete = 1;
+//		stopped = 1;
+//		error = 1; 
+//		releaseBreak = 1;
+//		existFlask = 1;
+//		if (!checkBeforeRun("MSEP", originComplete, stopped, error, releaseBreak, existFlask)) 
+//		{
+//			return ;
+//		}
+//
+//		SetCommand("MSEP");
+//		SetControlCommand(COMM_MSEP);
+//		g_ResponseSend = 1;
+//		send("MSEP\r\n");
+//	}
+	else if (IS_COMMAND(cmd, "EQIL"))	// separate 동작. Flask 세운상태 
 	{
-		if (!IsOriginCompleted())
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 1;
+		existFlask = 1;
+		gripperGrip = 1;
+		if (!checkBeforeRun("EQIL", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
 		{
-			SendResponseRaw("MWAS", ERR_ORIGIN_ERROR);
 			return ;
 		}
-		if (!IsStopped()) {
-			SendResponseRaw("MWAS", ERR_COMMAND_IN_RUNNING);
-			return ;
+
+		ch = strstr(cmd, "EQIL");
+		ch = ch + 4; 
+		ints = str_to_ints(ch);		// speed, x-axis up speed  
+		g_MoveRatio = ints.val[0];
+		g_MoveRatioSeparate = ints.val[1];
+
+		if (g_MoveRatio<=0 || g_MoveRatio>100 || 
+			g_MoveRatioSeparate<=0 || g_MoveRatioSeparate>300) {
+			send("EQIL E06\r\n");
 		}
-		if (IsError()) {
-			SendResponseRaw("MWAS", ERR_COMMAND_IN_ERROR);
-			return ;
-		}
-		if (!IsReleaseBreak()) 
+
+		SetCommand("EQIL");
+		SetControlCommand(COMM_EQIL);
+		g_ResponseSend = 1;
+		send("EQIL\r\n");
+	}
+	else if (IS_COMMAND(cmd, "EQIS"))	// separate 동작. Flask 누운상태 
+	{
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 1;
+		existFlask = 1;
+		gripperGrip = 1;
+		if (!checkBeforeRun("EQIS", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
 		{
-			send("MWAS E11\r\n");
 			return ;
 		}
-		if ((get_var(91) == 0) && !IsExistFlask()) {
-			send("MWAS E10\r\n");
+
+		ch = strstr(cmd, "EQIS");
+		ch = ch + 4; 
+		ints = str_to_ints(ch);		// speed, x-axis up speed  
+		g_MoveRatio = ints.val[0];
+		g_MoveRatioSeparate = ints.val[1];
+
+		if (g_MoveRatio<=0 || g_MoveRatio>100 || 
+			g_MoveRatioSeparate<=0 || g_MoveRatioSeparate>300) {
+			send("EQIS E06\r\n");
+		}
+
+		SetCommand("EQIS");
+		SetControlCommand(COMM_EQIS);
+		g_ResponseSend = 1;
+		send("EQIS\r\n");
+	}
+	else if (IS_COMMAND(cmd, "MWAS"))	
+	{
+		//if (!IsOriginCompleted())
+		//{
+		//	SendResponseRaw("MWAS", ERR_ORIGIN_ERROR);
+		//	return ;
+		//}
+		//if (!IsStopped()) {
+		//	SendResponseRaw("MWAS", ERR_COMMAND_IN_RUNNING);
+		//	return ;
+		//}
+		//if (IsError()) {
+		//	SendResponseRaw("MWAS", ERR_COMMAND_IN_ERROR);
+		//	return ;
+		//}
+		//if (!IsReleaseBreak()) 
+		//{
+		//	send("MWAS E11\r\n");
+		//	return ;
+		//}
+		//if ((get_var(91) == 0) && !IsExistFlask()) {
+		//	send("MWAS E10\r\n");
+		//	return ;
+		//}
+
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 1;
+		existFlask = 1;
+		gripperGrip = 1;
+		if (!checkBeforeRun("MWAS", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
+		{
 			return ;
+		}
+
+		g_MoveRatio = atoi(cmd + 4); 	// 이동 속도 비율 
+		if (g_MoveRatio <= 0 || g_MoveRatio > 100) 
+		{
+			g_MoveRatio = 100;
+			send("MWAS E06\r\n");
+			return;
 		}
 
 		SetCommand("MWAS");
@@ -1580,29 +1783,47 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MWAS\r\n");
 	}
-	else if (IS_COMMAND_N(cmd, "MWRD"))	
+	else if (IS_COMMAND(cmd, "MWRD"))	
 	{
-		if (!IsOriginCompleted())
+		//if (!IsOriginCompleted())
+		//{
+		//	SendResponseRaw("MWRD", ERR_ORIGIN_ERROR);
+		//	return ;
+		//}
+		//if (!IsStopped()) {
+		//	SendResponseRaw("MWRD", ERR_COMMAND_IN_RUNNING);
+		//	return ;
+		//}
+		//if (IsError()) {
+		//	SendResponseRaw("MWRD", ERR_COMMAND_IN_ERROR);
+		//	return ;
+		//}
+		//if (!IsReleaseBreak()) 
+		//{
+		//	send("MWRD E11\r\n");
+		//	return ;
+		//}
+		//if ((get_var(91) == 0) && !IsExistFlask()) {
+		//	send("MWRD E10\r\n");
+		//	return ;
+		//}
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 1;
+		existFlask = 1;
+		gripperGrip = 1;
+		if (!checkBeforeRun("MWRD", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
 		{
-			SendResponseRaw("MWRD", ERR_ORIGIN_ERROR);
 			return ;
 		}
-		if (!IsStopped()) {
-			SendResponseRaw("MWRD", ERR_COMMAND_IN_RUNNING);
-			return ;
-		}
-		if (IsError()) {
-			SendResponseRaw("MWRD", ERR_COMMAND_IN_ERROR);
-			return ;
-		}
-		if (!IsReleaseBreak()) 
+
+		g_MoveRatio = atoi(cmd + 4); 	// 이동 속도 비율 
+		if (g_MoveRatio <= 0 || g_MoveRatio > 100) 
 		{
-			send("MWRD E11\r\n");
-			return ;
-		}
-		if ((get_var(91) == 0) && !IsExistFlask()) {
-			send("MWRD E10\r\n");
-			return ;
+			g_MoveRatio = 100;
+			send("MWRD E06\r\n");
+			return;
 		}
 
 		SetCommand("MWRD");
@@ -1610,30 +1831,49 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MWRD\r\n");
 	}
-	else if (IS_COMMAND_N(cmd, "MWPR"))	
+	else if (IS_COMMAND(cmd, "MWPR"))	
 	{
-		if (!IsOriginCompleted())
+		//if (!IsOriginCompleted())
+		//{
+		//	SendResponseRaw("MWPR", ERR_ORIGIN_ERROR);
+		//	return ;
+		//}
+		//if (!IsStopped()) {
+		//	SendResponseRaw("MWPR", ERR_COMMAND_IN_RUNNING);
+		//	return ;
+		//}
+		//if (IsError()) {
+		//	SendResponseRaw("MWPR", ERR_COMMAND_IN_ERROR);
+		//	return ;
+		//}
+		//if (!IsReleaseBreak()) 
+		//{
+		//	send("MWPR E11\r\n");
+		//	return ;
+		//}
+		//if ((get_var(91) == 0) && !IsExistFlask()) {
+		//	send("MWPR E10\r\n");
+		//	return ;
+		//}
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 1;
+		existFlask = 1;
+		gripperGrip = 1;
+		if (!checkBeforeRun("MWPR", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
 		{
-			SendResponseRaw("MWPR", ERR_ORIGIN_ERROR);
 			return ;
 		}
-		if (!IsStopped()) {
-			SendResponseRaw("MWPR", ERR_COMMAND_IN_RUNNING);
-			return ;
-		}
-		if (IsError()) {
-			SendResponseRaw("MWPR", ERR_COMMAND_IN_ERROR);
-			return ;
-		}
-		if (!IsReleaseBreak()) 
+
+		g_MoveRatio = atoi(cmd + 4); 	// 이동 속도 비율 
+		if (g_MoveRatio <= 0 || g_MoveRatio > 100) 
 		{
-			send("MWPR E11\r\n");
-			return ;
+			g_MoveRatio = 100;
+			send("MWPR E06\r\n");
+			return;
 		}
-		if ((get_var(91) == 0) && !IsExistFlask()) {
-			send("MWPR E10\r\n");
-			return ;
-		}
+
 		if (IsWasteReadyPos() == 0)
 		{
 			// 현재 위치가 Ready 위치가 아님 
@@ -1646,54 +1886,34 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MWPR\r\n");
 	}
-	else if (IS_COMMAND_N(cmd, "MSEP"))
-	{
-		if (!IsOriginCompleted())
-		{
-			SendResponseRaw("MSEP", ERR_ORIGIN_ERROR);
-			return ;
-		}
-		if (!IsStopped()) {
-			SendResponseRaw("MSEP", ERR_COMMAND_IN_RUNNING);
-			return ;
-		}
-		if (IsError()) {
-			SendResponseRaw("MSEP", ERR_COMMAND_IN_ERROR);
-			return ;
-		}
-		if (!IsReleaseBreak()) 
-		{
-			send("MSEP E11\r\n");
-			return ;
-		}
-		if ((get_var(91) == 0) && !IsExistFlask()) {
-			send("MSEP E10\r\n");
-			return ;
-		}
-
-		SetCommand("MSEP");
-		SetControlCommand(COMM_MSEP);
-		g_ResponseSend = 1;
-		send("MSEP\r\n");
-	}
 	else if (IS_COMMAND_N(cmd, "AWAS"))	// Async Waste 
 	{
-		if (!IsOriginCompleted())
+		//if (!IsOriginCompleted())
+		//{
+		//	SendResponseRaw("AWAS", ERR_ORIGIN_ERROR);
+		//	return ;
+		//}
+		//if (!IsStopped()) {
+		//	SendResponseRaw("AWAS", ERR_COMMAND_IN_RUNNING);
+		//	return ;
+		//}
+		//if (IsError()) {
+		//	SendResponseRaw("AWAS", ERR_COMMAND_IN_ERROR);
+		//	return ;
+		//}
+		//if (!IsReleaseBreak()) 
+		//{
+		//	send("AWAS E11\r\n");
+		//	return ;
+		//}
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 1;
+		existFlask = 1;
+		gripperGrip = 1;
+		if (!checkBeforeRun("AWAS", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
 		{
-			SendResponseRaw("AWAS", ERR_ORIGIN_ERROR);
-			return ;
-		}
-		if (!IsStopped()) {
-			SendResponseRaw("AWAS", ERR_COMMAND_IN_RUNNING);
-			return ;
-		}
-		if (IsError()) {
-			SendResponseRaw("AWAS", ERR_COMMAND_IN_ERROR);
-			return ;
-		}
-		if (!IsReleaseBreak()) 
-		{
-			send("AWAS E11\r\n");
 			return ;
 		}
 
@@ -1746,4 +1966,62 @@ void DoCmd(char *cmd)
 			debug(cmd);
 		}
 	}
+}
+
+char checkBeforeRun(char* cmd, 
+	char checkOriginCompleted,
+	char checkStopped, 
+	char checkError, 
+	char checkReleaseBreak, 
+	char checkExistFlask, 
+	char checkGripperGrip)
+{
+	if (checkOriginCompleted && !IsOriginCompleted())
+	{
+		// SendResponseRaw("MSHA", ERR_ORIGIN_ERROR);
+		SendResponseRaw(cmd, ERR_ORIGIN_ERROR);
+		return 0;
+	}
+	if (checkStopped && !IsStopped()) {
+		// SendResponseRaw("MSHA", ERR_COMMAND_IN_RUNNING);
+		SendResponseRaw(cmd, ERR_COMMAND_IN_RUNNING);
+		return 0;
+	}
+	if (checkError && IsError()) {
+		// SendResponseRaw("MSHA", ERR_COMMAND_IN_ERROR);
+		SendResponseRaw(cmd, ERR_COMMAND_IN_ERROR);
+		return 0;
+	}
+	if (checkReleaseBreak && !IsReleaseBreak()) 
+	{
+		// send("MSHA E11\r\n");
+		sprintf(str, "%s E11\r\n", cmd);
+		send(str);
+		return 0;
+	}
+	if (checkExistFlask) 
+	{
+		if ((get_var(91) == 0) && !IsExistFlask()) {
+			// send("MSHA E10\r\n");
+			sprintf(str, "%s E10\r\n", cmd);
+			send(str);
+			return 0;
+		}
+	}
+	if (checkGripperGrip)
+	{
+		//IsGripperGripPosition
+	//	if ((get_var(91) == 0) && !IsGripperGripPosition()) {
+	//		sprintf(str, "%s E15\r\n", cmd);
+	//		send(str);
+	//		return 0;
+	//	}
+		if ((get_var(91) == 0) && !IsGrip()) {
+			sprintf(str, "%s E15\r\n", cmd);
+			send(str);
+			return 0;
+		}
+	}
+
+	return 1;
 }

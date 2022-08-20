@@ -34,9 +34,16 @@
 //  - 008 수정에도 동일한 문제가 발생해서 
 //    SetSpeed() 함수에서 ORG Speed에 max, min 값 모두 사용하도록 수정 
 
-#define SOFTWARE_VERSION	"TFLASK-H 1.00.010"
+// #define SOFTWARE_VERSION	"TFLASK-H 1.00.010"
 //  - HOMF 명령 추가
 //  - HOME 동작 시퀀스 수정. (+방향이동->센서ON->-방향이동->센서OFF->Offset이동)
+
+//#define SOFTWARE_VERSION	"TFLASK-H 1.01.000" // 이 버전 명은 사용하지 않음 
+//  - MLOA, MSAP, MDIS 에 속도(Rate) 파라메타 추가 
+
+#define SOFTWARE_VERSION	"TFLASK-H 1.00.011" // 이 버전 명은 사용하지 않음 
+//  -  MLOA, MSAP, MDIS 에 속도(Rate) 파라메타 추가 
+
 
 // Settings
 #define COMPORT_BAUDRATE	(57600)
@@ -73,6 +80,7 @@
 #define ERR_ASYNC_WASTE_OUTPUT_ON   (  9)
 #define ERR_ASYNC_WASTE_TIMEOUT     ( 10)
 #define ERR_MOTOR_ERROR				( 12)
+#define ERR_GRIP_ERROR              ( 13)
 
 #define ERR_RANGE_OVER         		(215)
 #define ERR_SAMPLING_ERROR			(216)

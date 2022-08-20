@@ -30,7 +30,8 @@
 #define COMM_AWAS			40 	// async waste 			PD11 -> PD08 (PD11 이동 -> Output On PD8)
 #define COMM_MWRD			41 	// ready waste
 #define COMM_MWPR			42 	// pour waste
-#define COMM_HOMF			43	// homming other version 
+#define COMM_EQIL			43	// separate long shape
+#define COMM_EQIS			44  // separate short shape 
 
 // speed type at SetSpeed()
 #define SPEED_ORG			(0)
@@ -162,6 +163,8 @@ char CommAsyncWaste();
 char CommReadyWaste();
 char CommPourWaste();
 char CommSeparate();
+char CommSeparateLongSide();
+char CommSeparateShortSide();
 
 void UpdateOriginCompletedStatus();
 void SetOriginCompletedFlag(char axis, char flag);
@@ -169,7 +172,6 @@ char IsOriginCompleted();
 char IsStopped();
 void HoldMotors();
 void StopMotors();
-
 
 // ��� ���� �Ķ���� �ʱ�ȭ
 void InitAxis();
@@ -188,6 +190,7 @@ unsigned char InverseDir(unsigned char dir);
 
 void SetMoveOffset(char axis, int offset);	// set to move distance
 void SetSpeed(char axis, int type);			// set speed type
+void SetSpeedRatio(char axis, int type, int ratio);
 
 void ReleaseBreak();
 void HoldBreak();
@@ -204,6 +207,8 @@ char GetWasteAsyncInput();		// Async Waste 에서 사용하는 input bit를 읽�
 								// V13=15 일 경우, 보드의 16번 input을 읽는다 
 								// bit 번호는 0-base 
 								// 보드의 input 은 1-base 
+
+char IsGripperGripPosition();	// Z축의 현재 위치가 Grip 위치이면 1 리턴, 그렇지 않으면 0 리턴 
 
 char IsWasteReadyPos();			// 현재 위치가 Waste Ready 위치이면 1 리턴, 그렇지 않으면 0 리턴 
 

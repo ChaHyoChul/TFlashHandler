@@ -461,6 +461,11 @@ void reset_motion_param()
 	g_MotionParam[Y_AXIS].m_uOrgVmax = 200;
 	g_MotionParam[Z_AXIS].m_uOrgVmax = 5333;
 
+	// HMB. 원점복귀 속도 
+	g_MotionParam[X_AXIS].m_uOrgVmin = 433;
+	g_MotionParam[Y_AXIS].m_uOrgVmin = 200;
+	g_MotionParam[Z_AXIS].m_uOrgVmin = 5000;
+
 	// VSO. PTP 속도 - High
 	g_MotionParam[X_AXIS].m_uNorVmax = 4000; 
 	g_MotionParam[Y_AXIS].m_uNorVmax = 1800; 
@@ -471,11 +476,31 @@ void reset_motion_param()
 	g_MotionParam[Y_AXIS].m_uNorVmin = 180; 
 	g_MotionParam[Z_AXIS].m_uNorVmin = 3000; 
 
+	// VSN 4000,1800,30000
+	g_MotionParam[X_AXIS].m_uNorVmax = 4000;
+	g_MotionParam[Y_AXIS].m_uNorVmax = 1800;
+	g_MotionParam[Z_AXIS].m_uNorVmax = 30000;
+
 	// VST. 가감속 
 	g_MotionParam[X_AXIS].m_uNorAcel = 1600; 
 	g_MotionParam[Y_AXIS].m_uNorAcel = 1600; 
 	g_MotionParam[Z_AXIS].m_uNorAcel = 256; 
 
+	// VJO 888,888,1332 
+	g_MotionParam[X_AXIS].m_uJogVmax = 888;
+	g_MotionParam[Y_AXIS].m_uJogVmax = 888;
+	g_MotionParam[Z_AXIS].m_uJogVmax = 1332;
+
+	// VJL 533,533,533 
+	g_MotionParam[X_AXIS].m_uJogVmin = 533;
+	g_MotionParam[Y_AXIS].m_uJogVmin = 533;
+	g_MotionParam[Z_AXIS].m_uJogVmin = 533;
+
+	// VJT 6555,6555, 6555 	
+	g_MotionParam[X_AXIS].m_uJogAcel = 6555;
+	g_MotionParam[Y_AXIS].m_uJogAcel = 6555;
+	g_MotionParam[Z_AXIS].m_uJogAcel = 6555;
+	
 	// POD. Origin Dir 
 	g_MotionParam[X_AXIS].m_ucOrgDir = 0; 
 	g_MotionParam[Y_AXIS].m_ucOrgDir = 0; 
@@ -497,20 +522,43 @@ void reset_motion_param()
 	unsigned char	m_ucPosLimit;	//20 71(1)Positive Limit Sensor
 	*/
 	
+	////////////////////////////////////////
+	// GNE 에서 사용하는 모듈의 설정 
+	//////////////////////////////////////// 
+//	// AHM. 원점 센서 
+//	g_MotionParam[X_AXIS].m_ucOrgSensor = 8;
+//	g_MotionParam[Y_AXIS].m_ucOrgSensor = 3;
+//	g_MotionParam[Z_AXIS].m_ucOrgSensor = 5;
+//
+//	// ANL. -Limit 센서 
+//	g_MotionParam[X_AXIS].m_ucNegLimit = 8;
+//	g_MotionParam[Y_AXIS].m_ucNegLimit = 3;
+//	g_MotionParam[Z_AXIS].m_ucNegLimit = 5;
+//
+//	// APL. +Limit 센서 
+//	g_MotionParam[X_AXIS].m_ucPosLimit = 9;
+//	g_MotionParam[Y_AXIS].m_ucPosLimit = 2;
+//	g_MotionParam[Z_AXIS].m_ucPosLimit = 4;
+
+	////////////////////////////////////////
+	// Lilly 에서 사용하는 모듈의 설정 
+	////////////////////////////////////////
+	// HMN 1,1,1 // 원점복귀 사용 
+
 	// AHM. 원점 센서 
 	g_MotionParam[X_AXIS].m_ucOrgSensor = 8;
-	g_MotionParam[Y_AXIS].m_ucOrgSensor = 3;
-	g_MotionParam[Z_AXIS].m_ucOrgSensor = 5;
+	g_MotionParam[Y_AXIS].m_ucOrgSensor = 2;
+	g_MotionParam[Z_AXIS].m_ucOrgSensor = 4;
 
 	// ANL. -Limit 센서 
 	g_MotionParam[X_AXIS].m_ucNegLimit = 8;
-	g_MotionParam[Y_AXIS].m_ucNegLimit = 3;
-	g_MotionParam[Z_AXIS].m_ucNegLimit = 5;
+	g_MotionParam[Y_AXIS].m_ucNegLimit = 2;
+	g_MotionParam[Z_AXIS].m_ucNegLimit = 4;
 
 	// APL. +Limit 센서 
-	g_MotionParam[X_AXIS].m_ucPosLimit = 9;
-	g_MotionParam[Y_AXIS].m_ucPosLimit = 2;
-	g_MotionParam[Z_AXIS].m_ucPosLimit = 4;
+	g_MotionParam[X_AXIS].m_ucPosLimit = 7;
+	g_MotionParam[Y_AXIS].m_ucPosLimit = 3;
+	g_MotionParam[Z_AXIS].m_ucPosLimit = 0;	// 5; Z축 +Limit는 Grip 센서로 사용 
 
 	// ALD. Lead 값 
 	g_MotionParam[X_AXIS].m_fLead = 10000.0; 
@@ -537,4 +585,11 @@ void reset_motion_param()
 	g_MotionParam[Z_AXIS].m_ucMoveTorque = 30;
 
 	save_motion_param();
+
+	// Origin offset (PD-12) : default로 0.5,0.2,0.2를 저장한다 
+	//POINT_DATA pd = {0,};
+	//pd.x = 0.5; 
+	//pd.y = 0.2;
+	//pd.z = 0.2;
+	//set_point_data(12, pd); 
 }
