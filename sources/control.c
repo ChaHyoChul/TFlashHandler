@@ -409,6 +409,7 @@ void MainControl()
 	case COMM_MSEP:		res = CommSeparate(); UpdateState(res); break;
 	case COMM_EQIL:		res = CommSeparateLongSide(); UpdateState(res); break;
 	case COMM_EQIS:		res = CommSeparateShortSide(); UpdateState(res); break;
+	case COMM_MSHK:		res = CommShakeUsingPD6(); UpdateState(res); break;
 	}
 	
 	if (g_UserStop > 0)
@@ -2179,6 +2180,191 @@ char CommShake()
 		if (IsStopped()) { step++; }
 
 	case 13:
+		HoldMotors();
+		g_MovePointDataNo = 0;
+		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
+		step = 0;
+		return NORMAL_FINISHED;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;
+	}
+
+	CHECK_USER_STOP();
+
+	return 0;
+}
+
+// pd6 으로 이동 
+// var6. 이동 회수
+// var7. 이동 delay (ms)
+// version. 1.01.012 수정 
+// - pd6 위치로 이동 
+// - count 회수 만큼 X축을 +/- angle 만큼 이동  
+// - load 위치로 이동 
+char CommShakeUsingPD6()
+{
+	const int POINT_READY = 6; 
+	const int POINT_LOAD = 3;
+	const int VAR_NUM_MOVE = 6;
+	const int VAR_DELAY_MOVE = 7;
+
+	static char step = 0;
+	static float angle_1[3] = {0.0, 0.0, 0.0};
+	static float angle_2[3] = {0.0, 0.0, 0.0};
+	static int delay_count = 0;
+	static int shake_count = 0;
+
+	int move_start = 0;
+	POINT_DATA pd;
+	
+	switch (step)
+	{
+		// Error handling 
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; } break;
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED; 
+
+		//
+	case 0: 
+		delay_count = 0;
+		shake_count = 0; //g_ShakeCount; //g_get_var(VAR_NUM_MOVE);
+		pd = get_point_data(POINT_READY);
+		angle_1[0] = pd.x + g_ShakeAngle;
+		angle_2[0] = pd.x - g_ShakeAngle;
+		step = 1; 
+		break;
+
+		// ready 위치로 이동 (x->y) 
+	case 1:
+		move_start = move_pd_with_speed_ratio(POINT_READY, 0x01, SPEED_NORMAL, g_MoveRatio);
+		g_MoveStartErrorLine = __LINE__;
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+		
+	case 2:
+		if (move_done(0x01)) { 
+			step++; 
+		}
+		break;
+
+	case 3: 
+		if (IsStopped()) { step++; }
+		break;
+
+	case 4:
+		move_start = move_pd_with_speed_ratio(POINT_READY, 0x02, SPEED_NORMAL, g_MoveRatio);
+		g_MoveStartErrorLine = __LINE__;
+		if (move_start) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break; 
+
+	case 5:
+		if (move_done(0x02)) {
+			step++;
+		}
+		break;
+
+	case 6:
+		if (IsStopped()) { step = 10; }
+		break; 
+
+		// shake. X축을 +/-방향으로 이동 
+	case 10:
+		if (shake_count >= g_ShakeCount) {
+			step = 20;
+			break;
+		}
+
+		if (shake_count % 2 == 0) {
+			move_start = move_abs(0x01, angle_1, SPEED_NORMAL, g_MoveRatio);
+		} else {
+			move_start = move_abs(0x01, angle_2, SPEED_NORMAL, g_MoveRatio);	
+		}
+		g_MoveStartErrorLine = __LINE__;
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 11:
+		if (move_done(0x01)) {
+			delay_count = get_var(VAR_DELAY_MOVE);
+			step++;
+		}
+		break;
+
+	case 12:
+		if (IsStopped()) { step++; }
+		break;
+
+	case 13:
+		if (--delay_count > 0) { Delay1ms(); }
+		else { shake_count += 1; step = 10; }
+		break;
+
+		// load 위치(3)로 이동 (x->y)
+	case 20:
+		move_start = move_pd_with_speed_ratio(POINT_LOAD, 0x01, SPEED_NORMAL, g_MoveRatio);
+		g_MoveStartErrorLine = __LINE__;
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 21:
+		if (move_done(0x01)) { step++; }
+		break;
+
+	case 22:
+		if (IsStopped()) { step++; }
+
+	case 23:
+		move_start = move_pd_with_speed_ratio(POINT_LOAD, 0x02, SPEED_NORMAL, g_MoveRatio);
+		g_MoveStartErrorLine = __LINE__;
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+
+	case 24:
+		if (move_done(0x02)) { step++; }
+		break;
+
+	case 25:
+		if (IsStopped()) { step = 30; }
+
+		// 종료 
+	case 30:
 		HoldMotors();
 		g_MovePointDataNo = 0;
 		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;

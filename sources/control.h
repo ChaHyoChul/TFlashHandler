@@ -24,7 +24,7 @@
 #define COMM_MLOA			34	// movexy(load) 		PD3
 #define COMM_MASP			35 	// movexy(aspirate) 	PD4
 #define COMM_MDIS			36 	// movexy(dispense) 	PD5  
-#define COMM_MSHA 			37 	// shake 				PD6-7 VAR6(회수) VAR7(Delay)  
+#define COMM_MSHA 			37 	// shake 				Not used PD VAR6(회수) VAR7(Delay)  
 #define COMM_MWAS			38 	// waste 				PD8   VAR8(Delay) 
 #define COMM_MSEP			39 	// separate 			PD9-10 
 #define COMM_AWAS			40 	// async waste 			PD11 -> PD08 (PD11 이동 -> Output On PD8)
@@ -32,6 +32,7 @@
 #define COMM_MWPR			42 	// pour waste
 #define COMM_EQIL			43	// separate long shape
 #define COMM_EQIS			44  // separate short shape 
+#define COMM_MSHK 			45 	// shake 				PD6 for ready pos. VAR6(회수) VAR7(Delay)  
 
 // speed type at SetSpeed()
 #define SPEED_ORG			(0)
@@ -165,6 +166,7 @@ char CommPourWaste();
 char CommSeparate();
 char CommSeparateLongSide();
 char CommSeparateShortSide();
+char CommShakeUsingPD6();
 
 void UpdateOriginCompletedStatus();
 void SetOriginCompletedFlag(char axis, char flag);

@@ -41,7 +41,10 @@
 //#define SOFTWARE_VERSION	"TFLASK-H 1.01.000" // 이 버전 명은 사용하지 않음 
 //  - MLOA, MSAP, MDIS 에 속도(Rate) 파라메타 추가 
 
-#define SOFTWARE_VERSION	"TFLASK-H 1.00.011" // 이 버전 명은 사용하지 않음 
+//#define SOFTWARE_VERSION	"TFLASK-H 1.00.011" // 이 버전 명은 사용하지 않음 
+//  -  MLOA, MSAP, MDIS 에 속도(Rate) 파라메타 추가 
+
+#define SOFTWARE_VERSION	"TFLASK-H 1.00.012" // 이 버전 명은 사용하지 않음 
 //  -  MLOA, MSAP, MDIS 에 속도(Rate) 파라메타 추가 
 
 
