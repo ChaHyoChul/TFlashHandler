@@ -1272,7 +1272,7 @@ char CommOriginAxis()
 		
 		// 반대 방향으로 이동 시작 
 	case 3:
-		CounterReset(g_OriginAxis);
+		// CounterReset(g_OriginAxis);
 		MovVar[g_OriginAxis].m_ucDir = (unsigned char)((~g_MotionParam[g_OriginAxis].m_ucOrgDir) & 1);	// Positive ��������
 		MovVar[g_OriginAxis].m_uAcel = 0;								// ���� �ӵ��� ����
 
@@ -1301,7 +1301,11 @@ char CommOriginAxis()
 		break;
 
 	case 5:
-		if (IsStopped()) { Delay1ms(); ++step; }
+		if (IsStopped()) 
+		{ 
+			Delay1ms(); 
+			++step; 
+		}
 		break;
 		
 		// Offset(0.2) 만큼 이동 
@@ -1309,6 +1313,9 @@ char CommOriginAxis()
 		{
 			POINT_DATA pd = get_point_data(12);
 			double org_offset = 0.2;
+
+			CounterReset(g_OriginAxis); 
+
 			switch (g_OriginAxis)
 			{
 				case X_AXIS: org_offset = pd.x; break; 
@@ -1351,15 +1358,17 @@ char CommOriginAxis()
 	case 9:
 		CounterReset(g_OriginAxis);	// �������� �����Ѵ�.
 		SetSpeed(g_OriginAxis, SPEED_NORMAL);
+		SetOriginCompletedFlag(g_OriginAxis, 1);
+		timerCount = 20;
 		++step;
 		
 	case 10:
+		if (--timerCount > 0) { Delay1ms(); break; }
 		++step;
 		break;
 		
 	case 11:
 		step = 0;
-		SetOriginCompletedFlag(g_OriginAxis, 1);
 		return NORMAL_FINISHED;	// ���� : Move Origin ���� �Ϸ�
 
 	default:
