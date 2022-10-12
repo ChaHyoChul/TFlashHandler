@@ -47,8 +47,10 @@
 // #define SOFTWARE_VERSION	"TFLASK-H 1.00.012" // 이 버전 명은 사용하지 않음 
 //  -  MLOA, MSAP, MDIS 에 속도(Rate) 파라메타 추가 
 
-#define SOFTWARE_VERSION	"TFLASK-H 1.00.013" // 이 버전 명은 사용하지 않음 
+//#define SOFTWARE_VERSION	"TFLASK-H 1.00.013" // 이 버전 명은 사용하지 않음 
 //  - ORA 명령 무의미한 수정  
+
+#define SOFTWARE_VERSION	"TFLASK-H 1.00.014" // GLEI 명령 추가. OVERRUN 에러시 에러 정보 리턴, 응답: Command-No, Axis-No(1/2/3), Sensor-No(1:+/2:-)
 
 // Settings
 #define COMPORT_BAUDRATE	(57600)

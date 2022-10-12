@@ -1724,6 +1724,11 @@ void DoCmd(char *cmd)
 		sprintf(str, "GDEC %d,%d,%d\r\n", DriverErrorCheck(0), DriverErrorCheck(1), DriverErrorCheck(2));
 		send(str);
 	}
+	else if (IS_COMMAND_N(cmd, "GLEI"))	// Get Limit Error Info 
+	{
+		sprintf(str, "GLEI %d,%d,%d\r\n", g_OverRun_Command, g_OverRun_AxisNo, g_OverRun_LimitSensor);
+		send(str);
+	}
 	// Separate Flask의 용액을 나누는 동작 
 	// TODO: Rot 90도(수평) -> Tilt -> Rot 0도  
 	///////

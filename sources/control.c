@@ -498,6 +498,9 @@ void SystemCheck()
 				case 1:	// POS LIMIT
 					if (MovVar[axis].m_ucDir == g_MotionParam[axis].m_ucMoveDir)
 					{
+						//g_OverRun_Command = g_MotionCommand;
+						//g_OverRun_LimitSensor = 1;
+						//g_OverRun_AxisNo = axis + 1;
 						SetErrorCode(ERR_OVER_RUN);
 						StopMotors();
 					}
@@ -506,12 +509,18 @@ void SystemCheck()
 				case 2: // NEG LIMIT
 					if (MovVar[axis].m_ucDir != g_MotionParam[axis].m_ucMoveDir)
 					{
+						//g_OverRun_Command = g_MotionCommand;
+						//g_OverRun_LimitSensor = 2;
+						//g_OverRun_AxisNo = axis + 1;
 						SetErrorCode(ERR_OVER_RUN);
 						StopMotors();
 					}
 					break;
 					
 				default:
+					//g_OverRun_Command = g_MotionCommand;
+					//g_OverRun_LimitSensor = 3;
+					//g_OverRun_AxisNo = axis + 1;
 					SetErrorCode(ERR_OVER_RUN);
 					StopMotors();
 					break;		
@@ -531,6 +540,9 @@ void SystemCheck()
 			case 1:	// POS LIMIT
 				if (g_MoveOffset[axis] > 0)
 				{
+					g_OverRun_Command = g_MotionCommand;
+					g_OverRun_LimitSensor = 1;
+					g_OverRun_AxisNo = axis + 1;
 					SetErrorCode(ERR_OVER_RUN);
 					GoToError();
 				}
@@ -539,12 +551,18 @@ void SystemCheck()
 			case 2: // NEG LIMIT
 				if (g_MoveOffset[axis] < 0)
 				{
+					g_OverRun_Command = g_MotionCommand;
+					g_OverRun_LimitSensor = 2;
+					g_OverRun_AxisNo = axis + 1;
 					SetErrorCode(ERR_OVER_RUN);
 					GoToError();
 				}
 				break;
 				
 			default:
+				g_OverRun_Command = g_MotionCommand;
+				g_OverRun_LimitSensor = 1;
+				g_OverRun_AxisNo = axis + 1;
 				SetErrorCode(ERR_OVER_RUN);
 				GoToError();
 				break;		

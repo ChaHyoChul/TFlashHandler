@@ -23,6 +23,13 @@ extern int  g_OriginCompletedAxes[3];
 extern char g_MoveStartErrorCode[3];
 extern int g_MoveStartErrorLine;
 
+//extern int g_OverRun_Command;								// 2022.10.11 bychul2 OverRun 정보 저장 
+//extern int g_OverRun_LimitSensor;
+//extern int g_OverRun_AxisNo;
+extern int g_OverRun_Command;								// 2022.10.11 bychul2 OverRun 정보 저장 
+extern int g_OverRun_LimitSensor;
+extern int g_OverRun_AxisNo;
+
 typedef struct _POINT_DATA
 {
 	union

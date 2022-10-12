@@ -26,6 +26,10 @@ char g_GoToError = 0;
 char g_MoveStartErrorCode[MAX_AXIS] = {0, 0, 0};		// 2021.11.23 bychul2 MoveStart() 함수 리턴값 저장  
 int  g_MoveStartErrorLine = 0;
 
+int g_OverRun_Command = 0;								// 2022.10.11 bychul2 OverRun 정보 저장 
+int g_OverRun_LimitSensor = 0;
+int g_OverRun_AxisNo = 0;
+
 char g_PointDataCommandState = CMD_READY;
 
 int  g_OriginNeed[MAX_AXIS] = { 0, 1, 1 };
@@ -164,6 +168,10 @@ void clear_error()
 	g_ErrorCode = 0;
 	g_MotionCommand = 0;
 	g_PointDataCommandState = CMD_READY;
+
+	g_OverRun_Command = 0;
+	g_OverRun_AxisNo = 0;
+	g_OverRun_LimitSensor = 0;
 
 	g_MoveStartErrorLine = 0;
 	for (i = 0; i<MAX_AXIS; i++)
