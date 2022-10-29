@@ -49,6 +49,18 @@ int move_inc(int sel_axis, float dist[], int spd_type, int spd_ratio);
 int move_abs(int sel_axis, float dist[], int spd_type, int spd_ratio);
 char move_done(char sel_axis);
 
+
+//
+// Limit Count 
+// axis 축의 limit count 를 1 증가하고, 
+// max limit count 보다 크면 1을 리턴, 
+// 1을 리턴하면, overrun 에러를 발생한다 
+int g_PosLimitCount[3] = {0, 0, 0};
+int g_NegLimitCount[3] = {0, 0, 0};
+void reset_limit_count(int axis);
+int inc_pos_limit_count(int axis);
+int inc_neg_limit_count(int axis);
+
 //
 // Functions
 //
@@ -486,6 +498,8 @@ void SystemCheck()
 	
 	if (g_MotionCommand == COMM_IDLE)
 	{
+		// IDLE 상태에서, 모터가 이동중일 경우 Limit 센서 확인 
+		// MMA, MMI, JOG 명령등 
 		for (axis = 0; axis < MAX_AXIS; ++axis)
 		{
 			if (GetMoveStatus(axis) != MOVE_STS_STOP)
@@ -493,6 +507,7 @@ void SystemCheck()
 				switch (get_axis_sensor(axis))
 				{
 				case 0:
+					reset_limit_count(axis);
 					break;
 					
 				case 1:	// POS LIMIT
@@ -500,9 +515,12 @@ void SystemCheck()
 					{
 						//g_OverRun_Command = g_MotionCommand;
 						//g_OverRun_LimitSensor = 1;
-						//g_OverRun_AxisNo = axis + 1;
-						SetErrorCode(ERR_OVER_RUN);
-						StopMotors();
+						//g_OverRun_AxisNo = axis + 1;						
+						if (inc_pos_limit_count(axis))
+						{
+							SetErrorCode(ERR_OVER_RUN);
+							StopMotors();
+						}
 					}
 					break;
 					
@@ -512,8 +530,11 @@ void SystemCheck()
 						//g_OverRun_Command = g_MotionCommand;
 						//g_OverRun_LimitSensor = 2;
 						//g_OverRun_AxisNo = axis + 1;
-						SetErrorCode(ERR_OVER_RUN);
-						StopMotors();
+						if (inc_neg_limit_count(axis))
+						{
+							SetErrorCode(ERR_OVER_RUN);
+							StopMotors();
+						}
 					}
 					break;
 					
@@ -521,8 +542,11 @@ void SystemCheck()
 					//g_OverRun_Command = g_MotionCommand;
 					//g_OverRun_LimitSensor = 3;
 					//g_OverRun_AxisNo = axis + 1;
-					SetErrorCode(ERR_OVER_RUN);
-					StopMotors();
+					if (inc_pos_limit_count(axis) || inc_neg_limit_count(axis))
+					{
+						SetErrorCode(ERR_OVER_RUN);
+						StopMotors();
+					}
 					break;		
 				}
 			}
@@ -535,40 +559,94 @@ void SystemCheck()
 			switch (get_axis_sensor(axis))
 			{
 			case 0:
+				reset_limit_count(axis);
 				break;
 				
 			case 1:	// POS LIMIT
 				if (g_MoveOffset[axis] > 0)
 				{
-					g_OverRun_Command = g_MotionCommand;
-					g_OverRun_LimitSensor = 1;
-					g_OverRun_AxisNo = axis + 1;
-					SetErrorCode(ERR_OVER_RUN);
-					GoToError();
+					//g_OverRun_Command = g_MotionCommand;
+					//g_OverRun_LimitSensor = 1;
+					//g_OverRun_AxisNo = axis + 1;
+					if (inc_pos_limit_count(axis))
+					{
+						SetErrorCode(ERR_OVER_RUN);
+						GoToError();
+					}
 				}
 				break;
 				
 			case 2: // NEG LIMIT
 				if (g_MoveOffset[axis] < 0)
 				{
-					g_OverRun_Command = g_MotionCommand;
-					g_OverRun_LimitSensor = 2;
-					g_OverRun_AxisNo = axis + 1;
-					SetErrorCode(ERR_OVER_RUN);
-					GoToError();
+					//g_OverRun_Command = g_MotionCommand;
+					//g_OverRun_LimitSensor = 2;
+					//g_OverRun_AxisNo = axis + 1;
+					if (inc_neg_limit_count(axis))
+					{
+						SetErrorCode(ERR_OVER_RUN);
+						GoToError();
+					}
 				}
 				break;
 				
 			default:
-				g_OverRun_Command = g_MotionCommand;
-				g_OverRun_LimitSensor = 1;
-				g_OverRun_AxisNo = axis + 1;
-				SetErrorCode(ERR_OVER_RUN);
-				GoToError();
+				//g_OverRun_Command = g_MotionCommand;
+				//g_OverRun_LimitSensor = 1;
+				//g_OverRun_AxisNo = axis + 1;
+				if (inc_pos_limit_count(axis) || inc_neg_limit_count(axis))
+				{
+					SetErrorCode(ERR_OVER_RUN);
+					GoToError();
+				}
 				break;		
 			}
 		}
 	}
+}
+
+void reset_limit_count(int axis)
+{
+	g_PosLimitCount[axis] = 0;
+	g_NegLimitCount[axis] = 0;
+}
+
+int inc_pos_limit_count(int axis)
+{
+	// 에러 정보가 있으면, 업데이트 하지 않는다 
+	if (g_OverRun_AxisNo == 0 && g_OverRun_LimitSensor == 0)
+	{
+		g_PosLimitCount[axis] += 1; 
+		if (g_PosLimitCount[axis] > get_var(1))
+		{
+			g_OverRun_Command = g_MotionCommand; 
+			g_OverRun_AxisNo = axis + 1; 
+			g_OverRun_LimitSensor = 1; 
+			g_OverRun_LimitCount = g_PosLimitCount[axis];
+			return 1;
+		}
+		return 0; 
+	}
+	return 1; 
+}
+
+int inc_neg_limit_count(int axis)
+{
+	// 에러 정보가 있으면, 업데이트 하지 않는다 
+	if (g_OverRun_AxisNo == 0 && g_OverRun_LimitSensor == 0)
+	{
+		g_NegLimitCount[axis] += 1; 
+		if (g_NegLimitCount[axis] > get_var(1))
+		{
+			g_OverRun_Command = g_MotionCommand; 
+			g_OverRun_AxisNo = axis + 1; 
+			g_OverRun_LimitSensor = 2; 
+			g_OverRun_LimitCount = g_NegLimitCount[axis];
+			return 1;
+		}
+		return 0; 
+	}
+	return 1; 
 }
 
 unsigned char GetInput(char ch)

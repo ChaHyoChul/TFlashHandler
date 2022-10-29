@@ -29,6 +29,7 @@ extern int g_MoveStartErrorLine;
 extern int g_OverRun_Command;								// 2022.10.11 bychul2 OverRun 정보 저장 
 extern int g_OverRun_LimitSensor;
 extern int g_OverRun_AxisNo;
+extern int g_OverRun_LimitCount; 
 
 typedef struct _POINT_DATA
 {
@@ -121,6 +122,7 @@ int set_var(int no, int val);
 
 POINT_DATA get_point_data(int no);
 POINT_DATA set_point_data(int no, POINT_DATA pd);
+POINT_DATA set_point_data_from(int no, double x, double y, double z);
 
 MOTION_PARAM get_motion_param(int axis);
 MOTION_PARAM set_motion_param(int axis, MOTION_PARAM param);
@@ -142,5 +144,8 @@ void load_all();
 void init_data();
 
 void reset_motion_param();
+void reset_point_data();
+void reset_system_var();
+
 
 #endif //#ifndef _DATA_H_

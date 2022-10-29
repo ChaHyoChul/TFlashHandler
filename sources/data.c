@@ -29,6 +29,7 @@ int  g_MoveStartErrorLine = 0;
 int g_OverRun_Command = 0;								// 2022.10.11 bychul2 OverRun 정보 저장 
 int g_OverRun_LimitSensor = 0;
 int g_OverRun_AxisNo = 0;
+int g_OverRun_LimitCount = 0;
 
 char g_PointDataCommandState = CMD_READY;
 
@@ -172,6 +173,7 @@ void clear_error()
 	g_OverRun_Command = 0;
 	g_OverRun_AxisNo = 0;
 	g_OverRun_LimitSensor = 0;
+	g_OverRun_LimitCount = 0;
 
 	g_MoveStartErrorLine = 0;
 	for (i = 0; i<MAX_AXIS; i++)
@@ -258,6 +260,16 @@ POINT_DATA get_point_data(int no)
 	}
 	
 	return pd;
+}
+
+POINT_DATA set_point_data_from(int no, double x, double y, double z)
+{
+	POINT_DATA pd;
+	pd.x = x;
+	pd.y = y;
+	pd.z = z;
+
+	return set_point_data(no, pd);
 }
 
 POINT_DATA set_point_data(int no, POINT_DATA pd)
@@ -593,11 +605,59 @@ void reset_motion_param()
 	g_MotionParam[Z_AXIS].m_ucMoveTorque = 30;
 
 	save_motion_param();
+}
 
-	// Origin offset (PD-12) : default로 0.5,0.2,0.2를 저장한다 
-	//POINT_DATA pd = {0,};
-	//pd.x = 0.5; 
-	//pd.y = 0.2;
-	//pd.z = 0.2;
-	//set_point_data(12, pd); 
+void reset_point_data()
+{
+	// Grip 
+	set_point_data_from(1, 0.0, 0.0, 10.0);
+	// Ungrip 
+	set_point_data_from(2, 0.0, 0.0, 1.0);
+	// Load 
+	set_point_data_from(3, 90.0, 1.0, 0.0);
+	// Aspirate
+	set_point_data_from(4, 10.0, 15.0, 0.0);
+	// Disp
+	set_point_data_from(5, 10.0, 1.0, 0.0);
+	// Shake 
+	set_point_data_from(6, 90.0, 1.0, 0.0);
+	// None 
+	set_point_data_from(7, 1.0, 1.0, 0.0);
+	// Waste 
+	set_point_data_from(8, 1.0, 170.0, 0.0);
+	// Separate EQIL 
+	set_point_data_from(9, 1.0, 1.0, 0.0);
+	// Separate EQIS
+	set_point_data_from(10, 1.0, 90.0, 0.0);
+	// Async Waste Output pos MWRD 
+	set_point_data_from(11, 1.0, 9.0, 0.0);
+	// Origin Offset 
+	set_point_data_from(12, 0.5, 0.2, 0.2);
+}
+
+void reset_system_var()
+{
+	// Var
+	set_var(1, 10);
+	set_var(2, 0);
+	set_var(3, 0);
+	set_var(4, 5);
+	set_var(5, 6);
+	set_var(6, 0);
+	set_var(7, 200);
+	set_var(8, 3000);
+	set_var(9, 5000);
+	set_var(10, 500);
+	set_var(11, 0);
+	set_var(12, 0);
+	set_var(13, 15);
+	set_var(14, 5000);
+	set_var(15, 1);
+	set_var(91, 0);
+
+	set_var(16, 0);
+	set_var(17, 0);
+	set_var(18, 0);
+	set_var(19, 0);
+	set_var(20, 0);
 }

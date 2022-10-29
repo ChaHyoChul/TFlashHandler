@@ -1334,6 +1334,43 @@ void DoCmd(char *cmd)
 
 		send("MRST\r\n");
 	}
+	else if (IS_COMMAND(cmd, "MRPT"))
+	{
+		if (! IsStopped())
+		{
+			SendResponseRaw("MRPT", ERR_COMMAND_IN_RUNNING);
+			return;
+		}
+
+		if (IsError())
+		{
+			SendResponseRaw("MRPT", ERR_COMMAND_IN_ERROR);
+			return;
+		}
+
+		reset_point_data();
+
+		send("MRPT\r\n");
+	}
+	else if (IS_COMMAND(cmd, "MRVR"))
+	{
+		if (! IsStopped())
+		{
+			SendResponseRaw("MRVR", ERR_COMMAND_IN_RUNNING);
+			return;
+		}
+
+		if (IsError())
+		{
+			SendResponseRaw("MRVR", ERR_COMMAND_IN_ERROR);
+			return;
+		}
+
+		reset_system_var();
+
+		send("MRVR\r\n");
+
+	}
 	else if (IS_COMMAND(cmd, "HOME"))	// 원점복귀 other version 
 	{
 		originComplete = 0;
@@ -1726,7 +1763,7 @@ void DoCmd(char *cmd)
 	}
 	else if (IS_COMMAND_N(cmd, "GLEI"))	// Get Limit Error Info 
 	{
-		sprintf(str, "GLEI %d,%d,%d\r\n", g_OverRun_Command, g_OverRun_AxisNo, g_OverRun_LimitSensor);
+		sprintf(str, "GLEI %d,%d,%d,%d\r\n", g_OverRun_Command, g_OverRun_AxisNo, g_OverRun_LimitSensor, g_OverRun_LimitCount); 
 		send(str);
 	}
 	// Separate Flask의 용액을 나누는 동작 
