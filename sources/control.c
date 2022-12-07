@@ -29,6 +29,10 @@ int g_ShakeCount = 0;
 int g_ShakeAngle = 0;
 int g_MoveOffset[MAX_AXIS] = { 0, 0, 0 };
 int g_OriginAxis = 0;
+int g_ShakeAngleX = 0;
+int g_ShakeAngleY = 0;
+double g_fMoveXPos = 0.0;
+double g_fMoveYPos = 0.0;
 
 
 STATUS g_Status = { 0, };
@@ -48,7 +52,7 @@ int move_pd_with_speed_ratio(int pd_no, int sel_axis, int spd_type, int spd_rati
 int move_inc(int sel_axis, float dist[], int spd_type, int spd_ratio);
 int move_abs(int sel_axis, float dist[], int spd_type, int spd_ratio);
 char move_done(char sel_axis);
-
+int do_shake_xy(char reset_step, int axis, int angle, int count);
 
 //
 // Limit Count 
@@ -408,6 +412,7 @@ void MainControl()
 	case COMM_ERROR_STOP:	res = CommErrorStop();	UpdateState(res);	break;
 
 	case COMM_HOME:		res = CommHome(); UpdateState(res); break;
+	case COMM_MMLD:		res = CommMMLD(); UpdateState(res); break; 
 	case COMM_MGRI:		res = CommGripUngrip(); UpdateState(res); break;
 	case COMM_MUNG:		res = CommGripUngrip(); UpdateState(res); break;
 	case COMM_MLOA:		res = CommMoveXY(); UpdateState(res); break;
@@ -422,6 +427,7 @@ void MainControl()
 	case COMM_EQIL:		res = CommSeparateLongSide(); UpdateState(res); break;
 	case COMM_EQIS:		res = CommSeparateShortSide(); UpdateState(res); break;
 	case COMM_MSHK:		res = CommShakeUsingPD6(); UpdateState(res); break;
+	case COMM_SWIRL:	res = CommSWIRL(); UpdateState(res); break; 
 	}
 	
 	if (g_UserStop > 0)
@@ -2001,6 +2007,58 @@ char CommHome()
 	return NORMAL_RUNNING;
 }
 
+// LOAD 기준으로 이동한다 
+// - g_MoveRatio, g_fMoveXPos, g_fMoveYPos
+// - Load 기준으로 이동하기 전에 스크로크에 들어오는지 확인 
+char CommMMLD()
+{
+	static char step = 0;
+	float pos[3];
+	int move_start = 0;
+
+	switch (step)
+	{
+		// Error handling 
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; } break;
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
+
+	case 0:
+		pos[0] = g_fMoveXPos;
+		pos[1] = g_fMoveYPos;
+		pos[2] = 0.0;
+		move_start = move_abs(0x03, pos, SPEED_NORMAL, g_MoveRatio);
+		g_MoveStartErrorLine = __LINE__;
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break; 
+
+	case 1:
+		if (move_done(0x03)) { step++; }
+		break; 
+
+	case 2:
+		if (IsStopped()) { step++; } 
+		break; 
+
+	case 3:
+		SetHoldTorque(Z_AXIS);
+		step++;
+		break;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;
+	}
+
+	return 0;
+}
 
 // g_MoveOffset[] 변수에 위치를 저장해 놓고, 그 위치로 이동한다 
 char CommGripUngrip()
@@ -3428,6 +3486,315 @@ char CommSeparateShortSide()
 
 	return 0;
 }
+
+// X축 방향 Shake (front-back-angle), 
+// Y축 방향 Shake (side-by-side-angle)
+// g_MoveRatio = ints.val[0];
+// g_ShakeCount = ints.val[1];
+// g_ShakeAngleX = ints.val[2];
+// g_ShakeAngleY = ints.val[3];
+char CommSWIRL()
+{
+	const int POINT_READY = 6;
+	static char step = 0;
+	static int delay_count = 0;
+	static int shake_count = 0;
+	
+	float angle[3] = {0.0, 0.0, 0.0};
+	int move_start = 0;
+	POINT_DATA pd;
+
+	switch (step)
+	{
+		// Error Handling 
+	case 91: StopMotors(); step++; break; 
+	case 92: if (IsStopped()) { step++; } break; 
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED; 
+
+	case 0:
+		delay_count = 0;
+		shake_count = 0;
+		pd = get_point_data(POINT_READY);
+		step = 1; 
+		break;
+
+		// ready 위치로 이동 
+	case 1:
+		move_start = move_pd_with_speed_ratio(POINT_READY, 0x01, SPEED_NORMAL, g_MoveRatio);
+		g_MoveStartErrorLine = __LINE__; 
+		if (move_start) {
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step = 2;
+		break;
+	case 2:
+		if (move_done(0x01)) { step = 3; }
+		break; 
+	case 3: 
+		if (IsStopped()) { step = 4; }
+		break; 
+
+	case 4:
+		move_start = move_pd_with_speed_ratio(POINT_READY, 0x02, SPEED_NORMAL, g_MoveRatio);
+		g_MoveStartErrorLine = __LINE__;
+		if (move_start) {
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step = 5;
+		break;
+	case 5:
+		if (move_done(0x02)) { step = 6; }
+		break; 
+	case 6:
+		if (IsStopped()) { step = 10; }
+		break;
+
+		///////////////////////////////////////////////
+		// SHAEK 
+		// - shake count 회수 만큼 
+		// - x 축 (g_ShakeAngleX)
+		// - Y 축 (g_ShakeAngleY)
+		///////////////////////////////////////////////
+	case 10: 
+		if (shake_count++ >= g_ShakeCount) { step = 100; }
+		else { step = 11; }
+		break; 
+
+		// X축 Shake 
+	case 11: 
+		do_shake_xy(1, 0x01, g_ShakeAngleX, 1);
+		step = 12;
+		break;
+	case 12:
+		move_start = do_shake_xy(0, 0x01, g_ShakeAngleX, 1);
+		if (move_start == 0) {
+			step = step;
+		}
+		else if (move_start == 1) {
+			step = 21;
+		}
+		else {
+			g_MoveStartErrorLine = __LINE__;
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		break; 
+
+		// Y축 Shake 
+	case 21: 
+		do_shake_xy(1, 0x02, g_ShakeAngleY, 1);
+		step = 22;
+		break;
+	case 22:
+		move_start = do_shake_xy(0, 0x02, g_ShakeAngleY, 1);
+		if (move_start == 0) {
+			step = step;
+		}
+		else if (move_start == 1) {
+			step = 23;
+		}
+		else {
+			g_MoveStartErrorLine = __LINE__;
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		break; 
+	case 23:
+		step = 10;
+		break;
+
+		//
+	case 100:
+		HoldMotors();
+		g_MovePointDataNo = 0;
+		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
+		step = 0;
+		return NORMAL_FINISHED;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;
+	}
+
+	return 0;
+}
+
+// return 
+// - 0 : continue  
+// - 1 : end 
+// - 2 : motor error 
+int do_shake_xy(char reset_step, int axis, int angle, int count)
+{
+	const int POINT_READY = 6;
+	const int VAR_DELAY_MOVE = 7;
+	static int step = 0;
+	static int shake_count = 0;
+	static int delay_count = 0;
+
+	int move_start = 0;
+	float move_angle[3] = {0.0, 0.0, 0.0};
+	POINT_DATA pd;
+
+	step = (reset_step == 1) ? 1 : step;
+
+	switch (step)
+	{
+	case 1: 
+		shake_count = 0;
+		step++;
+		break; 
+
+	case 2:
+		move_start = move_pd_with_speed_ratio(POINT_READY, 0x03, SPEED_NORMAL, g_MoveRatio);
+		if (move_start) {
+			return 2;
+		}
+		DelayMoveStart();
+		step++;
+	case 3:
+		if (move_done(0x03)) { step++; }
+		break;
+	case 4:
+		if (IsStopped()) { step++; }
+		break;
+	case 5:
+		if ((axis & 0x02) == 0x02) {
+			pd = get_point_data(POINT_READY);
+			move_angle[0] = 0.0;
+			move_angle[1] = pd.y + 90.0;
+			move_angle[2] = 0.0;
+ 			move_start = move_abs(0x02, move_angle, SPEED_NORMAL, g_MoveRatio);
+			if (move_start) {
+				return 2;
+			}
+			DelayMoveStart();
+			step++;
+		} else {
+			step = 10;
+		}
+		break;
+	case 6:
+		if (move_done(0x02)) { step++; }
+		break;
+	case 7:
+		if (IsStopped()) { step++; }
+		break;
+	case 8:
+		step = 10;
+		break; 
+
+	case 10:
+		if (shake_count++ >= count) { step = 30; }
+		else { step++; }
+		break; 
+
+	case 11:
+		pd = get_point_data(POINT_READY);
+		move_angle[0] = pd.x + angle; 
+		move_start = move_abs(0x01, move_angle, SPEED_NORMAL, g_MoveRatio);
+		if (move_start) {
+			return 2;
+		}
+		DelayMoveStart();
+		step++;
+		break; 
+	case 12:
+		if (move_done(0x01)) { 
+			delay_count = get_var(VAR_DELAY_MOVE);
+			step++; 
+		}
+		break;
+	case 13:
+		if (IsStopped()) { step++; }
+		break;
+	case 14:
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step++; }
+		break;
+
+	case 15:
+		pd = get_point_data(POINT_READY);
+		move_angle[0] = pd.x - angle;
+		move_start = move_abs(0x01, move_angle, SPEED_NORMAL, g_MoveRatio);
+		if (move_start) {
+			return 2;
+		}
+		DelayMoveStart();
+		step++; 
+		break;
+
+	case 16:
+		if (move_done(0x01)) {
+			delay_count = get_var(VAR_DELAY_MOVE);
+			step++;
+		}
+		break;
+	case 17:
+		if (IsStopped() ) { step++; } 
+		break; 
+	case 18:
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step++; }
+		break;
+	case 19:
+		step = 10;
+		break;
+
+	case 30:
+		move_start = move_pd_with_speed_ratio(POINT_READY, 0x01, SPEED_NORMAL, g_MoveRatio);
+		if (move_start) {
+			return 2;
+		}
+		DelayMoveStart();
+		step++;
+		break; 
+	case 31:
+		if (move_done(0x01)) { 
+			delay_count = get_var(VAR_DELAY_MOVE);
+			step++; 
+		}
+		break; 
+	case 32:
+		if (IsStopped()) { step++; }
+		break; 
+	case 33:
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step++; }
+		break; 
+
+	case 34:
+		if ((axis & 0x02) == 0x02) { step++; }
+		else step = 0;
+		break;
+	case 35:
+		move_start = move_pd_with_speed_ratio(POINT_READY, 0x03, SPEED_NORMAL, g_MoveRatio);
+		if (move_start) {
+			return 2;
+		}
+		step++;
+		break;
+	case 36:
+		if (move_done(0x03)) { step++; }
+		break; 
+	case 37:
+		if (IsStopped()) { step++; }
+		break;
+	case 38:
+		step = 0;
+		break;
+	}
+ 
+	return (step == 0) ? 1 : 0;
+}
+
 
 // pd_no 위치로 이동 
 // axis 는 이동할 축 번호 비트만 1 

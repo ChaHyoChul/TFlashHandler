@@ -58,6 +58,10 @@ extern int  g_MoveOffset[MAX_AXIS];
 extern int  g_OriginAxis;
 extern char g_MotionCommand;
 extern int  g_ErrorCode;
+extern int	g_ShakeAngleX;
+extern int 	g_ShakeAngleY;
+extern double g_fMoveXPos;
+extern double g_fMoveYPos;
 
 extern POINT_DATA g_PointData[MAX_POINT_DATA];
 
@@ -1389,6 +1393,56 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("HOME\r\n");
 	}
+	else if (IS_COMMAND(cmd, "MMLD"))
+	{
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 0;
+		existFlask = 1;
+		gripperGrip = 0;
+		if (!checkBeforeRun("MMLD", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
+		{
+			return ;
+		}
+
+		ch = strstr(cmd, "MMLD");
+		ch = ch + 4; 
+		ints = str_to_ints(ch);
+		dbls = str_to_doubles(ch);
+	
+		g_MoveRatio = ints.val[0];
+		g_fMoveXPos = dbls.val[1];
+		g_fMoveYPos = dbls.val[2];
+
+//		sprintf(sz, "%d,", g_MoveRatio);
+//		send(sz);
+//		sprintf(sz, "%.2f,", g_fMoveXPos);
+//		send(sz);
+//		sprintf(sz, "%.2f, ", g_fMoveYPos);
+//		send(sz);
+
+		// 위치 계산 
+		pd = get_point_data(3);	// POINT_LOAD = 3 
+		g_fMoveXPos = pd.x - g_fMoveXPos;
+		g_fMoveYPos = pd.y + g_fMoveYPos;
+//		sprintf(sz, "%.2f,", g_fMoveXPos);
+//		send(sz);
+//		sprintf(sz, "%.2f,", g_fMoveYPos);
+//		send(sz);
+		
+		if ((g_fMoveXPos < 0.0) ||
+			(g_fMoveYPos < 0.0)) 
+		{
+			send("MMLD E06\r\n");
+			return ;
+		}
+		
+		SetCommand("MMLD");
+		SetControlCommand(COMM_MMLD);
+		g_ResponseSend = 1;
+		send("MMLD\r\n");
+	}
 	else if (IS_COMMAND(cmd, "MGRI"))	// Grip
 	{
 		originComplete = 1;
@@ -1576,7 +1630,7 @@ void DoCmd(char *cmd)
 			send("MSHK E06\r\n");
 			return ;
 		}
-		if (g_ShakeAngle <= 0 || g_ShakeAngle > 90) {
+		if (g_ShakeAngle <= 0 || g_ShakeAngle > 45) {
 			send("MSHK E06\r\n");
 			return ;
 		}
@@ -1585,6 +1639,56 @@ void DoCmd(char *cmd)
 		SetControlCommand(COMM_MSHK);
 		g_ResponseSend = 1;
 		send("MSHK\r\n");
+	}
+	else if (IS_COMMAND(cmd, "SWIRL"))	// speed, repeat_number, front_back_angle, side_by_side_anagle 
+	{
+		INTS4 ints4;
+		originComplete = 1;
+		stopped = 1; 
+		error = 1;
+		releaseBreak = 1;
+		existFlask = 1;
+		gripperGrip = 1;
+		if (!checkBeforeRun("SWIRL", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip))
+		{
+			 return ;
+		}
+
+		ch = strstr(cmd, "SWIRL");
+		ch = ch + 5;
+		ints4 = str_to_ints4(ch);
+
+		g_MoveRatio = ints4.val[0];
+		g_ShakeCount = ints4.val[1];
+		g_ShakeAngleX = ints4.val[2];
+		g_ShakeAngleY = ints4.val[3];
+
+		//sprintf(sz, "%d, ", g_MoveRatio); send(sz);
+		//sprintf(sz, "%d, ", g_ShakeCount); send(sz);
+		//sprintf(sz, "%d, ", g_ShakeAngleX); send(sz);
+		//sprintf(sz, "%d", g_ShakeAngleY); send(sz);
+
+		if (g_MoveRatio <= 0 || g_MoveRatio > 100) {
+			send("SWIRL E06\r\n");
+			return ; 
+		}
+		if (g_ShakeCount <= 0 || g_ShakeAngle > 100) {
+			send("SWIRL E06\r\n");
+			return ; 
+		}
+		if (g_ShakeAngleX <= 0 || g_ShakeAngleX > 45) {
+			send("SWIRL E06\r\n");
+			return ;
+		}
+		if (g_ShakeAngleY <= 0 || g_ShakeAngleY > 45) {
+			send("SWIRL E06\r\n");
+			return ; 
+		}
+
+		SetCommand("SWIRL");
+		SetControlCommand(COMM_SWIRL);
+		g_ResponseSend = 1;
+		send("SWIRL\r\n");
 	}
 	else if (IS_COMMAND(cmd, "EQIL"))	// separate 동작. Flask 세운상태 
 	{

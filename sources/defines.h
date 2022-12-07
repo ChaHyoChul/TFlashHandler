@@ -52,9 +52,12 @@
 
 //##define SOFTWARE_VERSION	"TFLASK-H 1.00.014" // GLEI 명령 추가. OVERRUN 에러시 에러 정보 리턴, 응답: Command-No, Axis-No(1/2/3), Sensor-No(1:+/2:-)
 
-#define SOFTWARE_VERSION	"TFLASK-H 1.00.015" // Limit Counter로 OVERRUN 감지. (V1=100처럼 Count 값을 입력한다)
+//#define SOFTWARE_VERSION	"TFLASK-H 1.00.015" // Limit Counter로 OVERRUN 감지. (V1=100처럼 Count 값을 입력한다)
                                                 // MRST 명령에 파라메타와 PointData, Var 초기화 
-                                                
+
+#define SOFTWARE_VERSION	"TFLASK-H 1.00.016" // clear_error() 함수에서 "DriverReset()"호출전 에러 체크 
+                                                // SWIRL, MMLD 명령 추가 
+
 
 // Settings
 #define COMPORT_BAUDRATE	(57600)

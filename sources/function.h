@@ -8,6 +8,12 @@ typedef struct _INTS
 	char flag[3];
 } INTS;
 
+typedef struct _INTS4
+{
+	int val[4];
+	char flag[4];
+} INTS4;
+
 typedef struct _DOUBLES
 {
 	double	val[3];
@@ -27,6 +33,7 @@ char* double3_to_str(double* values);
 
 INTS str_to_ints(char* str);
 char* ints_to_str(INTS ints);
+INTS4 str_to_ints4(char* str);
 
 DOUBLES str_to_doubles(char* str);
 char* doubles_to_str(DOUBLES dbls);

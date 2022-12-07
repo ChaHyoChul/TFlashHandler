@@ -179,9 +179,11 @@ void clear_error()
 	for (i = 0; i<MAX_AXIS; i++)
 	{
 		g_MoveStartErrorCode[i] = 0;
-		DriverReset(i);
+		if (DriverErrorCheck(i) != 0) 
+		{
+			DriverReset(i);
+		}
 	}
-	
 }
 
 int get_org_offset(int axis)

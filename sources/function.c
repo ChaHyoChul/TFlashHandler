@@ -146,7 +146,6 @@ INTS str_to_ints(char* str)
 	}
 	
 	return ints;
-	
 }
 
 char* ints_to_str(INTS ints)
@@ -163,6 +162,56 @@ char* ints_to_str(INTS ints)
 	if (ints.flag[2]) snprintf((buf+index), 63-index, "%d", ints.val[2]);
 
 	return buf;
+}
+
+INTS4 str_to_ints4(char* str)
+{
+	int max_no = 4;
+	int i = 0;
+	char sp = ',';
+	char* s2 = 0;
+	INTS4 ints4;
+	
+	ints4.flag[0] = 0;
+	ints4.flag[1] = 0;
+	ints4.flag[2] = 0;
+	ints4.flag[3] = 0;
+	
+	for (; i < max_no; ++i)
+	{
+		str = strnosp(str);
+		if (str == 0)
+		{
+			return ints4;
+		}
+		
+		if (strlen(str) == 0)
+		{
+			continue;
+		}
+		
+		s2 = strchr(str, sp);
+		if (str == s2)
+		{
+			ints4.flag[i] = 0;
+		}
+		else
+		{
+			ints4.flag[i] = 1;
+			ints4.val[i] = atoi(str);
+		}
+		
+		if (s2 == 0)
+		{
+			break;
+		}
+		else
+		{
+			str = s2 + 1;
+		}
+	}
+	
+	return ints4;
 }
 
 DOUBLES str_to_doubles(char* str)

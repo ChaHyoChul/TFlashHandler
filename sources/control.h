@@ -33,6 +33,8 @@
 #define COMM_EQIL			43	// separate long shape
 #define COMM_EQIS			44  // separate short shape 
 #define COMM_MSHK 			45 	// shake 				PD6 for ready pos. VAR6(회수) VAR7(Delay)  
+#define COMM_SWIRL			46 	// shake 
+#define COMM_MMLD			47 	// move x,y
 
 // speed type at SetSpeed()
 #define SPEED_ORG			(0)
@@ -167,6 +169,8 @@ char CommSeparate();
 char CommSeparateLongSide();
 char CommSeparateShortSide();
 char CommShakeUsingPD6();
+char CommSWIRL();
+char CommMMLD();
 
 void UpdateOriginCompletedStatus();
 void SetOriginCompletedFlag(char axis, char flag);
