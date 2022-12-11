@@ -1994,10 +1994,12 @@ char CommHome()
 		break;
 
 	case 16:
+		HoldMotors();
 		step = 0;
 		return NORMAL_FINISHED;
 
 	default:
+		HoldMotors();
 		step = 0;
 		return NORMAL_FINISHED;
 	}
@@ -2048,7 +2050,8 @@ char CommMMLD()
 		break; 
 
 	case 3:
-		SetHoldTorque(Z_AXIS);
+		// SetHoldTorque(Z_AXIS);
+		HoldMotors();
 		step++;
 		break;
 
@@ -3495,7 +3498,7 @@ char CommSeparateShortSide()
 // g_ShakeAngleY = ints.val[3];
 char CommSWIRL()
 {
-	const int POINT_READY = 6;
+	const int POINT_LOAD = 3;
 	static char step = 0;
 	static int delay_count = 0;
 	static int shake_count = 0;
@@ -3514,13 +3517,13 @@ char CommSWIRL()
 	case 0:
 		delay_count = 0;
 		shake_count = 0;
-		pd = get_point_data(POINT_READY);
+		pd = get_point_data(POINT_LOAD);
 		step = 1; 
 		break;
 
 		// ready 위치로 이동 
 	case 1:
-		move_start = move_pd_with_speed_ratio(POINT_READY, 0x01, SPEED_NORMAL, g_MoveRatio);
+		move_start = move_pd_with_speed_ratio(POINT_LOAD, 0x01, SPEED_NORMAL, g_MoveRatio);
 		g_MoveStartErrorLine = __LINE__; 
 		if (move_start) {
 			SetErrorCode(ERR_MOTOR_ERROR);
@@ -3538,7 +3541,7 @@ char CommSWIRL()
 		break; 
 
 	case 4:
-		move_start = move_pd_with_speed_ratio(POINT_READY, 0x02, SPEED_NORMAL, g_MoveRatio);
+		move_start = move_pd_with_speed_ratio(POINT_LOAD, 0x02, SPEED_NORMAL, g_MoveRatio);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start) {
 			SetErrorCode(ERR_MOTOR_ERROR);
@@ -3633,7 +3636,8 @@ char CommSWIRL()
 // - 2 : motor error 
 int do_shake_xy(char reset_step, int axis, int angle, int count)
 {
-	const int POINT_READY = 6;
+	const int POINT_LOAD = 3;
+	const int POINT_YPOS = 6;
 	const int VAR_DELAY_MOVE = 7;
 	static int step = 0;
 	static int shake_count = 0;
@@ -3653,7 +3657,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		break; 
 
 	case 2:
-		move_start = move_pd_with_speed_ratio(POINT_READY, 0x03, SPEED_NORMAL, g_MoveRatio);
+		move_start = move_pd_with_speed_ratio(POINT_LOAD, 0x03, SPEED_NORMAL, g_MoveRatio);
 		if (move_start) {
 			return 2;
 		}
@@ -3667,9 +3671,9 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		break;
 	case 5:
 		if ((axis & 0x02) == 0x02) {
-			pd = get_point_data(POINT_READY);
+			pd = get_point_data(POINT_YPOS);
 			move_angle[0] = 0.0;
-			move_angle[1] = pd.y + 90.0;
+			move_angle[1] = pd.y;
 			move_angle[2] = 0.0;
  			move_start = move_abs(0x02, move_angle, SPEED_NORMAL, g_MoveRatio);
 			if (move_start) {
@@ -3697,7 +3701,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		break; 
 
 	case 11:
-		pd = get_point_data(POINT_READY);
+		pd = get_point_data(POINT_LOAD);
 		move_angle[0] = pd.x + angle; 
 		move_start = move_abs(0x01, move_angle, SPEED_NORMAL, g_MoveRatio);
 		if (move_start) {
@@ -3721,7 +3725,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		break;
 
 	case 15:
-		pd = get_point_data(POINT_READY);
+		pd = get_point_data(POINT_LOAD);
 		move_angle[0] = pd.x - angle;
 		move_start = move_abs(0x01, move_angle, SPEED_NORMAL, g_MoveRatio);
 		if (move_start) {
@@ -3749,7 +3753,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		break;
 
 	case 30:
-		move_start = move_pd_with_speed_ratio(POINT_READY, 0x01, SPEED_NORMAL, g_MoveRatio);
+		move_start = move_pd_with_speed_ratio(POINT_LOAD, 0x01, SPEED_NORMAL, g_MoveRatio);
 		if (move_start) {
 			return 2;
 		}
@@ -3775,7 +3779,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		else step = 0;
 		break;
 	case 35:
-		move_start = move_pd_with_speed_ratio(POINT_READY, 0x03, SPEED_NORMAL, g_MoveRatio);
+		move_start = move_pd_with_speed_ratio(POINT_LOAD, 0x03, SPEED_NORMAL, g_MoveRatio);
 		if (move_start) {
 			return 2;
 		}

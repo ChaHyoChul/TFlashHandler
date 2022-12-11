@@ -1592,10 +1592,12 @@ void DoCmd(char *cmd)
 			send("MSHA E06\r\n");
 			return ;
 		}
-		if (g_ShakeAngle <= 0 || g_ShakeAngle > 90) {
+		if (g_ShakeAngle <= 0 || g_ShakeAngle > 45) {
 			send("MSHA E06\r\n");
 			return ;
 		}
+
+		g_ShakeCount *= 2;
 
 		SetCommand("MSHA");
 		SetControlCommand(COMM_MSHA);
@@ -1634,6 +1636,8 @@ void DoCmd(char *cmd)
 			send("MSHK E06\r\n");
 			return ;
 		}
+
+		g_ShakeCount *= 2;
 
 		SetCommand("MSHK");
 		SetControlCommand(COMM_MSHK);

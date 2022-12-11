@@ -622,7 +622,7 @@ void reset_point_data()
 	// Disp
 	set_point_data_from(5, 10.0, 1.0, 0.0);
 	// Shake 
-	set_point_data_from(6, 90.0, 1.0, 0.0);
+	set_point_data_from(6, 90.0, 90.0, 0.0);
 	// None 
 	set_point_data_from(7, 1.0, 1.0, 0.0);
 	// Waste 
