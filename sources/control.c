@@ -25,6 +25,7 @@ extern double motor_y_pitch;
 int g_MovePointDataNo = 0;
 int g_MoveRatio = 100;
 int g_MoveRatioSeparate = 100;
+int g_MoveRatio_Rotation = 100;
 int g_ShakeCount = 0;
 int g_ShakeAngle = 0;
 int g_MoveOffset[MAX_AXIS] = { 0, 0, 0 };
@@ -2060,6 +2061,8 @@ char CommMMLD()
 		return NORMAL_FINISHED;
 	}
 
+	CHECK_USER_STOP();
+
 	return 0;
 }
 
@@ -3244,6 +3247,8 @@ char CommSeparate()
 		return NORMAL_FINISHED;		
 	}	
 
+	CHECK_USER_STOP();
+
 	return 0;
 }
 
@@ -3336,6 +3341,8 @@ char CommSeparateLongSide()
 		step = 0;
 		return NORMAL_FINISHED;
 	}
+
+	CHECK_USER_STOP();
 
 	return 0;
 }
@@ -3487,15 +3494,18 @@ char CommSeparateShortSide()
 		return NORMAL_FINISHED;
 	}
 
+	CHECK_USER_STOP();
+
 	return 0;
 }
 
 // X축 방향 Shake (front-back-angle), 
 // Y축 방향 Shake (side-by-side-angle)
 // g_MoveRatio = ints.val[0];
-// g_ShakeCount = ints.val[1];
-// g_ShakeAngleX = ints.val[2];
-// g_ShakeAngleY = ints.val[3];
+// g_MoveRatio_Rotation = ints.val[1]
+// g_ShakeCount = ints.val[2];
+// g_ShakeAngleX = ints.val[3];
+// g_ShakeAngleY = ints.val[4];
 char CommSWIRL()
 {
 	const int POINT_LOAD = 3;
@@ -3627,6 +3637,8 @@ char CommSWIRL()
 		return NORMAL_FINISHED;
 	}
 
+	CHECK_USER_STOP();
+	
 	return 0;
 }
 
@@ -3675,7 +3687,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 			move_angle[0] = 0.0;
 			move_angle[1] = pd.y;
 			move_angle[2] = 0.0;
- 			move_start = move_abs(0x02, move_angle, SPEED_NORMAL, g_MoveRatio);
+ 			move_start = move_abs(0x02, move_angle, SPEED_NORMAL, g_MoveRatio_Rotation);
 			if (move_start) {
 				return 2;
 			}
@@ -3779,7 +3791,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		else step = 0;
 		break;
 	case 35:
-		move_start = move_pd_with_speed_ratio(POINT_LOAD, 0x03, SPEED_NORMAL, g_MoveRatio);
+		move_start = move_pd_with_speed_ratio(POINT_LOAD, 0x03, SPEED_NORMAL, g_MoveRatio_Rotation);
 		if (move_start) {
 			return 2;
 		}
