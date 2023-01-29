@@ -52,6 +52,7 @@ extern MOVE_VARIABLE MovVar[MAX_AXIS];
 extern int  g_MovePointDataNo;
 extern int 	g_MoveRatio;	// 이동 속도 비율 
 extern int 	g_MoveRatioSeparate;	// Separate 동작의 X축 Up 속도 
+extern int  g_MoveRatio_Rotation;
 extern int 	g_ShakeCount;
 extern int 	g_ShakeAngle;
 extern int  g_MoveOffset[MAX_AXIS];
@@ -60,6 +61,7 @@ extern char g_MotionCommand;
 extern int  g_ErrorCode;
 extern int	g_ShakeAngleX;
 extern int 	g_ShakeAngleY;
+extern int 	g_ShakeTiltDelay;
 extern double g_fMoveXPos;
 extern double g_fMoveYPos;
 
@@ -818,7 +820,7 @@ void DoCmd(char *cmd)
 		{
 			g_MoveOffset[i] = ints.flag[i] ? (int)(dbls.val[i]/g_MotionParam[i].m_fScaleFactor) : 0;	
 		}
-		
+		 
 		SetControlCommand(COMM_PTP);
 	}
 	else if (IS_COMMAND(cmd, "LMA"))
@@ -1566,6 +1568,7 @@ void DoCmd(char *cmd)
 	}
 	else if (IS_COMMAND(cmd, "MSHA"))	// Shake. param is speed, count, angle  
 	{
+		INTS6 ints6;
 		originComplete = 1;
 		stopped = 1;
 		error = 1; 
@@ -1579,10 +1582,15 @@ void DoCmd(char *cmd)
 
 		ch = strstr(cmd, "MSHA");
 		ch = ch + 4; 
-		ints = str_to_ints(ch);		// speed, count, angle 
-		g_MoveRatio = ints.val[0];
-		g_ShakeCount = ints.val[1];
-		g_ShakeAngle = ints.val[2];
+		ints6 = str_to_ints6(ch);		// speed, count, angle 
+		g_MoveRatio = ints6.val[0];
+		g_ShakeCount = ints6.val[1];
+		g_ShakeAngle = ints6.val[2];
+		if (ints6.flag[3]) {
+			g_ShakeTiltDelay = ints6.val[3];
+		} else {
+			g_ShakeTiltDelay = get_var(7);
+		}
 
 		if (g_MoveRatio <= 0 || g_MoveRatio > 100) {
 			send("MSHA E06\r\n");
@@ -1593,6 +1601,10 @@ void DoCmd(char *cmd)
 			return ;
 		}
 		if (g_ShakeAngle <= 0 || g_ShakeAngle > 45) {
+			send("MSHA E06\r\n");
+			return ;
+		}
+		if (g_ShakeTiltDelay <= 0) {
 			send("MSHA E06\r\n");
 			return ;
 		}
@@ -1606,6 +1618,7 @@ void DoCmd(char *cmd)
 	}
 	else if (IS_COMMAND(cmd, "MSHK"))	// Shake. param is speed, count, angle  
 	{
+		INTS6 ints6;
 		originComplete = 1;
 		stopped = 1;
 		error = 1; 
@@ -1619,10 +1632,15 @@ void DoCmd(char *cmd)
 
 		ch = strstr(cmd, "MSHK");
 		ch = ch + 4; 
-		ints = str_to_ints(ch);		// speed, count, angle 
-		g_MoveRatio = ints.val[0];
-		g_ShakeCount = ints.val[1];
-		g_ShakeAngle = ints.val[2];
+		ints6 = str_to_ints6(ch);		// speed, count, angle 
+		g_MoveRatio = ints6.val[0];
+		g_ShakeCount = ints6.val[1];
+		g_ShakeAngle = ints6.val[2];
+		if (ints6.flag[3]) {
+			g_ShakeTiltDelay = ints6.val[3];
+		} else {
+			g_ShakeTiltDelay = get_var(7);
+		}
 
 		if (g_MoveRatio <= 0 || g_MoveRatio > 100) {
 			send("MSHK E06\r\n");
@@ -1636,6 +1654,10 @@ void DoCmd(char *cmd)
 			send("MSHK E06\r\n");
 			return ;
 		}
+		if (g_ShakeTiltDelay <= 0) {
+			send("MSHA E06\r\n");
+			return ;
+		}
 
 		g_ShakeCount *= 2;
 
@@ -1644,9 +1666,10 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MSHK\r\n");
 	}
-	else if (IS_COMMAND(cmd, "SWIRL"))	// speed, repeat_number, front_back_angle, side_by_side_anagle 
+	else if (IS_COMMAND(cmd, "SWIRL"))	
 	{
-		INTS4 ints4;
+		// tilt-speed, rotation-speed, repeat_number, front_back_angle, side_by_side_anagle, tilt_delay
+		INTS6 ints6;
 		originComplete = 1;
 		stopped = 1; 
 		error = 1;
@@ -1660,19 +1683,24 @@ void DoCmd(char *cmd)
 
 		ch = strstr(cmd, "SWIRL");
 		ch = ch + 5;
-		ints4 = str_to_ints4(ch);
+		ints6 = str_to_ints6(ch);
 
-		g_MoveRatio = ints4.val[0];
-		g_ShakeCount = ints4.val[1];
-		g_ShakeAngleX = ints4.val[2];
-		g_ShakeAngleY = ints4.val[3];
-
-		//sprintf(sz, "%d, ", g_MoveRatio); send(sz);
-		//sprintf(sz, "%d, ", g_ShakeCount); send(sz);
-		//sprintf(sz, "%d, ", g_ShakeAngleX); send(sz);
-		//sprintf(sz, "%d", g_ShakeAngleY); send(sz);
+		g_MoveRatio = ints6.val[0];
+		g_MoveRatio_Rotation = ints6.val[1];
+		g_ShakeCount = ints6.val[2];
+		g_ShakeAngleX = ints6.val[3];
+		g_ShakeAngleY = ints6.val[4];
+		if (ints6.flag[5]) {
+			g_ShakeTiltDelay = ints6.val[5];
+		} else {
+			g_ShakeTiltDelay = get_var(7); //VAR_DELAY_MOVE);
+		}
 
 		if (g_MoveRatio <= 0 || g_MoveRatio > 100) {
+			send("SWIRL E06\r\n");
+			return ; 
+		}
+		if (g_MoveRatio_Rotation <= 0 || g_MoveRatio_Rotation > 100) {
 			send("SWIRL E06\r\n");
 			return ; 
 		}
@@ -1685,6 +1713,10 @@ void DoCmd(char *cmd)
 			return ;
 		}
 		if (g_ShakeAngleY <= 0 || g_ShakeAngleY > 45) {
+			send("SWIRL E06\r\n");
+			return ; 
+		}
+		if (g_ShakeTiltDelay <= 0) {
 			send("SWIRL E06\r\n");
 			return ; 
 		}

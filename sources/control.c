@@ -32,6 +32,7 @@ int g_MoveOffset[MAX_AXIS] = { 0, 0, 0 };
 int g_OriginAxis = 0;
 int g_ShakeAngleX = 0;
 int g_ShakeAngleY = 0;
+int g_ShakeTiltDelay = 0;
 double g_fMoveXPos = 0.0;
 double g_fMoveYPos = 0.0;
 
@@ -2312,7 +2313,7 @@ char CommShake()
 
 	case 5:
 		if (move_done(0x01)) {
-			delay_count = get_var(VAR_DELAY_MOVE);
+			delay_count = g_ShakeTiltDelay; //get_var(VAR_DELAY_MOVE);
 			step++;
 		}
 		break;
@@ -2477,7 +2478,7 @@ char CommShakeUsingPD6()
 
 	case 11:
 		if (move_done(0x01)) {
-			delay_count = get_var(VAR_DELAY_MOVE);
+			delay_count = g_ShakeTiltDelay; // get_var(VAR_DELAY_MOVE);
 			step++;
 		}
 		break;
@@ -3506,6 +3507,7 @@ char CommSeparateShortSide()
 // g_ShakeCount = ints.val[2];
 // g_ShakeAngleX = ints.val[3];
 // g_ShakeAngleY = ints.val[4];
+// g_ShakeTiltDelay = ints.val[5];
 char CommSWIRL()
 {
 	const int POINT_LOAD = 3;
@@ -3724,7 +3726,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		break; 
 	case 12:
 		if (move_done(0x01)) { 
-			delay_count = get_var(VAR_DELAY_MOVE);
+			delay_count = g_ShakeTiltDelay; //get_var(VAR_DELAY_MOVE);
 			step++; 
 		}
 		break;
@@ -3749,7 +3751,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 
 	case 16:
 		if (move_done(0x01)) {
-			delay_count = get_var(VAR_DELAY_MOVE);
+			delay_count = g_ShakeTiltDelay; //get_var(VAR_DELAY_MOVE);
 			step++;
 		}
 		break;
@@ -3774,7 +3776,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		break; 
 	case 31:
 		if (move_done(0x01)) { 
-			delay_count = get_var(VAR_DELAY_MOVE);
+			delay_count = 1; // g_ShakeTiltDelay; //get_var(VAR_DELAY_MOVE);
 			step++; 
 		}
 		break; 

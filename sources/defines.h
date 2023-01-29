@@ -58,8 +58,10 @@
 //#define SOFTWARE_VERSION	"TFLASK-H 1.00.016" // clear_error() 함수에서 "DriverReset()"호출전 에러 체크 
                                                 // SWIRL, MMLD 명령 추가 
 
-#define SOFTWARE_VERSION	"TFLASK-H 1.00.017" // SWIRL 명령의 파라메타 확장 
+//#define SOFTWARE_VERSION	"TFLASK-H 1.00.017" // SWIRL 명령의 파라메타 확장 
                                                 // 특정 매크로 실행중 ASS 명령으로 멈추지 않는 버그 수정 
+
+#define SOFTWARE_VERSION	"TFLASK-H 1.00.018" // SWIRL 명령의 파라메타 확장. tilt 후 delay 파라메타 추가 
 
 // Settings
 #define COMPORT_BAUDRATE	(57600)

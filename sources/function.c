@@ -164,26 +164,27 @@ char* ints_to_str(INTS ints)
 	return buf;
 }
 
-INTS5 str_to_ints5(char* str)
+INTS6 str_to_ints6(char* str)
 {
 	int max_no = 6;
 	int i = 0;
 	char sp = ',';
 	char* s2 = 0;
-	INTS5 ints5;
+	INTS6 ints6;
 	
-	ints5.flag[0] = 0;
-	ints5.flag[1] = 0;
-	ints5.flag[2] = 0;
-	ints5.flag[3] = 0;
-	ints5.flag[4] = 0;
+	ints6.flag[0] = 0;
+	ints6.flag[1] = 0;
+	ints6.flag[2] = 0;
+	ints6.flag[3] = 0;
+	ints6.flag[4] = 0;
+	ints6.flag[5] = 0;
 
 	for (; i < max_no; ++i)
 	{
 		str = strnosp(str);
 		if (str == 0)
 		{
-			return ints5;
+			return ints6;
 		}
 		
 		if (strlen(str) == 0)
@@ -194,12 +195,12 @@ INTS5 str_to_ints5(char* str)
 		s2 = strchr(str, sp);
 		if (str == s2)
 		{
-			ints5.flag[i] = 0;
+			ints6.flag[i] = 0;
 		}
 		else
 		{
-			ints5.flag[i] = 1;
-			ints5.val[i] = atoi(str);
+			ints6.flag[i] = 1;
+			ints6.val[i] = atoi(str);
 		}
 		
 		if (s2 == 0)
@@ -212,7 +213,7 @@ INTS5 str_to_ints5(char* str)
 		}
 	}
 	
-	return ints5;
+	return ints6;
 }
 
 DOUBLES str_to_doubles(char* str)
