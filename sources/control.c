@@ -36,7 +36,6 @@ int g_ShakeTiltDelay = 0;
 double g_fMoveXPos = 0.0;
 double g_fMoveYPos = 0.0;
 
-
 STATUS g_Status = { 0, };
 
 

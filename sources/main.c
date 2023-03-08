@@ -71,11 +71,10 @@ extern char g_PointDataCommandState;
 
 char g_cMotionComm[MAX_AXIS];
 
-
 void TimerIsr_1ms()
 {
-	
 }
+
 void DoCmd(char *cmd);
 static char szCmd[100];
 static char nszCmdOfs = 0;
@@ -114,6 +113,8 @@ int _tmain(void)
 	unsigned long mainControlIntervalTime = 1;
 	unsigned long systemCheckIntervalTime = 1;
 
+	unsigned long break_tick_count = 0;
+	unsigned long break_hold_count = 0;
 
 	InitHardware();
 	UartInit(UART_PORT0, 9600);
@@ -143,7 +144,7 @@ int _tmain(void)
 		
 		mainControlIntervalTime = mainControlInterval / g_LoopTime;
 		systemCheckIntervalTime = systemCheckInterval / g_LoopTime;
-		
+
 		if (mainControlIntervalTime == 0)
 		{
 			mainControlIntervalTime = 200;
@@ -157,6 +158,27 @@ int _tmain(void)
 		if ((counter % mainControlIntervalTime) == 0)		// about 1ms interval
 		{
 			MainControl();
+
+			/////////////////////////////////////////////////
+			// break control 
+			break_hold_count = get_var(90) * 1000;
+			if (break_hold_count > 0)
+			{
+				if (break_tick_count < break_hold_count)
+				{
+					break_tick_count++;
+					ReleaseBreak();
+				}                                                                                       
+				else 
+				{
+					HoldBreak();
+				}
+			}
+			else 
+			{
+				ReleaseBreak();
+			}
+			/////////////////////////////////////////////////
 		}
 		
 		if ((counter % systemCheckIntervalTime) == 0)		// about 0.5ms interval
@@ -174,6 +196,8 @@ int _tmain(void)
 
 		while (PopRcvChar(UART_PORT0, &ch) != 0)
 		{
+			break_tick_count = 0;
+
 			if (nszCmdOfs == 0)
 			{
 				if (ch == ' ' || ch == '\r' || ch == '\n')
@@ -1310,16 +1334,16 @@ void DoCmd(char *cmd)
 		}
 		send(str);
 	} 
-	else if (IS_COMMAND(cmd, "RBK"))
-	{
-		ReleaseBreak();
-		send("RBK\r\n");
-	}
-	else if (IS_COMMAND(cmd, "HBK"))
-	{
-		HoldBreak();
-		send("HBK\r\n");
-	}
+//	else if (IS_COMMAND(cmd, "RBK"))
+//	{
+//		ReleaseBreak();
+//		send("RBK\r\n");
+//	}
+//	else if (IS_COMMAND(cmd, "HBK"))
+//	{
+//		HoldBreak();
+//		send("HBK\r\n");
+//	}
 	/////////////////////////////////////////////////////////
 	// T-Flask Command 
 	else if (IS_COMMAND(cmd, "MRST"))	// Motion Param Reset 
