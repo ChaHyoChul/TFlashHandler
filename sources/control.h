@@ -35,6 +35,8 @@
 #define COMM_MSHK 			45 	// shake 				PD6 for ready pos. VAR6(회수) VAR7(Delay)  
 #define COMM_SWIRL			46 	// shake 
 #define COMM_MMLD			47 	// move x,y
+#define COMM_MAMV			48	// move x,y 
+#define COMM_MRGI			49 	// re-grip 
 
 // speed type at SetSpeed()
 #define SPEED_ORG			(0)
@@ -171,6 +173,8 @@ char CommSeparateShortSide();
 char CommShakeUsingPD6();
 char CommSWIRL();
 char CommMMLD();
+char CommMAMV();
+char CommMRGI();
 
 void UpdateOriginCompletedStatus();
 void SetOriginCompletedFlag(char axis, char flag);

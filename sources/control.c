@@ -429,6 +429,8 @@ void MainControl()
 	case COMM_EQIS:		res = CommSeparateShortSide(); UpdateState(res); break;
 	case COMM_MSHK:		res = CommShakeUsingPD6(); UpdateState(res); break;
 	case COMM_SWIRL:	res = CommSWIRL(); UpdateState(res); break; 
+	case COMM_MAMV:		res = CommMAMV(); UpdateState(res); break; 
+	case COMM_MRGI:		res = CommMRGI(); UpdateState(res); break; 
 	}
 	
 	if (g_UserStop > 0)
@@ -3393,6 +3395,7 @@ char CommSeparateShortSide()
 			delay_count = get_var(VAR_DELAY_SEP); 
 			step++;
 		}
+		break;
 
 		// 용액이 나누어 질때까지 대기 
 	case 4:
@@ -3640,6 +3643,191 @@ char CommSWIRL()
 
 	CHECK_USER_STOP();
 	
+	return 0;
+}
+
+// 
+char CommMAMV()
+{
+	static char step = 0;
+	float pos[3];
+	int move_start = 0;
+
+	switch (step)
+	{
+		// Error handling 
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; } break;
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
+
+	case 0:
+		pos[0] = g_fMoveXPos;
+		pos[1] = g_fMoveYPos;
+		pos[2] = 0.0;
+		move_start = move_abs(0x03, pos, SPEED_NORMAL, g_MoveRatio);
+		g_MoveStartErrorLine = __LINE__;
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break; 
+
+	case 1:
+		if (move_done(0x03)) { step++; }
+		break; 
+
+	case 2:
+		if (IsStopped()) { step++; } 
+		break; 
+
+	case 3:
+		// SetHoldTorque(Z_AXIS);
+		HoldMotors();
+		step++;
+		break;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;
+	}
+
+	CHECK_USER_STOP();
+
+	return 0;
+}
+
+// 
+char CommMRGI()
+{
+	const int POINT_GRIP = 1;
+	const int POINT_LOAD = 3; 
+	const int POINT_REGRIP = 7; 
+	static char step = 0;
+	static int delay_count = 0;
+	int move_start = 0;
+
+	switch (step)
+	{
+		// Error handling 
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; } break;
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
+
+		// REGRIP 위치로 X, Y축 이동 
+	case 0:
+		move_start = move_pd_with_speed_ratio(POINT_REGRIP, 0x03, SPEED_NORMAL, g_MoveRatio);
+		g_MoveStartErrorLine = __LINE__;
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step += 1;
+		break; 
+
+	case 1:
+		if (move_done(0x03)) { step++; }
+		break; 
+
+	case 2:
+		if (IsStopped()) { step++; } 
+		break; 
+
+		// Gripper Ungrip. PD7번의 Z축 위치로 이동 
+	case 3:
+		move_start = move_pd_with_speed_ratio(POINT_REGRIP, 0x04, SPEED_NORMAL, g_MoveRatio);
+		g_MoveStartErrorLine = __LINE__;
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step += 1;
+		break; 
+
+	case 4:
+		if (move_done(0x04)) { step++; }
+		break; 
+
+	case 5:
+		if (IsStopped()) { 
+			delay_count = get_var(2); 
+			step += 1; 
+			// sendf("dc = %d\r\n", delay_count);
+		} 
+		break; 
+
+		// Wait (PD2)
+	case 6:
+		if (--delay_count > 0 ) { Delay1ms(); }
+		else { step += 1; }
+		break; 
+
+		// GRIP 
+	case 7:
+		move_start = move_pd_with_speed_ratio(POINT_GRIP, 0x04, SPEED_NORMAL, g_MoveRatio);
+		g_MoveStartErrorLine = __LINE__;
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step += 1;
+		break; 
+
+	case 8:
+		if (move_done(0x04)) { step += 1; }
+		break; 
+
+	case 9:
+		if (IsStopped()) { step += 1; } 
+		break; 		
+		
+		// LOAD 위치로 이동 
+	case 10:
+		move_start = move_pd_with_speed_ratio(POINT_LOAD, 0x03, SPEED_NORMAL, g_MoveRatio);
+		g_MoveStartErrorLine = __LINE__;
+		if (move_start)
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step += 1;
+		break; 
+
+	case 11:
+		if (move_done(0x03)) { step += 1; }
+		break; 
+
+	case 12:
+		if (IsStopped()) { step += 1; } 
+		break; 		
+
+	case 13:
+		// SetHoldTorque(Z_AXIS);
+		HoldMotors();
+		step += 1;
+		break;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;
+	}
+
+	CHECK_USER_STOP();
+
 	return 0;
 }
 

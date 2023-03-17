@@ -623,8 +623,8 @@ void reset_point_data()
 	set_point_data_from(5, 10.0, 1.0, 0.0);
 	// Shake 
 	set_point_data_from(6, 90.0, 90.0, 0.0);
-	// None 
-	set_point_data_from(7, 1.0, 1.0, 0.0);
+	// ReGrip 
+	set_point_data_from(7, 45.0, 1.0, 4.0);
 	// Waste 
 	set_point_data_from(8, 1.0, 170.0, 0.0);
 	// Separate EQIL 
@@ -641,7 +641,7 @@ void reset_system_var()
 {
 	// Var
 	set_var(1, 10);
-	set_var(2, 0);
+	set_var(2, 3000);	// ReGrip (msec)
 	set_var(3, 0);
 	set_var(4, 5);
 	set_var(5, 6);
@@ -656,6 +656,7 @@ void reset_system_var()
 	set_var(14, 5000);
 	set_var(15, 1);
 	set_var(91, 0);
+	set_var(90, 300);	// Hold Break (5분)
 
 	set_var(16, 0);
 	set_var(17, 0);

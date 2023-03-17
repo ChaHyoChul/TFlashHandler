@@ -162,16 +162,27 @@ int _tmain(void)
 			/////////////////////////////////////////////////
 			// break control 
 			break_hold_count = get_var(90) * 1000;
+			//if (GetDOBit(1, 0))
+			//{
+			//	break_tick_count = 0;
+			//}
 			if (break_hold_count > 0)
 			{
-				if (break_tick_count < break_hold_count)
+				if (GetDOBit(1, 0))
 				{
-					break_tick_count++;
-					ReleaseBreak();
-				}                                                                                       
+					break_tick_count = 0;
+				}
 				else 
 				{
-					HoldBreak();
+					if (break_tick_count < break_hold_count)
+					{
+						break_tick_count++;
+						ReleaseBreak();
+					}                                                                                       
+					else 
+					{
+						HoldBreak();
+					}
 				}
 			}
 			else 
@@ -1749,6 +1760,59 @@ void DoCmd(char *cmd)
 		SetControlCommand(COMM_SWIRL);
 		g_ResponseSend = 1;
 		send("SWIRL\r\n");
+	}
+	else if (IS_COMMAND(cmd, "MAMV"))	// MASP 대응 x,y 위치 이동 
+	{
+		originComplete = 1;
+		stopped = 1; 
+		error = 1; 
+		releaseBreak = 1; 
+		existFlask = 1;
+		gripperGrip = 1; 
+		if (!checkBeforeRun("MAMV", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip))
+		{
+			return ;
+		}
+		ch = strstr(cmd, "MAMV");
+		ch = ch + 4;
+		ints = str_to_ints(ch);
+		dbls = str_to_doubles(ch); 
+
+		g_MoveRatio = ints.val[0]; 
+		g_fMoveXPos = dbls.val[1];
+		g_fMoveYPos = dbls.val[2];
+
+		SetCommand("MAMV");
+		SetControlCommand(COMM_MAMV);
+		g_ResponseSend = 1;
+		send("MAMV");
+	}
+	else if (IS_COMMAND(cmd, "MRGI")) 
+	{
+		originComplete = 1;
+		stopped = 1; 
+		error = 1; 
+		releaseBreak = 1; 
+		existFlask = 1;
+		gripperGrip = 1; 
+		if (!checkBeforeRun("MRGI", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip))
+		{
+			return ;
+		}
+		ch = strstr(cmd, "MRGI");
+		ch = ch + 4;
+		ints = str_to_ints(ch);
+
+		g_MoveRatio = ints.val[0]; 
+		if (g_MoveRatio <= 0 || g_MoveRatio > 100) {
+			send("MRGI E06\r\n");
+			return ;
+		}
+
+		SetCommand("MRGI");
+		SetControlCommand(COMM_MRGI);
+		g_ResponseSend = 1;
+		send("MRGI");
 	}
 	else if (IS_COMMAND(cmd, "EQIL"))	// separate 동작. Flask 세운상태 
 	{
