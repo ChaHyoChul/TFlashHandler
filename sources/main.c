@@ -1782,10 +1782,16 @@ void DoCmd(char *cmd)
 		g_fMoveXPos = dbls.val[1];
 		g_fMoveYPos = dbls.val[2];
 
+		g_MoveRatio = ints.val[0]; 
+		if (g_MoveRatio <= 0 || g_MoveRatio > 100) {
+			send("MRGI E06\r\n");
+			return ;
+		}
+
 		SetCommand("MAMV");
 		SetControlCommand(COMM_MAMV);
 		g_ResponseSend = 1;
-		send("MAMV");
+		send("MAMV\r\n");
 	}
 	else if (IS_COMMAND(cmd, "MRGI")) 
 	{
@@ -1812,7 +1818,7 @@ void DoCmd(char *cmd)
 		SetCommand("MRGI");
 		SetControlCommand(COMM_MRGI);
 		g_ResponseSend = 1;
-		send("MRGI");
+		send("MRGI\r\n");
 	}
 	else if (IS_COMMAND(cmd, "EQIL"))	// separate 동작. Flask 세운상태 
 	{
