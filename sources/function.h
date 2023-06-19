@@ -14,12 +14,29 @@ typedef struct _INTS6
 	char flag[6];
 } INTS6;
 
+typedef struct _INTS9
+{
+	int val[9];
+	char flag[9];
+} INTS9;
+
 typedef struct _DOUBLES
 {
 	double	val[3];
 	char flag[3];
 } DOUBLES;
 
+typedef struct _DOUBLES6
+{
+	double	val[6];
+	char flag[6];
+} DOUBLES6;
+
+typedef struct _DOUBLES9
+{
+	double	val[9];
+	char flag[9];
+} DOUBLES9;
 
 void debug(char* str);
 void debugf(char* format, ...);
@@ -34,9 +51,12 @@ char* double3_to_str(double* values);
 INTS str_to_ints(char* str);
 char* ints_to_str(INTS ints);
 INTS6 str_to_ints6(char* str);
+INTS9 str_to_ints9(char* str);
 
 DOUBLES str_to_doubles(char* str);
 char* doubles_to_str(DOUBLES dbls);
+DOUBLES6 str_to_doubles6(char* str);
+DOUBLES9 str_to_doubles9(char* str);
 
 int get_axis_sensor(int axis);
 char* get_axes_sensor();

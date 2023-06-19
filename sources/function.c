@@ -216,6 +216,61 @@ INTS6 str_to_ints6(char* str)
 	return ints6;
 }
 
+INTS9 str_to_ints9(char* str)
+{
+	int max_no = 9;
+	int i = 0;
+	char sp = ',';
+	char* s2 = 0;
+	INTS9 ints9;
+	
+	ints9.flag[0] = 0;
+	ints9.flag[1] = 0;
+	ints9.flag[2] = 0;
+	ints9.flag[3] = 0;
+	ints9.flag[4] = 0;
+	ints9.flag[5] = 0;
+	ints9.flag[6] = 0;
+	ints9.flag[7] = 0;
+	ints9.flag[8] = 0;
+
+	for (; i < max_no; ++i)
+	{
+		str = strnosp(str);
+		if (str == 0)
+		{
+			return ints9;
+		}
+		
+		if (strlen(str) == 0)
+		{
+			continue;
+		}
+		
+		s2 = strchr(str, sp);
+		if (str == s2)
+		{
+			ints9.flag[i] = 0;
+		}
+		else
+		{
+			ints9.flag[i] = 1;
+			ints9.val[i] = atoi(str);
+		}
+		
+		if (s2 == 0)
+		{
+			break;
+		}
+		else
+		{
+			str = s2 + 1;
+		}
+	}
+	
+	return ints9;
+}
+
 DOUBLES str_to_doubles(char* str)
 {
 	int max_no = 3;
@@ -279,6 +334,113 @@ char* doubles_to_str(DOUBLES dbls)
 	if (dbls.flag[2]) snprintf((buf+index), 63-index, "%.3f", dbls.val[2]);
 
 	return buf;
+}
+
+DOUBLES6 str_to_doubles6(char* str)
+{
+	int max_no = 6;
+	int i = 0;
+	char sp = ',';
+	char* s2 = 0;
+	DOUBLES6 dbls;
+	
+	dbls.flag[0] = 0;
+	dbls.flag[1] = 0;
+	dbls.flag[2] = 0;
+	dbls.flag[3] = 0;
+	dbls.flag[4] = 0;
+	dbls.flag[5] = 0;
+
+	for (; i < max_no; ++i)
+	{
+		str = strnosp(str);
+		if (str == 0)
+		{
+			return dbls;
+		}
+		
+		if (strlen(str) == 0)
+		{
+			continue;
+		}
+
+		s2 = strchr(str, sp);
+		if (str == s2)
+		{
+			dbls.flag[i] = 0;
+		}
+		else
+		{
+			dbls.flag[i] = 1;
+			dbls.val[i] = my_atof(str);
+		}
+		
+		if (s2 == 0)
+		{
+			break;
+		}
+		else
+		{
+			str = s2 + 1;
+		}
+	}
+	
+	return dbls;
+}
+
+DOUBLES9 str_to_doubles9(char* str)
+{
+	int max_no = 9;
+	int i = 0;
+	char sp = ',';
+	char* s2 = 0;
+	DOUBLES9 dbls;
+	
+	dbls.flag[0] = 0;
+	dbls.flag[1] = 0;
+	dbls.flag[2] = 0;
+	dbls.flag[3] = 0;
+	dbls.flag[4] = 0;
+	dbls.flag[5] = 0;
+	dbls.flag[6] = 0;
+	dbls.flag[7] = 0;
+	dbls.flag[8] = 0;
+
+	for (; i < max_no; ++i)
+	{
+		str = strnosp(str);
+		if (str == 0)
+		{
+			return dbls;
+		}
+		
+		if (strlen(str) == 0)
+		{
+			continue;
+		}
+
+		s2 = strchr(str, sp);
+		if (str == s2)
+		{
+			dbls.flag[i] = 0;
+		}
+		else
+		{
+			dbls.flag[i] = 1;
+			dbls.val[i] = my_atof(str);
+		}
+		
+		if (s2 == 0)
+		{
+			break;
+		}
+		else
+		{
+			str = s2 + 1;
+		}
+	}
+	
+	return dbls;
 }
 
 int get_axis_sensor(int axis)

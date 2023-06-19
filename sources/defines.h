@@ -66,9 +66,10 @@
 //#define SOFTWARE_VERSION	"TFLASK-H 1.00.019" // Break timeout 기능 추가. VAR90 번에 sec 단위 시간 설정. 시간동안 통신하지 않으면 Break Hold 
                                                 // HBK, RBK 명령 제거 
 
-#define SOFTWARE_VERSION	"TFLASK-H 01.00.20"     // MAMV 기능 추가. x, y 위치로 이동 
-                                                    // MRGI 명령 추가 
+//#define SOFTWARE_VERSION	"TFLASK-H 01.00.20"     // MAMV 기능 추가. x, y 위치로 이동 
+//                                                    // MRGI 명령 추가 
                                                 
+#define SOFTWARE_VERSION	"TFLASK-H 01.00.21"     // RASP, RAMV 명령 추가 
 
 
 

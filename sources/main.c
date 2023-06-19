@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <math.h>
 
-
 #include "defines.h"
 #include "data.h"
 #include "hardware.h"
@@ -64,6 +63,11 @@ extern int 	g_ShakeAngleY;
 extern int 	g_ShakeTiltDelay;
 extern double g_fMoveXPos;
 extern double g_fMoveYPos;
+extern double g_fRegripXPos;
+extern double g_fRegripYPos;
+extern double g_fRegripZPos;
+extern int g_nRegripDelay;
+
 
 extern POINT_DATA g_PointData[MAX_POINT_DATA];
 
@@ -268,6 +272,11 @@ void DoCmd(char *cmd)
 	int var_no = 0;
 	INTS ints;
 	DOUBLES dbls = { 0, };
+	INTS6 ints6; 
+	DOUBLES6 dbls6 = {0, };
+	INTS9 ints9; 
+	DOUBLES9 dbls9 = {0, };
+
 	char* comma_pos = 0;
 	
 	char is_por_comma = 0;
@@ -1574,6 +1583,47 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MASP\r\n");
 	}
+	else if (IS_COMMAND(cmd, "RASP"))	
+	{
+		// Move  Grgrip and Aspirate Position x-reg, z-reg, delay
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 1;
+		existFlask = 1;
+		gripperGrip = 1;
+		if (!checkBeforeRun("RASP", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
+		{
+			return ;
+		}
+
+		ch = strstr(cmd, "RASP");
+		ch = ch + 4;
+		ints6 = str_to_ints6(ch);
+		dbls6 = str_to_doubles6(ch);
+		
+		g_MoveRatio = ints6.val[0];		// 이동 속도 
+		g_fRegripXPos = dbls6.val[1];	// Regrip 위치 
+		g_fRegripYPos = dbls6.val[2];	// Regrip 위치 
+		g_fRegripZPos = dbls6.val[3];	// Regrip 위치 
+		g_nRegripDelay = ints6.val[4];	// Regrip Delay (ms)
+		g_MovePointDataNo = 4;			// 사용할 POINT_NO 저장 
+
+		if ((g_MoveRatio <= 0 || g_MoveRatio > 100) ||
+			(g_fRegripXPos < 1.0 || g_fRegripXPos > 90.0) ||
+			(g_fRegripYPos < 0.0 || g_fRegripYPos > 90.0) || 
+			(g_fRegripZPos < 1.0 || g_fRegripZPos > 10.0) || 
+			(g_nRegripDelay < 1)) 
+		{
+			send("RASP E06\r\n"); 
+			return ; 
+		}
+
+		SetCommand("RASP");
+		SetControlCommand(COMM_RASP);
+		g_ResponseSend = 1;
+		send("RASP\r\n");
+	}	
 	else if (IS_COMMAND(cmd, "MDIS"))	// Move Dispense Position 
 	{
 		originComplete = 1;
@@ -1793,6 +1843,50 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MAMV\r\n");
 	}
+	else if (IS_COMMAND(cmd, "RAMV"))	
+	{
+		// Move  Grgrip and Aspirate Position x-reg, z-reg, delay
+		originComplete = 1;
+		stopped = 1;
+		error = 1; 
+		releaseBreak = 1;
+		existFlask = 1;
+		gripperGrip = 1;
+		if (!checkBeforeRun("RAMV", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
+		{
+			return ;
+		}
+
+		ch = strstr(cmd, "RAMV");
+		ch = ch + 4;
+		ints9 = str_to_ints9(ch);
+		dbls9 = str_to_doubles9(ch);
+		
+		g_MoveRatio = ints9.val[0];		// 이동 속도 
+		g_fRegripXPos = dbls9.val[1];	// Regrip 위치 
+		g_fRegripYPos = dbls9.val[2];	// Regrip 위치 
+		g_fRegripZPos = dbls9.val[3];	// Regrip 위치 
+		g_nRegripDelay = ints9.val[4];	// Regrip Delay (ms)
+		g_fMoveXPos = dbls9.val[5];		// Regrip 후 이동 위치 
+		g_fMoveYPos = dbls9.val[6];		// Regrip 후 이동 위치 
+
+		if ((g_MoveRatio <= 0 || g_MoveRatio > 100) ||
+			(g_fRegripXPos < 1.0 || g_fRegripXPos > 90.0) ||
+			(g_fRegripYPos < 0.0 || g_fRegripYPos > 90.0) || 
+			(g_fRegripZPos < 1.0 || g_fRegripZPos > 10.0) || 
+			(g_nRegripDelay < 1) ||
+			(g_fMoveXPos < 0.0 || g_fMoveXPos > 90.0) ||
+			(g_fMoveYPos < 0.0 || g_fMoveYPos > 90.0)) 
+		{
+			send("RAMV E06\r\n"); 
+			return ; 
+		}
+
+		SetCommand("RAMV");
+		SetControlCommand(COMM_RAMV);
+		g_ResponseSend = 1;
+		send("RAMV\r\n");
+	}		
 	else if (IS_COMMAND(cmd, "MRGI")) 
 	{
 		originComplete = 1;

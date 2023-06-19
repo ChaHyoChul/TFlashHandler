@@ -37,6 +37,8 @@
 #define COMM_MMLD			47 	// move x,y
 #define COMM_MAMV			48	// move x,y 
 #define COMM_MRGI			49 	// re-grip 
+#define COMM_RASP			50 	// re-grip and aspirate 
+#define COMM_RAMV			51 	// regrip and move x,y 
 
 // speed type at SetSpeed()
 #define SPEED_ORG			(0)
@@ -175,6 +177,8 @@ char CommSWIRL();
 char CommMMLD();
 char CommMAMV();
 char CommMRGI();
+char CommRASP();
+char CommRAMV();
 
 void UpdateOriginCompletedStatus();
 void SetOriginCompletedFlag(char axis, char flag);
