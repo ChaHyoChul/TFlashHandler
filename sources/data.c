@@ -33,7 +33,7 @@ int g_OverRun_LimitCount = 0;
 
 char g_PointDataCommandState = CMD_READY;
 
-int  g_OriginNeed[MAX_AXIS] = { 0, 1, 1 };
+int  g_OriginNeed[MAX_AXIS] = { 1, 1, 1 };
 int  g_OriginCompletedAxes[MAX_AXIS] = { 0, 0, 0 };
 
 static int g_OriginOffset[MAX_AXIS] = { 0, 0, 0 };

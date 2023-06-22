@@ -1429,7 +1429,7 @@ void DoCmd(char *cmd)
 		releaseBreak = 1;
 		existFlask = 0;
 		gripperGrip = 0;
-		if (!checkBeforeRun("HOME", originComplete, stopped, errno, releaseBreak, existFlask, gripperGrip)) 
+		if (!checkBeforeRun("HOME", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
 		{
 			return ;
 		}
@@ -1740,7 +1740,7 @@ void DoCmd(char *cmd)
 			return ;
 		}
 		if (g_ShakeTiltDelay <= 0) {
-			send("MSHA E06\r\n");
+			send("MSHK E06\r\n");
 			return ;
 		}
 
@@ -1834,7 +1834,7 @@ void DoCmd(char *cmd)
 
 		g_MoveRatio = ints.val[0]; 
 		if (g_MoveRatio <= 0 || g_MoveRatio > 100) {
-			send("MRGI E06\r\n");
+			send("MAMV E06\r\n");
 			return ;
 		}
 

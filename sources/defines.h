@@ -69,7 +69,11 @@
 //#define SOFTWARE_VERSION	"TFLASK-H 01.00.20"     // MAMV 기능 추가. x, y 위치로 이동 
 //                                                    // MRGI 명령 추가 
                                                 
-#define SOFTWARE_VERSION	"TFLASK-H 01.00.21"     // RASP, RAMV 명령 추가 
+// #define SOFTWARE_VERSION	"TFLASK-H 01.00.21"     // RASP, RAMV 명령 추가 
+
+// #define SOFTWARE_VERSION	"TFLASK-H 01.00.22"     // Origin 버그 수정 
+#define SOFTWARE_VERSION	"TFLASK-H 01.01.01"     // MAMV: move ratio 에러일 때 MRGI 리턴 
+                                                    // MSHK: title delay 에러일 때 MSHA 리턴 
 
 
 
