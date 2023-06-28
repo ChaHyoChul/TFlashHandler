@@ -67,6 +67,7 @@ extern double g_fRegripXPos;
 extern double g_fRegripYPos;
 extern double g_fRegripZPos;
 extern int g_nRegripDelay;
+extern double g_fMASPOffset[2];
 
 
 extern POINT_DATA g_PointData[MAX_POINT_DATA];
@@ -1556,6 +1557,34 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MLOA\r\n");
 	}
+//	else if (IS_COMMAND(cmd, "MASP"))	// Move Aspirate Position 
+//	{
+//		originComplete = 1;
+//		stopped = 1;
+//		error = 1; 
+//		releaseBreak = 1;
+//		existFlask = 1;
+//		gripperGrip = 1;
+//		if (!checkBeforeRun("MASP", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip)) 
+//		{
+//			return ;
+//		}
+//
+//		g_MoveRatio = atoi(cmd + 4); 	// 이동 속도 비율 
+//		if (g_MoveRatio <= 0 || g_MoveRatio > 100) 
+//		{
+//			g_MoveRatio = 100;
+//			send("MASP E06\r\n");
+//			return;
+//		}
+//
+//		g_MovePointDataNo = 4;	// 사용할 POINT_NO 저장 
+//		SetCommand("MASP");
+//		SetControlCommand(COMM_MASP);
+//		g_ResponseSend = 1;
+//		send("MASP\r\n");
+//	}
+
 	else if (IS_COMMAND(cmd, "MASP"))	// Move Aspirate Position 
 	{
 		originComplete = 1;
@@ -1569,12 +1598,28 @@ void DoCmd(char *cmd)
 			return ;
 		}
 
-		g_MoveRatio = atoi(cmd + 4); 	// 이동 속도 비율 
-		if (g_MoveRatio <= 0 || g_MoveRatio > 100) 
+		//g_MoveRatio = atoi(cmd + 4); 	// 이동 속도 비율 
+		//if (g_MoveRatio <= 0 || g_MoveRatio > 100) 
+		//{
+		//	g_MoveRatio = 100;
+		//	send("MASP E06\r\n");
+		//	return;									
+		//}
+		ch = strstr(cmd, "MASP");
+		ch = ch + 4;
+		ints6 = str_to_ints6(ch);
+		dbls6 = str_to_doubles6(ch);
+
+		g_MoveRatio = (ints6.flag[0] == 0) ? 0 : ints6.val[0];
+		g_fMASPOffset[0] = (dbls6.flag[1] == 0) ? 0.0 : dbls6.val[1];
+		g_fMASPOffset[1] = (dbls6.flag[2] == 0) ? 0.0 : dbls6.val[2];
+
+		if ((g_MoveRatio <= 0 || g_MoveRatio > 100) || 
+			(fabs(g_fMASPOffset[0]) > 45.0) || 
+			(fabs(g_fMASPOffset[1]) > 45.0)) 
 		{
-			g_MoveRatio = 100;
 			send("MASP E06\r\n");
-			return;
+			return ;
 		}
 
 		g_MovePointDataNo = 4;	// 사용할 POINT_NO 저장 
@@ -1583,6 +1628,7 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MASP\r\n");
 	}
+
 	else if (IS_COMMAND(cmd, "RASP"))	
 	{
 		// Move  Grgrip and Aspirate Position x-reg, z-reg, delay

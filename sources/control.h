@@ -164,6 +164,7 @@ char CommHome();
 char CommHomeOption1();
 char CommGripUngrip();
 char CommMoveXY();
+char CommMoveXY_With_Offset();
 char CommShake();
 char CommWaste();
 char CommAsyncWaste();

@@ -39,6 +39,7 @@ double g_fRegripXPos = 0.0;
 double g_fRegripYPos = 0.0;
 double g_fRegripZPos = 0.0;
 int g_nRegripDelay = 0;
+double g_fMASPOffset[2] = {0.0, 0.0};
 
 STATUS g_Status = { 0, };
 
@@ -54,6 +55,7 @@ static int uTmp;
 int move_pd(int pd_no, char sel_axis);
 int move_pd_with_speed(int pd_no, int sel_axis, int spd_type);
 int move_pd_with_speed_ratio(int pd_no, int sel_axis, int spd_type, int spd_ratio);
+int move_pd_with_speed_ratio_xy_offset(int pd_no, int sel_axis, int spd_type, int spd_ratio, double xoffset, double yoffset);
 int move_inc(int sel_axis, float dist[], int spd_type, int spd_ratio);
 int move_abs(int sel_axis, float dist[], int spd_type, int spd_ratio);
 char move_done(char sel_axis);
@@ -421,7 +423,7 @@ void MainControl()
 	case COMM_MGRI:		res = CommGripUngrip(); UpdateState(res); break;
 	case COMM_MUNG:		res = CommGripUngrip(); UpdateState(res); break;
 	case COMM_MLOA:		res = CommMoveXY(); UpdateState(res); break;
-	case COMM_MASP:		res = CommMoveXY(); UpdateState(res); break;
+	case COMM_MASP:		res = CommMoveXY_With_Offset(); UpdateState(res); break;
 	case COMM_MDIS:		res = CommMoveXY(); UpdateState(res); break;
 	case COMM_MSHA:		res = CommShake(); UpdateState(res); break;
 	case COMM_MWAS:		res = CommWaste(); UpdateState(res); break;
@@ -2184,6 +2186,76 @@ char CommMoveXY()
 		{
 			// move_start = move_pd(g_MovePointDataNo, 0x03);
 			move_start = move_pd_with_speed_ratio(g_MovePointDataNo, 0x03, SPEED_NORMAL, g_MoveRatio);
+			g_MoveStartErrorLine = __LINE__; 
+			if (move_start)
+			{
+				SetErrorCode(ERR_MOTOR_ERROR);
+				step = 91;
+				return NORMAL_RUNNING;
+			}
+			DelayMoveStart();
+			step++;
+		}
+		else 
+		{
+			step = 3;
+		}
+		break;
+
+	case 1:
+		if (move_done(0x03)) { step++; } 
+		break;
+
+	case 2:
+		if (IsStopped()) { step++; }
+		break;
+
+	case 3:
+		for (axis = 0; axis < 2; axis++)
+		{
+			SetHoldTorque(axis);
+			g_MovePointDataNo = 0;
+			g_MoveOffset[axis] = 0;
+		}
+		step = 0;
+		return NORMAL_FINISHED;
+
+	default:
+		step = 0;
+		return NORMAL_FINISHED;
+	}
+
+	CHECK_USER_STOP();
+
+	return 0;
+}
+
+char CommMoveXY_With_Offset()
+{
+	static char step = 0;
+	int  axis = 0;
+	char flag = 1;
+	char move_start = 0;
+	char move_status = 0;
+	POINT_DATA pd;
+
+	switch (step)
+	{
+		// Error handling 
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; } break;
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED; 
+
+	case 0:
+		if (g_MovePointDataNo != 0)
+		{
+			move_start = move_pd_with_speed_ratio_xy_offset(
+				g_MovePointDataNo, 
+				0x03, 
+				SPEED_NORMAL, 
+				g_MoveRatio, 
+				g_fMASPOffset[0], 
+				g_fMASPOffset[1]);
 			g_MoveStartErrorLine = __LINE__; 
 			if (move_start)
 			{
@@ -4414,6 +4486,51 @@ int move_pd_with_speed_ratio(int pd_no, int sel_axis, int spd_type, int spd_rati
 
 	return 0;
 }
+
+int move_pd_with_speed_ratio_xy_offset(int pd_no, int sel_axis, int spd_type, int spd_ratio, double xoffset, double yoffset)
+{
+	POINT_DATA pd;
+	char axis;
+	char mask = 1;
+
+	pd = get_point_data(pd_no);
+	pd.x += xoffset; 
+	pd.y += yoffset;
+
+	for (axis = 0; axis < MAX_AXIS; axis++)
+	{
+		if ((sel_axis & mask) == mask)
+		{
+			switch (axis)
+			{
+			case X_AXIS: g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor; break;
+			case Y_AXIS: g_MoveOffset[axis] = (pd.y - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor; break;
+			case Z_AXIS: g_MoveOffset[axis] = (pd.z - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor; break;
+			}
+			// g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+
+			if (g_MoveOffset[axis] != 0)
+			{
+				SetMoveOffset(axis, g_MoveOffset[axis]);
+				// SetSpeed(axis, spd);
+				SetSpeedRatio(axis, spd_type, spd_ratio);
+				g_MoveStartErrorCode[axis] = MoveStart(axis);
+				if (g_MoveStartErrorCode[axis])
+				{
+					return g_MoveStartErrorCode[axis];
+				}
+			}	
+		}
+		else 
+		{
+			g_MoveOffset[axis] = 0;
+		}
+		mask <<= 1;
+	}
+
+	return 0;
+}
+
 
 // 선택된 축에 대해서, dist 거리 만큼 이동 한다 
 int move_inc(int sel_axis, float dist[], int spd_type, int spd_ratio)
