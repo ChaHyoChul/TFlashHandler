@@ -4145,7 +4145,15 @@ char CommRASP()
 		
 		// ASP 위치로 이동 
 	case 10:
-		move_start = move_pd_with_speed_ratio(POINT_ASP, 0x03, SPEED_NORMAL, g_MoveRatio);
+	//	move_start = move_pd_with_speed_ratio(POINT_ASP, 0x03, SPEED_NORMAL, g_MoveRatio);
+		move_start = move_pd_with_speed_ratio_xy_offset(
+			POINT_ASP, 
+			0x03, 
+			SPEED_NORMAL, 
+			g_MoveRatio, 
+			g_fMASPOffset[0], 
+			g_fMASPOffset[1]);
+
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{

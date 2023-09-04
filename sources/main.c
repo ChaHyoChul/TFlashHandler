@@ -1598,13 +1598,6 @@ void DoCmd(char *cmd)
 			return ;
 		}
 
-		//g_MoveRatio = atoi(cmd + 4); 	// 이동 속도 비율 
-		//if (g_MoveRatio <= 0 || g_MoveRatio > 100) 
-		//{
-		//	g_MoveRatio = 100;
-		//	send("MASP E06\r\n");
-		//	return;									
-		//}
 		ch = strstr(cmd, "MASP");
 		ch = ch + 4;
 		ints6 = str_to_ints6(ch);
@@ -1631,7 +1624,7 @@ void DoCmd(char *cmd)
 
 	else if (IS_COMMAND(cmd, "RASP"))	
 	{
-		// Move  Grgrip and Aspirate Position x-reg, z-reg, delay
+		// Move  Grgrip and Aspirate Position x-reg, z-reg, delay[, x-offset, y-offset]
 		originComplete = 1;
 		stopped = 1;
 		error = 1; 
@@ -1645,21 +1638,25 @@ void DoCmd(char *cmd)
 
 		ch = strstr(cmd, "RASP");
 		ch = ch + 4;
-		ints6 = str_to_ints6(ch);
-		dbls6 = str_to_doubles6(ch);
+		ints9 = str_to_ints9(ch);
+		dbls9 = str_to_doubles9(ch);
 		
-		g_MoveRatio = ints6.val[0];		// 이동 속도 
-		g_fRegripXPos = dbls6.val[1];	// Regrip 위치 
-		g_fRegripYPos = dbls6.val[2];	// Regrip 위치 
-		g_fRegripZPos = dbls6.val[3];	// Regrip 위치 
-		g_nRegripDelay = ints6.val[4];	// Regrip Delay (ms)
+		g_MoveRatio = ints9.val[0];		// 이동 속도 
+		g_fRegripXPos = dbls9.val[1];	// Regrip 위치 
+		g_fRegripYPos = dbls9.val[2];	// Regrip 위치 
+		g_fRegripZPos = dbls9.val[3];	// Regrip 위치 
+		g_nRegripDelay = ints9.val[4];	// Regrip Delay (ms)
 		g_MovePointDataNo = 4;			// 사용할 POINT_NO 저장 
-
+		g_fMASPOffset[0] = (dbls9.flag[5] == 0) ? 0.0 : dbls9.val[5];
+		g_fMASPOffset[1] = (dbls9.flag[6] == 0) ? 0.0 : dbls9.val[6];
+		
 		if ((g_MoveRatio <= 0 || g_MoveRatio > 100) ||
 			(g_fRegripXPos < 1.0 || g_fRegripXPos > 90.0) ||
 			(g_fRegripYPos < 0.0 || g_fRegripYPos > 90.0) || 
 			(g_fRegripZPos < 1.0 || g_fRegripZPos > 10.0) || 
-			(g_nRegripDelay < 1)) 
+			(g_nRegripDelay < 1) || 
+			(fabs(g_fMASPOffset[0]) > 45.0) || 
+			(fabs(g_fMASPOffset[1]) > 45.0)) 
 		{
 			send("RASP E06\r\n"); 
 			return ; 
