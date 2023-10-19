@@ -76,7 +76,8 @@
                                                     // MSHK: title delay 에러일 때 MSHA 리턴 
 
 // #define SOFTWARE_VERSION	"TFLASK-H 01.02.00"     // MASP 명령에 offset 파라메타 추가 MASP 100[,0.1,0.2] 
-#define SOFTWARE_VERSION	"TFLASK-H 01.02.01"     // RASP 명령에 offset 파라메타 추가 RASP 100[,0.1,0.2] 
+// #define SOFTWARE_VERSION	"TFLASK-H 01.02.01"     // RASP 명령에 offset 파라메타 추가 RASP 100[,0.1,0.2] 
+#define SOFTWARE_VERSION	"TFLASK-H 01.02.02"     // 새로운 H/W 적용. EQIS, EQIL 변경  
 
 
 // Settings
