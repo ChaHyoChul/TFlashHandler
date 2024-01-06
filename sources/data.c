@@ -632,9 +632,16 @@ void reset_point_data()
 	// Separate EQIS
 	set_point_data_from(10, 1.0, 90.0, 0.0);
 	// Async Waste Output pos MWRD 
-	set_point_data_from(11, 1.0, 9.0, 0.0);
+	set_point_data_from(11, 1.0, 90.0, 0.0);
 	// Origin Offset 
-	set_point_data_from(12, 0.5, 0.2, 0.2);
+	// set_point_data_from(12, 0.5, 0.2, 0.2);
+	set_point_data_from(12, 18.0, 10.0, 0.2);
+
+	// 용액이 나누어지는 대기 위치. 
+	// NND 부터 용액을 나누기위해 X축 으로 더 숙임. (X)
+	// Origin Offset 값으로 원점을 올려서, 더 숙이는 위치는 -임 
+	set_point_data_from(13, -8.0, 0.0, 0.0);
+	set_point_data_from(14, -8.0, 0.0, 0.0);
 }
 
 void reset_system_var()
@@ -649,14 +656,15 @@ void reset_system_var()
 	set_var(7, 200);
 	set_var(8, 3000);
 	set_var(9, 5000);
-	set_var(10, 500);
-	set_var(11, 0);
-	set_var(12, 0);
+	set_var(10, 2000);
+	//set_var(11, 0);
+	set_var(11, 1);		// HW Type (NND 부터 1)
+	set_var(12, 10);
 	set_var(13, 15);
 	set_var(14, 5000);
 	set_var(15, 1);
 	set_var(91, 0);
-	set_var(90, 300);	// Hold Break (5분)
+	set_var(90, 600);	// Hold Break (10분)
 
 	set_var(16, 0);
 	set_var(17, 0);

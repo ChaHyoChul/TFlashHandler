@@ -192,6 +192,7 @@ int _tmain(void)
 			}
 			else 
 			{
+				break_tick_count = 0;
 				ReleaseBreak();
 			}
 			/////////////////////////////////////////////////
@@ -211,8 +212,8 @@ int _tmain(void)
 		timeCommStart = GetTicCountUS();
 
 		while (PopRcvChar(UART_PORT0, &ch) != 0)
-		{
-			break_tick_count = 0;
+		{			
+			// break_tick_count = 0;
 
 			if (nszCmdOfs == 0)
 			{
@@ -251,6 +252,20 @@ int _tmain(void)
 					nszCmdOfs = 0;
 				}
 			}
+
+			/////////////////////////////////////////////////
+			// break 자동 release/hold 기능을 사용하고, 
+			if (break_hold_count <= 0) 
+			{ 
+				// 현재 break가 hold 상태면, break_tick_count=0 하고, 빠져 나간다 
+				if (GetDOBit(1, 7) == 0)
+				{
+					// _tick_count 를 0으로 하고, 다시 실행되면, break가 release 된다 
+					break_tick_count = 0;
+					break; 
+				}
+			}
+			/////////////////////////////////////////////////
 		}
 		
 		timeElapsed = GetTicCountUS() - timeStart;

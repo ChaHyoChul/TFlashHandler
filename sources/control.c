@@ -1848,6 +1848,7 @@ char CommHome()
 	char move_status = 0;
 	char move_start = 0;
 	double org_offset = 0;
+	int home_x_offset = 0;
 	POINT_DATA pd_org_offset;
 	
 	switch (step)
@@ -1867,12 +1868,86 @@ char CommHome()
 		step = 1;
 		break;
 
+		// + 방향으로, VAR12의 위치 만큼 X축 회피 
 	case 1:
-		step = 3;
+		home_x_offset = get_var(12);
+		if (home_x_offset <= 0) { step = 10; break; }
+		if (POS_LIMIT(X_AXIS) == SENS_ON) { step = 5; break; } // +limit 감지시 5번 step
+		
+		g_MoveOffset[X_AXIS] = (int)(home_x_offset / g_MotionParam[X_AXIS].m_fScaleFactor); 
+		SetMoveOffset(X_AXIS, g_MoveOffset[X_AXIS]);
+		SetSpeed(X_AXIS, SPEED_ORG);
+		g_MoveStartErrorCode[X_AXIS] = MoveStart(X_AXIS);
+		g_MoveStartErrorLine = __LINE__;
+		if (g_MoveStartErrorCode[X_AXIS]) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step = 2;
+		break;
+	case 2:
+		if (POS_LIMIT(X_AXIS) == SENS_ON) { 
+			MoveStop(X_AXIS); 
+			step = 5; break; // +limit 감지시 5번 step
+		} 
+		move_status = GetMoveStatus(X_AXIS);
+		switch (move_status)
+		{
+		case MOVE_STS_INPOS:
+			MoveStop(X_AXIS); 
+			step = 3;
+			break;
+		case MOVE_STS_STOP:
+			step = 3;
+			break;
+		}
+		break;
+	case 3:
+		if (IsStopped()) { Delay1ms(); step = 10; }
 		break;
 
+		// POS_LIMIT 이 감지 되었기 때문에, -방향으로 회피 
+	case 5: 
+		if (!IsStopped()) { break; }
+		Delay1ms();
+		home_x_offset = get_var(12) * -1;
+		g_MoveOffset[X_AXIS] = (int)(home_x_offset/ g_MotionParam[X_AXIS].m_fScaleFactor); 
+		SetMoveOffset(X_AXIS, g_MoveOffset[X_AXIS]);
+		SetSpeed(X_AXIS, SPEED_ORG);
+		g_MoveStartErrorCode[X_AXIS] = MoveStart(X_AXIS);
+		g_MoveStartErrorLine = __LINE__;
+		if (g_MoveStartErrorCode[X_AXIS]) 
+		{
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step++;
+		break;
+	case 6:
+		move_status = GetMoveStatus(X_AXIS);
+		switch (move_status)
+		{
+		case MOVE_STS_INPOS:
+			MoveStop(X_AXIS);
+			step++;
+			break;
+		case MOVE_STS_STOP:
+			step++;
+			break;
+		}
+		break;
+	case 7:
+		if (IsStopped()) { Delay1ms(); step = 10; }
+		break;
+
+		// g_OriginAxis 축의 Origin 시작 
 		// - 방향으로 이동 
-	case 3:
+	case 10: //3:
 		MovVar[g_OriginAxis].m_uS 	= g_MotionParam[g_OriginAxis].m_uOrgSLimit;
 		MovVar[g_OriginAxis].m_ucDir= g_MotionParam[g_OriginAxis].m_ucOrgDir;
 		SetSpeed(g_OriginAxis, SPEED_ORG); // torque 설정 
@@ -1893,7 +1968,7 @@ char CommHome()
 		break;
 
 		// Home 센서가 ON 되면 멈춘다 
-	case 4:
+	case 11: //4:
 		if (HOME_SENSOR(g_OriginAxis) == SENS_ON)
 		{
 			MoveStop(g_OriginAxis); 
@@ -1901,12 +1976,12 @@ char CommHome()
 		}	
 		break;
 
-	case 5:
+	case 12: //5:
 		if (IsStopped()) { Delay1ms(); step++; } 
 		break;
 
 		// + 방향으로 이동 (반대 방향으로 이동 시작) 
-	case 6:
+	case 13: //6:
 		MovVar[g_OriginAxis].m_ucDir = (unsigned char)((~g_MotionParam[g_OriginAxis].m_ucOrgDir) & 1);
 		MovVar[g_OriginAxis].m_uAcel = 0;					
 
@@ -1925,7 +2000,7 @@ char CommHome()
 		break;
 
 		// HOME 센서가 OFF 되면 멈춘다 
-	case 7:	
+	case 14: //7:	
 		if (HOME_SENSOR(g_OriginAxis) == SENS_OFF)
 		{
 			MoveStop(g_OriginAxis);
@@ -1933,17 +2008,17 @@ char CommHome()
 		}
 		break;
 
-	case 8:
+	case 15: //8:
 		if (IsStopped()) { Delay1ms(); step++; } 
 		break;
 
-	case 9:
+	case 16: //9:
 		CounterReset(g_OriginAxis);
 		step++;
 		break;
 
 		// Offset(0.2) 만큼 이동 
-	case 10:
+	case 17: //10:
 		pd_org_offset = get_point_data(12);
 		switch (g_OriginAxis)
 		{
@@ -1968,7 +2043,7 @@ char CommHome()
 		DelayMoveStart();
 		step++;
 		break;
-	case 11:
+	case 18: //11:
 		move_status = GetMoveStatus(g_OriginAxis);
 		switch (move_status)
 		{
@@ -1981,12 +2056,12 @@ char CommHome()
 			break;
 		}
 		break;
-	case 12:
+	case 19: //12:
 		if (IsStopped()) { Delay1ms(); step++; }
 		break;
 		//
 
-	case 13:
+	case 20: //13:
 		CounterReset(g_OriginAxis);
 		SetSpeed(g_OriginAxis, SPEED_NORMAL);
 		SetOriginCompletedFlag(g_OriginAxis, 1);
@@ -1994,17 +2069,17 @@ char CommHome()
 		step++;
 		break;
 
-	case 14:
+	case 21: //14:
 		if (--delay_count > 0) { Delay1ms(); break; }
 		step++;
 		break;
 
-	case 15:
-		if (--g_OriginAxis >= X_AXIS) { step = 1; }
+	case 22: //15:
+		if (--g_OriginAxis >= X_AXIS) { step = 10; }
 		else { step++; }
 		break;
 
-	case 16:
+	case 23: //16:
 		HoldMotors();
 		step = 0;
 		return NORMAL_FINISHED;
