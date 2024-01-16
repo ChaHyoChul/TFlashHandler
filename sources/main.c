@@ -996,6 +996,17 @@ void DoCmd(char *cmd)
 		sprintf(str, "ASS\r\n");
 		SerialWriteBytes(UART_PORT0, str, strlen(str));
 	}
+	else if (IS_COMMAND(cmd, "STOP"))
+	{
+		MoveStop(0);
+		MoveStop(1);
+		MoveStop(2);
+		
+		g_UserStop = 10;
+
+		sprintf(str, "STOP\r\n");
+		SerialWriteBytes(UART_PORT0, str, strlen(str));
+	}
 	else if (IS_COMMAND(cmd, "OSL"))
 	{
 		ch = strstr(cmd, "OSL");
