@@ -1835,8 +1835,13 @@ void SetSpeedRatio(char axis, int type, int ratio)
 // - Offset 만큼 이동 한다 
 // - 현재 위치를 0으로 셋팅 
 // Gripper(3) -> Rotation(2) -> Tile(1) 순서로 Origin 한다 
+// v1.2.5 에서 수정 
+//	Rotation(2) -> Title(1) -> Load위치로 이동 -> Gripper(3) 
 char CommHome()
 {
+	static int origin_axis[3] = {Y_AXIS, X_AXIS, Z_AXIS};	// 원점복귀 순서
+	static int origin_index = 0;							// 원점복귀 동작 축 인덱스 
+
 	static int nNegLimitOutPos[MAX_AXIS] = {0, 0, 0};
 	static int nNegLimitInPos[MAX_AXIS]  = {0, 0, 0};
 	//static int org_axis = 0;	//  원점복귀 하는 축 번호 Z->Y->X 순서 
@@ -1849,8 +1854,20 @@ char CommHome()
 	char move_start = 0;
 	double org_offset = 0;
 	int home_x_offset = 0;
+	int home_y_offset = 0;
+	POINT_DATA pd_load;
 	POINT_DATA pd_org_offset;
+
+	char sz[64];
 	
+	/// 
+//	static int prev_step = -1;
+//	if (prev_step != step) {
+//		prev_step = step;
+//		sprintf(sz, "home %d", step);
+//		send(sz);
+//	}
+
 	switch (step)
 	{
 		// Error Handling 
@@ -1860,7 +1877,8 @@ char CommHome()
 
 		// Start 
 	case 0:
-		g_OriginAxis = Z_AXIS;
+		// g_OriginAxis = Z_AXIS;
+		origin_index = 0;
 		for (axis = 0; axis < MAX_AXIS; axis++)
 		{
 			SetOriginCompletedFlag(axis, 0);
@@ -1945,16 +1963,17 @@ char CommHome()
 		if (IsStopped()) { Delay1ms(); step = 10; }
 		break;
 
+		///////////////////////////////////////////////////////
 		// g_OriginAxis 축의 Origin 시작 
 		// - 방향으로 이동 
 	case 10: //3:
-		MovVar[g_OriginAxis].m_uS 	= g_MotionParam[g_OriginAxis].m_uOrgSLimit;
-		MovVar[g_OriginAxis].m_ucDir= g_MotionParam[g_OriginAxis].m_ucOrgDir;
-		SetSpeed(g_OriginAxis, SPEED_ORG); // torque 설정 
+		MovVar[origin_axis[origin_index]].m_uS 	= g_MotionParam[origin_axis[origin_index]].m_uOrgSLimit;
+		MovVar[origin_axis[origin_index]].m_ucDir= g_MotionParam[origin_axis[origin_index]].m_ucOrgDir;
+		SetSpeed(origin_axis[origin_index], SPEED_ORG); // torque 설정 
 
-		g_MoveStartErrorCode[g_OriginAxis] = MoveStart(g_OriginAxis);
+		g_MoveStartErrorCode[origin_axis[origin_index]] = MoveStart(origin_axis[origin_index]);
 		g_MoveStartErrorLine = __LINE__;
-		if (NEG_LIMIT(g_OriginAxis) != SENS_ON && g_MoveStartErrorCode[g_OriginAxis]) // MoveStart(g_OriginAxis)) 
+		if (NEG_LIMIT(origin_axis[origin_index]) != SENS_ON && g_MoveStartErrorCode[origin_axis[origin_index]]) // MoveStart(g_OriginAxis)) 
 		{
 			step = 91;
 			return NORMAL_RUNNING;
@@ -1969,9 +1988,9 @@ char CommHome()
 
 		// Home 센서가 ON 되면 멈춘다 
 	case 11: //4:
-		if (HOME_SENSOR(g_OriginAxis) == SENS_ON)
+		if (HOME_SENSOR(origin_axis[origin_index]) == SENS_ON)
 		{
-			MoveStop(g_OriginAxis); 
+			MoveStop(origin_axis[origin_index]); 
 			step++;
 		}	
 		break;
@@ -1982,13 +2001,13 @@ char CommHome()
 
 		// + 방향으로 이동 (반대 방향으로 이동 시작) 
 	case 13: //6:
-		MovVar[g_OriginAxis].m_ucDir = (unsigned char)((~g_MotionParam[g_OriginAxis].m_ucOrgDir) & 1);
-		MovVar[g_OriginAxis].m_uAcel = 0;					
+		MovVar[origin_axis[origin_index]].m_ucDir = (unsigned char)((~g_MotionParam[origin_axis[origin_index]].m_ucOrgDir) & 1);
+		MovVar[origin_axis[origin_index]].m_uAcel = 0;					
 
 		// 2021.11.22
-		g_MoveStartErrorCode[g_OriginAxis] = MoveStart(g_OriginAxis); 
+		g_MoveStartErrorCode[origin_axis[origin_index]] = MoveStart(origin_axis[origin_index]); 
 		g_MoveStartErrorLine = __LINE__;
-		if (g_MoveStartErrorCode[g_OriginAxis])
+		if (g_MoveStartErrorCode[origin_axis[origin_index]])
 		{
 			step = 91;
 			SetErrorCode(ERR_MOTOR_ERROR);
@@ -2001,9 +2020,9 @@ char CommHome()
 
 		// HOME 센서가 OFF 되면 멈춘다 
 	case 14: //7:	
-		if (HOME_SENSOR(g_OriginAxis) == SENS_OFF)
+		if (HOME_SENSOR(origin_axis[origin_index]) == SENS_OFF)
 		{
-			MoveStop(g_OriginAxis);
+			MoveStop(origin_axis[origin_index]);
 			step++;
 		}
 		break;
@@ -2013,28 +2032,27 @@ char CommHome()
 		break;
 
 	case 16: //9:
-		CounterReset(g_OriginAxis);
+		CounterReset(origin_axis[origin_index]);
 		step++;
 		break;
 
 		// Offset(0.2) 만큼 이동 
 	case 17: //10:
 		pd_org_offset = get_point_data(12);
-		switch (g_OriginAxis)
+		switch (origin_axis[origin_index])
 		{
 		case X_AXIS: org_offset = pd_org_offset.x; break;
 		case Y_AXIS: org_offset = pd_org_offset.y; break;
 		case Z_AXIS: org_offset = pd_org_offset.z; break;
 		default: org_offset = 0.2; break;
 		}
-		// g_MoveOffset[g_OriginAxis] = (0.2 - get_motor_pos(g_OriginAxis)) / g_MotionParam[g_OriginAxis].m_fScaleFactor; 
-		g_MoveOffset[g_OriginAxis] = (org_offset - get_motor_pos(g_OriginAxis)) / g_MotionParam[g_OriginAxis].m_fScaleFactor; 
-		SetMoveOffset(g_OriginAxis, g_MoveOffset[g_OriginAxis]);
+		g_MoveOffset[origin_axis[origin_index]] = (org_offset - get_motor_pos(origin_axis[origin_index])) / g_MotionParam[origin_axis[origin_index]].m_fScaleFactor; 
+		SetMoveOffset(origin_axis[origin_index], g_MoveOffset[origin_axis[origin_index]]);
 		// 2021.11.22
-		SetSpeed(g_OriginAxis, SPEED_ORG);
-		g_MoveStartErrorCode[g_OriginAxis] = MoveStart(g_OriginAxis);
+		SetSpeed(origin_axis[origin_index], SPEED_ORG);
+		g_MoveStartErrorCode[origin_axis[origin_index]] = MoveStart(origin_axis[origin_index]);
 		g_MoveStartErrorLine = __LINE__;
-		if (g_MoveStartErrorCode[g_OriginAxis]) 
+		if (g_MoveStartErrorCode[origin_axis[origin_index]]) 
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
 			step = 91;
@@ -2044,11 +2062,11 @@ char CommHome()
 		step++;
 		break;
 	case 18: //11:
-		move_status = GetMoveStatus(g_OriginAxis);
+		move_status = GetMoveStatus(origin_axis[origin_index]);
 		switch (move_status)
 		{
 		case MOVE_STS_INPOS:
-			MoveStop(g_OriginAxis);
+			MoveStop(origin_axis[origin_index]);
 			step++;
 			break;
 		case MOVE_STS_STOP:
@@ -2062,24 +2080,31 @@ char CommHome()
 		//
 
 	case 20: //13:
-		CounterReset(g_OriginAxis);
-		SetSpeed(g_OriginAxis, SPEED_NORMAL);
-		SetOriginCompletedFlag(g_OriginAxis, 1);
+		CounterReset(origin_axis[origin_index]);
+		SetSpeed(origin_axis[origin_index], SPEED_NORMAL);
+		SetOriginCompletedFlag(origin_axis[origin_index], 1);
 		delay_count = 20;
 		step++;
 		break;
 
 	case 21: //14:
 		if (--delay_count > 0) { Delay1ms(); break; }
-		step++;
+		if (origin_axis[origin_index] == X_AXIS) { 
+			// X축 원점복귀 했을 경우, Load 위치로 이동한다 
+			step = 100; 
+		}
+		else { step = 30; }
 		break;
 
-	case 22: //15:
-		if (--g_OriginAxis >= X_AXIS) { step = 10; }
-		else { step++; }
+	case 30: //15:
+		//if (--g_OriginAxis >= X_AXIS) { step = 10; }
+		//else { step++; }
+		origin_index += 1;
+		if (origin_index >= MAX_AXIS) { step++; }
+		else { step = 10; }
 		break;
 
-	case 23: //16:
+	case 31: //16:
 		HoldMotors();
 		step = 0;
 		return NORMAL_FINISHED;
@@ -2088,6 +2113,56 @@ char CommHome()
 		HoldMotors();
 		step = 0;
 		return NORMAL_FINISHED;
+
+		///////////////////////////////////////////////////////
+		// X, Y축을 Load 위치(PD3)로 이동한다 (상대 이동). 완료 후 step=30 
+	case 100: 
+		pd_load = get_point_data(3);
+		if (fabs(pd_load.x) < 0.01) { step = 102; break; }
+
+		g_MoveOffset[X_AXIS] = (int)(pd_load.x / g_MotionParam[X_AXIS].m_fScaleFactor);
+		SetMoveOffset(X_AXIS, g_MoveOffset[X_AXIS]);
+		SetSpeed(X_AXIS, SPEED_ORG);
+		g_MoveStartErrorCode[X_AXIS] = MoveStart(X_AXIS);
+		g_MoveStartErrorLine = __LINE__;
+		if (g_MoveStartErrorCode[X_AXIS]) {
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step = 101;
+		break; 
+	case 101:
+		if (move_done(0x01)) { step = 102; delay_count = 20; }
+		break; 
+
+	case 102:
+		if (--delay_count > 0) { Delay1ms(); break; }
+		pd_load = get_point_data(3);
+		if (fabs(pd_load.y) < 0.01) { step = 104; break; }
+
+		g_MoveOffset[Y_AXIS] = (int)(pd_load.y / g_MotionParam[Y_AXIS].m_fScaleFactor);
+		SetMoveOffset(Y_AXIS, g_MoveOffset[Y_AXIS]);
+		SetSpeed(Y_AXIS, SPEED_ORG);
+		g_MoveStartErrorCode[Y_AXIS] = MoveStart(Y_AXIS);
+		g_MoveStartErrorLine = __LINE__;
+		if (g_MoveStartErrorCode[Y_AXIS]) {
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		DelayMoveStart();
+		step = 103;
+		break; 
+	case 103:
+		if (move_done(0x02)) { step = 104; }
+		break; 
+
+	case 104:
+		step = 30;
+		break;
+		///////////////////////////////////////////////////////
 	}
 
 	CHECK_USER_STOP();

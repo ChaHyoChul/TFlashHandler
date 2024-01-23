@@ -214,6 +214,7 @@ int _tmain(void)
 		while (PopRcvChar(UART_PORT0, &ch) != 0)
 		{			
 			// break_tick_count = 0;
+			break_tick_count = 0;	// 2024.01.17 stop 명령 추가 후 통신으로 브레이크 안풀림 (=0 추가 후 풀림)
 
 			if (nszCmdOfs == 0)
 			{
