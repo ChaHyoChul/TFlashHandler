@@ -1837,6 +1837,8 @@ void SetSpeedRatio(char axis, int type, int ratio)
 // Gripper(3) -> Rotation(2) -> Tile(1) 순서로 Origin 한다 
 // v1.2.5 에서 수정 
 //	Rotation(2) -> Title(1) -> Load위치로 이동 -> Gripper(3) 
+// v1.2.6 에서 수정 
+//  Flask 센서 확인 (On이면, Grip 센서 On 될때까지 Grip)
 char CommHome()
 {
 	static int origin_axis[3] = {Y_AXIS, X_AXIS, Z_AXIS};	// 원점복귀 순서
@@ -1884,6 +1886,7 @@ char CommHome()
 			SetOriginCompletedFlag(axis, 0);
 		}
 		step = 1;
+		// step = 110;	// v1.2.6 Flask가 있으면 Grip 한다 => Celltrio 확인 후 기능 테스트 예정 
 		break;
 
 		// + 방향으로, VAR12의 위치 만큼 X축 회피 
@@ -2162,7 +2165,43 @@ char CommHome()
 	case 104:
 		step = 30;
 		break;
+
 		///////////////////////////////////////////////////////
+		// v1.2.6 Flask가 있으면 Grip 한다 
+	case 110:
+		if ((get_var(91) == 0) && !IsExistFlask()) { step = 120; } 
+		else { step = 111; }
+		break; 
+	case 111:
+		if ((get_var(91) == 0) && IsGrip()) { step = 120; } 
+		else { step = 112; }
+	case 112:
+		// Z축을 Grip 될때까지 이동한다. 15mm 이동 후 감지 되면 멈춘다 
+		// 감지되지 않으면??? 
+		g_MoveOffset[Z_AXIS] = (int)(15 / g_MotionParam[Z_AXIS].m_fScaleFactor);
+		SetMoveOffset(Z_AXIS, g_MoveOffset[Z_AXIS]);
+		SetSpeed(Z_AXIS, SPEED_ORG);
+		g_MoveStartErrorCode[Z_AXIS] = MoveStart(Z_AXIS);
+		g_MoveStartErrorLine = __LINE__;
+		if (g_MoveStartErrorCode[Z_AXIS]) {
+			SetErrorCode(ERR_MOTOR_ERROR);
+			step = 91;
+			return NORMAL_RUNNING; 
+		}
+		DelayMoveStart();
+		step = 113;
+		break; 
+	case 113:
+		if (IsGrip()) { MoveStop(Z_AXIS); step = 114; break; }
+		if (move_done(0x04)) { step = 116; break; }
+		break;
+	case 114:
+		if (IsStopped()) { Delay1ms(); step = 116; }
+		break; 
+	case 116: step = 120; break; 
+	case 120:
+		step = 1; 
+		break;
 	}
 
 	CHECK_USER_STOP();

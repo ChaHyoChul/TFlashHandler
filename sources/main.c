@@ -543,6 +543,32 @@ void DoCmd(char *cmd)
 			}
 		}		
 	}
+	else if (IS_COMMAND(cmd, "PORO"))
+	{
+		if (! IsStopped())
+		{
+			SendResponseRaw("PORO", ERR_COMMAND_IN_RUNNING);
+			return;
+		}
+
+		if (IsError())
+		{
+			SendResponseRaw("PORO", ERR_COMMAND_IN_ERROR);
+			return;
+		}
+
+		// check cmd length
+		if (strlen(cmd) < 5)
+		{
+			send("PORO E04\r\n");	// no used 
+			return;
+		}
+		
+		por_pd_no = atoi(cmd+5);
+		pd = get_point_data(por_pd_no);
+		snprintf(str, 127, "PORO %.2f,%.2f,%.2f\r\n", pd.x, pd.y, pd.z);
+		send(str);
+	}
 	else if (IS_COMMAND(cmd, "POR"))
 	{
 		if (! IsStopped())
