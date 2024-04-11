@@ -81,8 +81,10 @@
 // #define SOFTWARE_VERSION	"TFLASK-H 01.02.03"     // 새로운 H/W 적용. Home 전에 X축 이동 (VAR12)
 // #define SOFTWARE_VERSION	"TFLASK-H 01.02.04"     // STOP 명령 추가 
 // #define SOFTWARE_VERSION	"TFLASK-H 01.02.05"     // HOME 시퀀스 수정 (Y->X->Load 위치->Z)
-#define SOFTWARE_VERSION	"TFLASK-H 01.02.06"     // HOME 시퀀스 수정. 동작 전에 Flask 감지 되면, Grip 센서 감지될때 까지 Grip 한다 => Celltrio 확인 후 적용 예정
+// #define SOFTWARE_VERSION	"TFLASK-H 01.02.06"     // HOME 시퀀스 수정. 동작 전에 Flask 감지 되면, Grip 센서 감지될때 까지 Grip 한다 => Celltrio 확인 후 적용 예정
                                                     // PORO 명령 추가 (포인트 데이터를 하나만 읽는 명령)
+
+#define SOFTWARE_VERSION	"TFLASK-H 01.02.07"     // HOME 시퀀스 수정 (Flask가 감지될 때, Flask grip) 
 
 // Settings
 #define COMPORT_BAUDRATE	    (57600)

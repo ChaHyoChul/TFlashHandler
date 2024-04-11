@@ -1885,8 +1885,8 @@ char CommHome()
 		{
 			SetOriginCompletedFlag(axis, 0);
 		}
-		step = 1;
-		// step = 110;	// v1.2.6 Flask가 있으면 Grip 한다 => Celltrio 확인 후 기능 테스트 예정 
+		// step = 1;
+		step = 110;	// v1.2.6 Flask가 있으면 Grip 한다 => Celltrio 확인 후 기능 테스트 예정 
 		break;
 
 		// + 방향으로, VAR12의 위치 만큼 X축 회피 
@@ -2167,13 +2167,15 @@ char CommHome()
 		break;
 
 		///////////////////////////////////////////////////////
-		// v1.2.6 Flask가 있으면 Grip 한다 
+		// v1.2.6 Flask가 있으면 Grip 한다. Demo mode와 관련 없이 동작 한다
 	case 110:
-		if ((get_var(91) == 0) && !IsExistFlask()) { step = 120; } 
+		// if ((get_var(91) == 0) && !IsExistFlask()) { step = 120; } 
+		if (!IsExistFlask()) { step = 120; }
 		else { step = 111; }
 		break; 
 	case 111:
-		if ((get_var(91) == 0) && IsGrip()) { step = 120; } 
+		// if ((get_var(91) == 0) && IsGrip()) { step = 120; } 
+		if (IsGrip()) { step = 120; }
 		else { step = 112; }
 	case 112:
 		// Z축을 Grip 될때까지 이동한다. 15mm 이동 후 감지 되면 멈춘다 
