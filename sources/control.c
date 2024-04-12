@@ -2125,7 +2125,8 @@ char CommHome()
 
 		g_MoveOffset[X_AXIS] = (int)(pd_load.x / g_MotionParam[X_AXIS].m_fScaleFactor);
 		SetMoveOffset(X_AXIS, g_MoveOffset[X_AXIS]);
-		SetSpeed(X_AXIS, SPEED_ORG);
+		// SetSpeed(X_AXIS, SPEED_ORG);
+		SetSpeedRatio(X_AXIS, SPEED_NORMAL, 80);	
 		g_MoveStartErrorCode[X_AXIS] = MoveStart(X_AXIS);
 		g_MoveStartErrorLine = __LINE__;
 		if (g_MoveStartErrorCode[X_AXIS]) {
@@ -2147,7 +2148,8 @@ char CommHome()
 
 		g_MoveOffset[Y_AXIS] = (int)(pd_load.y / g_MotionParam[Y_AXIS].m_fScaleFactor);
 		SetMoveOffset(Y_AXIS, g_MoveOffset[Y_AXIS]);
-		SetSpeed(Y_AXIS, SPEED_ORG);
+		//SetSpeed(Y_AXIS, SPEED_ORG);
+		SetSpeedRatio(Y_AXIS, SPEED_NORMAL, 80);
 		g_MoveStartErrorCode[Y_AXIS] = MoveStart(Y_AXIS);
 		g_MoveStartErrorLine = __LINE__;
 		if (g_MoveStartErrorCode[Y_AXIS]) {
@@ -2182,7 +2184,8 @@ char CommHome()
 		// 감지되지 않으면??? 
 		g_MoveOffset[Z_AXIS] = (int)(15 / g_MotionParam[Z_AXIS].m_fScaleFactor);
 		SetMoveOffset(Z_AXIS, g_MoveOffset[Z_AXIS]);
-		SetSpeed(Z_AXIS, SPEED_ORG);
+		// SetSpeed(Z_AXIS, SPEED_ORG);
+		SetSpeedRatio(Z_AXIS, SPEED_NORMAL, 80);
 		g_MoveStartErrorCode[Z_AXIS] = MoveStart(Z_AXIS);
 		g_MoveStartErrorLine = __LINE__;
 		if (g_MoveStartErrorCode[Z_AXIS]) {
