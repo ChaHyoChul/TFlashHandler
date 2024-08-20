@@ -2185,7 +2185,7 @@ char CommHome()
 		g_MoveOffset[Z_AXIS] = (int)(15 / g_MotionParam[Z_AXIS].m_fScaleFactor);
 		SetMoveOffset(Z_AXIS, g_MoveOffset[Z_AXIS]);
 		// SetSpeed(Z_AXIS, SPEED_ORG);
-		SetSpeedRatio(Z_AXIS, SPEED_NORMAL, 80);
+		SetSpeedRatio(Z_AXIS, SPEED_NORMAL, 60);
 		g_MoveStartErrorCode[Z_AXIS] = MoveStart(Z_AXIS);
 		g_MoveStartErrorLine = __LINE__;
 		if (g_MoveStartErrorCode[Z_AXIS]) {
@@ -2327,7 +2327,7 @@ char CommGripUngrip()
 	case 3:
 		if (g_MovePointDataNo == 1)
 		{
-			//send("case 3\r\n");
+			// send("case 3\r\n");
 			// Grip일 때, Grip 센서가 감지되는지 확인 
 			if ((get_var(91) == 0) && !IsGrip())
 			{
