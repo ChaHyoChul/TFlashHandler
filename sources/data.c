@@ -612,13 +612,13 @@ void reset_motion_param()
 void reset_point_data()
 {
 	// Grip 
-	set_point_data_from(1, 0.0, 0.0, 10.0);
+	set_point_data_from(1, 0.0, 0.0, 14.5);
 	// Ungrip 
 	set_point_data_from(2, 0.0, 0.0, 1.0);
 	// Load 
-	set_point_data_from(3, 90.0, 1.0, 0.0);
+	set_point_data_from(3, 89.5, 0.0, 0.0);
 	// Aspirate
-	set_point_data_from(4, 10.0, 15.0, 0.0);
+	set_point_data_from(4, 7.9, 17.5, 0.0);
 	// Disp
 	set_point_data_from(5, 10.0, 1.0, 0.0);
 	// Shake 
@@ -652,7 +652,7 @@ void reset_system_var()
 	set_var(3, 0);
 	set_var(4, 5);
 	set_var(5, 6);
-	set_var(6, 0);
+	set_var(6, 1);		// 
 	set_var(7, 200);
 	set_var(8, 3000);
 	set_var(9, 5000);

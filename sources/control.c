@@ -2274,6 +2274,7 @@ char CommMMLD()
 char CommGripUngrip()
 {
 	static char step = 0;
+	int  varGripOption = 6; 
 	int  axis = 0;
 	char flag = 1;
 	char move_start = 0;
@@ -2311,6 +2312,19 @@ char CommGripUngrip()
 		break;
 		
 	case 1:
+		// 이 옵션에서는 91번 변수를 사용하지 않는다 (Grip 센서 사용 유무)
+		// 옵션을 사용하지 않아도 센서가 고장났을 경우 티칭 위치까지만 이동하며,
+		// 이 후 Grip 센서가 들어오지 않기 때문임 
+		if (g_MovePointDataNo == 1 && get_var(varGripOption) != 0)
+		{
+			// Grip일 경우, Grip 센서가 들어오면 바로 멈춘다 
+			if (IsGrip()) 
+			{
+				MoveStop(Z_AXIS); 
+				step = 2; 
+				break;
+			}	
+		}
 		if (move_done(0x04)) 
 		{
 			step++;
