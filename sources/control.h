@@ -13,7 +13,7 @@
 #define COMM_JOG_N 6
 #define COMM_JOG_STOP 7
 #define COMM_STOP 8
-#define COMM_E_STOP 9
+#define COMM_E_STOP 9		// 미사용 
 #define COMM_ERROR_STOP 10
 #define COMM_ORIGIN_A 18
 
@@ -112,6 +112,7 @@ void Delay1ms();
 void DelayMoveStart();
 void UpdateState(char state);
 void MainControl();
+void BreakControl();
 void SystemCheck();
 
 // GetInput/GetOutput
@@ -189,6 +190,7 @@ void InitAxis();
 
 // ��� ���� ��ƾ (1ms Ÿ�̸� ���ͷ�Ʈ)
 void MainControl();
+void BreakControl();
 
 void JogStart(char axis, char dir);
 void JogStop(char axis);

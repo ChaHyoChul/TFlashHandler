@@ -61,6 +61,8 @@ int move_abs(int sel_axis, float dist[], int spd_type, int spd_ratio);
 char move_done(char sel_axis);
 int do_shake_xy(char reset_step, int axis, int angle, int count);
 
+int breakRelease();
+
 //
 // Limit Count
 // axis 축의 limit count 를 1 증가하고,
@@ -407,14 +409,20 @@ void MainControl()
 	case COMM_IDLE:
 		break;
 	case COMM_ORIGIN:
+		if (breakRelease() == 0)
+			break;
 		res = CommOrigin();
 		UpdateState(res);
 		break;
 	case COMM_PTP:
+		if (breakRelease() == 0)
+			break;
 		res = CommMove();
 		UpdateState(res);
 		break;
 	case COMM_ORIGIN_A:
+		if (breakRelease() == 0)
+			break;
 		res = CommOriginAxis();
 		UpdateState(res);
 		break;
@@ -424,10 +432,14 @@ void MainControl()
 		break;
 
 	case COMM_HOME:
+		if (breakRelease() == 0)
+			break;
 		res = CommHome();
 		UpdateState(res);
 		break;
 	case COMM_MMLD:
+		if (breakRelease() == 0)
+			break;
 		res = CommMMLD();
 		UpdateState(res);
 		break;
@@ -440,71 +452,104 @@ void MainControl()
 		UpdateState(res);
 		break;
 	case COMM_MLOA:
-		// res = CommMoveXY();
+		if (breakRelease() == 0)
+			break;
 		res = CommMLOA();
 		UpdateState(res);
 		break;
 	case COMM_MASP:
+		if (breakRelease() == 0)
+			break;
 		res = CommMoveXY_With_Offset();
 		UpdateState(res);
 		break;
 	case COMM_MDIS:
+		if (breakRelease() == 0)
+			break;
 		res = CommMoveXY();
 		UpdateState(res);
 		break;
 	case COMM_MSHA:
+		if (breakRelease() == 0)
+			break;
 		res = CommShake();
 		UpdateState(res);
 		break;
 	case COMM_MWAS:
+		if (breakRelease() == 0)
+			break;
 		res = CommWaste();
 		UpdateState(res);
 		break;
 	case COMM_AWAS:
+		if (breakRelease() == 0)
+			break;
 		res = CommAsyncWaste();
 		UpdateState(res);
 		break;
 	case COMM_MWRD:
+		if (breakRelease() == 0)
+			break;
 		res = CommReadyWaste();
 		UpdateState(res);
 		break;
 	case COMM_MWPR:
+		if (breakRelease() == 0)
+			break;
 		res = CommPourWaste();
 		UpdateState(res);
 		break;
 	case COMM_MSEP:
+		if (breakRelease() == 0)
+			break;
 		res = CommSeparate();
 		UpdateState(res);
 		break;
 	case COMM_EQIL:
+		if (breakRelease() == 0)
+			break;
 		res = CommSeparateLongSide();
 		UpdateState(res);
 		break;
 	case COMM_EQIS:
+		if (breakRelease() == 0)
+			break;
 		res = CommSeparateShortSide();
 		UpdateState(res);
 		break;
 	case COMM_MSHK:
+		if (breakRelease() == 0)
+			break;
 		res = CommShakeUsingPD6();
 		UpdateState(res);
 		break;
 	case COMM_SWIRL:
+		if (breakRelease() == 0)
+			break;
 		res = CommSWIRL();
 		UpdateState(res);
 		break;
 	case COMM_MAMV:
+		if (breakRelease() == 0)
+			break;
 		res = CommMAMV();
 		UpdateState(res);
 		break;
 	case COMM_MRGI:
+		if (breakRelease() == 0)
+			break;
 		res = CommMRGI();
 		UpdateState(res);
 		break;
 	case COMM_RASP:
+		if (breakRelease() == 0)
+			break;
 		res = CommRASP();
 		UpdateState(res);
 		break;
 	case COMM_RAMV:
+		if (breakRelease() == 0)
+			break;
 		res = CommRAMV();
 		UpdateState(res);
 		break;
@@ -521,6 +566,82 @@ void MainControl()
 		{
 			g_MotionCommand = COMM_ERROR_STOP;
 			g_GoToError = 0;
+		}
+	}
+}
+
+// 명령어가 바뀌었을 때, break release 후 일정 시간 대기
+// 0이면 대기 중
+// 1이면 대기 종료
+int breakRelease()
+{
+	static int step = 0;
+	static int prevMotionCommand = -1;
+	static int tickCount = 0;
+	static int ret = 0;
+
+	switch (step)
+	{
+	case 0:
+		if (g_MotionCommand == COMM_IDLE ||
+			g_MotionCommand == COMM_ERROR_STOP)
+		{
+			prevMotionCommand = g_MotionCommand;
+			ret = 1;
+		}
+		else if (prevMotionCommand != g_MotionCommand)
+		{
+			prevMotionCommand = g_MotionCommand;
+			tickCount = get_var(90);
+			ret = 0;
+			step = 1;
+			ReleaseBreak();
+		}
+		else
+		{
+			ret = 1;
+		}
+		break;
+	case 1:
+		tickCount -= 1;
+		if (tickCount <= 0)
+		{
+			step = 2;
+		}
+		ret = 0;
+		break;
+	case 2:
+		ret = 1;
+		step = 0;
+		break;
+	}
+
+	return ret;
+}
+
+void BreakControl()
+{
+	unsigned long break_hold_count = 0;
+
+	break_hold_count = get_var(90);
+
+	if (break_hold_count == 0)
+	{
+		// break 항상 release
+		ReleaseBreak();
+	}
+	else
+	{
+		// macro run 중 release
+		if (g_MotionCommand == COMM_IDLE)
+		{
+			// break hold
+			HoldBreak();
+		}
+		else
+		{
+			// break release - delay time 때문에 각 이동 매크로에서 release 한다
+			// ReleaseBreak();
 		}
 	}
 }
@@ -6457,7 +6578,8 @@ void HoldBreak()
 char IsReleaseBreak()
 {
 	unsigned char b = GetDOBit(1, 7);
-	return b;
+	// return b;
+	return 1;
 }
 
 // Grip 센서 확인

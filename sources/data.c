@@ -70,7 +70,7 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 		12,			// m_ucPosLimit
 		5,			// m_ucHoldTorque
 		10,			// m_ucMoveTroque
-					// 0,0,0,0,0,0,0,
+		// 0,0,0,0,0,0,0,
 	},
 	// Y_AXIS
 	{

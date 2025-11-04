@@ -113,9 +113,6 @@ int _tmain(void)
 	unsigned long mainControlIntervalTime = 1;
 	unsigned long systemCheckIntervalTime = 1;
 
-	unsigned long break_tick_count = 0;
-	unsigned long break_hold_count = 0;
-
 	InitHardware();
 	UartInit(UART_PORT0, 9600);
 	UartInit(UART_PORT1, 9600);
@@ -158,39 +155,7 @@ int _tmain(void)
 		if ((counter % mainControlIntervalTime) == 0) // about 1ms interval
 		{
 			MainControl();
-
-			/////////////////////////////////////////////////
-			// break control
-			break_hold_count = get_var(90) * 1000;
-			// if (GetDOBit(1, 0))
-			//{
-			//	break_tick_count = 0;
-			// }
-			if (break_hold_count > 0)
-			{
-				if (GetDOBit(1, 0))
-				{
-					break_tick_count = 0;
-				}
-				else
-				{
-					if (break_tick_count < break_hold_count)
-					{
-						break_tick_count++;
-						ReleaseBreak();
-					}
-					else
-					{
-						HoldBreak();
-					}
-				}
-			}
-			else
-			{
-				break_tick_count = 0;
-				ReleaseBreak();
-			}
-			/////////////////////////////////////////////////
+			BreakControl();
 		}
 
 		if ((counter % systemCheckIntervalTime) == 0) // about 0.5ms interval
@@ -208,9 +173,6 @@ int _tmain(void)
 
 		while (PopRcvChar(UART_PORT0, &ch) != 0)
 		{
-			// break_tick_count = 0;
-			break_tick_count = 0; // 2024.01.17 stop 명령 추가 후 통신으로 브레이크 안풀림 (=0 추가 후 풀림)
-
 			if (nszCmdOfs == 0)
 			{
 				if (ch == ' ' || ch == '\r' || ch == '\n')
@@ -248,20 +210,6 @@ int _tmain(void)
 					nszCmdOfs = 0;
 				}
 			}
-
-			/////////////////////////////////////////////////
-			// break 자동 release/hold 기능을 사용하고,
-			if (break_hold_count <= 0)
-			{
-				// 현재 break가 hold 상태면, break_tick_count=0 하고, 빠져 나간다
-				if (GetDOBit(1, 7) == 0)
-				{
-					// _tick_count 를 0으로 하고, 다시 실행되면, break가 release 된다
-					break_tick_count = 0;
-					break;
-				}
-			}
-			/////////////////////////////////////////////////
 		}
 
 		timeElapsed = GetTicCountUS() - timeStart;
