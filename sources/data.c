@@ -11,7 +11,6 @@
 #define ADDR_EEP_POINT_DATA 0x1800
 
 // global data
-
 char g_LastCommand[32] = "";
 char g_MotionCommand = 0;
 int g_ErrorCode = 0;
@@ -35,6 +34,7 @@ char g_PointDataCommandState = CMD_READY;
 
 int g_OriginNeed[MAX_AXIS] = {1, 1, 1};
 int g_OriginCompletedAxes[MAX_AXIS] = {0, 0, 0};
+char g_BreakReleaseStepNo = 0;
 
 static int g_OriginOffset[MAX_AXIS] = {0, 0, 0};
 static int g_Vars[MAX_VARS] = {
@@ -70,7 +70,7 @@ MOTION_PARAM g_MotionParam[MAX_AXIS] = {
 		12,			// m_ucPosLimit
 		5,			// m_ucHoldTorque
 		10,			// m_ucMoveTroque
-		// 0,0,0,0,0,0,0,
+					// 0,0,0,0,0,0,0,
 	},
 	// Y_AXIS
 	{

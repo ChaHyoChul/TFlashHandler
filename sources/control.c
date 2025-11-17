@@ -267,6 +267,7 @@ char SetControlCommand(char cmd)
 	char prev = g_MotionCommand;
 	if (prev != cmd)
 	{
+		g_BreakReleaseStepNo = 0;
 		g_MotionCommand = cmd;
 	}
 
@@ -573,46 +574,30 @@ void MainControl()
 // 명령어가 바뀌었을 때, break release 후 일정 시간 대기
 // 0이면 대기 중
 // 1이면 대기 종료
+// 2025.11.04 step 변수를 전역으로 만들고, 외부에서 실행 전 초기화 한다
 int breakRelease()
 {
-	static int step = 0;
 	static int prevMotionCommand = -1;
 	static int tickCount = 0;
 	static int ret = 0;
 
-	switch (step)
+	switch (g_BreakReleaseStepNo)
 	{
 	case 0:
-		if (g_MotionCommand == COMM_IDLE ||
-			g_MotionCommand == COMM_ERROR_STOP)
-		{
-			prevMotionCommand = g_MotionCommand;
-			ret = 1;
-		}
-		else if (prevMotionCommand != g_MotionCommand)
-		{
-			prevMotionCommand = g_MotionCommand;
-			tickCount = get_var(90);
-			ret = 0;
-			step = 1;
-			ReleaseBreak();
-		}
-		else
-		{
-			ret = 1;
-		}
+		tickCount = get_var(90);
+		ReleaseBreak();
+		g_BreakReleaseStepNo = 1;
 		break;
 	case 1:
 		tickCount -= 1;
 		if (tickCount <= 0)
 		{
-			step = 2;
+			g_BreakReleaseStepNo = 2;
 		}
-		ret = 0;
 		break;
 	case 2:
+		g_BreakReleaseStepNo = 0;
 		ret = 1;
-		step = 0;
 		break;
 	}
 
