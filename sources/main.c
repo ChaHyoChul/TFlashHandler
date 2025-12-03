@@ -156,6 +156,7 @@ int _tmain(void)
 		{
 			MainControl();
 			BreakControl();
+			// CheckEncoder();
 		}
 
 		if ((counter % systemCheckIntervalTime) == 0) // about 0.5ms interval
@@ -2216,15 +2217,43 @@ void DoCmd(char *cmd)
 	{
 		SetOriginCompletedFlag(0, TRUE);
 		CounterReset(0);
+		EncoderReset(0);
 		SetOriginCompletedFlag(1, TRUE);
 		CounterReset(1);
+		EncoderReset(1);
 		SetOriginCompletedFlag(2, TRUE);
 		CounterReset(2);
+		EncoderReset(2);
 		send("OCP\r\n");
 	}
-	else if (IS_COMMAND_N(cmd, "TEST"))
+	else if (IS_COMMAND_N(cmd, "RCPO"))
 	{
-		sprintf(str, "TEST %d\r\n", GetWasteAsyncInput());
+		signed int x = (signed int)CounterRead(0);
+		signed int y = (signed int)CounterRead(1);
+		signed int z = (signed int)CounterRead(2);
+		sprintf(str, "RCPO %d,%d,%d\r\n", x, y, z);
+		send(str);
+	}
+	else if (IS_COMMAND_N(cmd, "REPO"))
+	{
+		signed int x = (signed int)EncoderRead(0);
+		signed int y = (signed int)EncoderRead(1);
+		signed int z = (signed int)EncoderRead(2);
+		x *= g_EncoderScaleX;
+		y *= g_EncoderScaleY;
+		z = z;
+		sprintf(str, "REPO %d,%d,%d\r\n", x, y, z);
+		send(str);
+	}
+	else if (IS_COMMAND_N(cmd, "RAPO"))
+	{
+		signed int cx = (signed int)CounterRead(0);
+		signed int cy = (signed int)CounterRead(1);
+		signed int ex = (signed int)EncoderRead(0);
+		signed int ey = (signed int)EncoderRead(1);
+		ex *= g_EncoderScaleX;
+		ey *= g_EncoderScaleY;
+		sprintf(str, "RAPO %d,%d,%d,%d\r\n", cx, cy, ex, ey);
 		send(str);
 	}
 	else

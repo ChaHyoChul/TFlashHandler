@@ -89,7 +89,8 @@
 // #define SOFTWARE_VERSION "TFLASK-H 01.02.09" // HOME 동작 중 X축 Load 위치로 이동 속도를 SPEED_NORMAL의 80%로 변경
 // #define SOFTWARE_VERSION "TFLASK-H 01.02.10" // X축 Move Torque를 65로 변경 (기존 50)
 // #define SOFTWARE_VERSION "TFLASK-H 01.03.00" // X축 브레이크 동작 수정
-#define SOFTWARE_VERSION "TFLASK-H 01.03.01" // X축 브레이크 동작 수정
+// #define SOFTWARE_VERSION "TFLASK-H 01.03.01" // X축 브레이크 동작 수정
+#define SOFTWARE_VERSION "TFLASK-H 01.04.01" // Encoder
 
 // Settings
 #define COMPORT_BAUDRATE (57600)
@@ -124,6 +125,8 @@
 #define ERR_ASYNC_WASTE_TIMEOUT (10)
 #define ERR_MOTOR_ERROR (12)
 #define ERR_GRIP_ERROR (13)
+#define ERR_ENCODER_ERROR_X (14)
+#define ERR_ENCODER_ERROR_Y (15)
 
 #define ERR_RANGE_OVER (215)
 #define ERR_SAMPLING_ERROR (216)

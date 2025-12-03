@@ -36,6 +36,9 @@ int g_OriginNeed[MAX_AXIS] = {1, 1, 1};
 int g_OriginCompletedAxes[MAX_AXIS] = {0, 0, 0};
 char g_BreakReleaseStepNo = 0;
 
+double g_EncoderScaleX = 2.0;
+double g_EncoderScaleY = 2.0;
+
 static int g_OriginOffset[MAX_AXIS] = {0, 0, 0};
 static int g_Vars[MAX_VARS] = {
 	0,
@@ -168,7 +171,10 @@ void set_error(int err)
 
 void clear_error()
 {
+	int prevErrorCode = g_ErrorCode;
 	char i = 0;
+	signed int x_counter = 0;
+	signed int y_counter = 0;
 
 	g_ErrorCode = 0;
 	g_MotionCommand = 0;
@@ -180,6 +186,7 @@ void clear_error()
 	g_OverRun_LimitCount = 0;
 
 	g_MoveStartErrorLine = 0;
+
 	for (i = 0; i < MAX_AXIS; i++)
 	{
 		g_MoveStartErrorCode[i] = 0;
@@ -187,6 +194,28 @@ void clear_error()
 		{
 			DriverReset(i);
 		}
+	}
+	// 1. Pulse counter 값과 동일하게 Encoder counter 값을 설정한다
+	//	x_counter = (signed int)(CounterRead(0) / g_EncoderScaleX);
+	//	y_counter = (signed int)(CounterRead(1) / g_EncoderScaleY);
+	//	EncoderWrite(0, x_counter);
+	//	EncoderWrite(1, y_counter);
+	// 2. Encoder counter 값과 동일하게 Pulse counter 값을 설정 한다
+	// => Counter를 변경하는 함수가 없음
+	// x_counter = EncoderRead(0);
+	// y_counter = EncoderRead(1);
+	// 3. 에러 코드가 Encoder 에러일 경우, 해당 축의 위치를 0으로 리셋 한다
+	if (prevErrorCode == ERR_ENCODER_ERROR_X)
+	{
+		CounterReset(X_AXIS);
+		EncoderReset(X_AXIS);
+		EncoderWrite(X_AXIS, 0);
+	}
+	if (prevErrorCode == ERR_ENCODER_ERROR_Y)
+	{
+		CounterReset(Y_AXIS);
+		EncoderReset(Y_AXIS);
+		EncoderWrite(Y_AXIS, 0);
 	}
 }
 
@@ -250,6 +279,17 @@ int set_var(int no, int val)
 					WriteI2C_1B(pAddr + i, *p);
 					p++;
 				}
+			}
+
+			if (no == 17)
+			{
+				// Encoder scale x
+				g_EncoderScaleX = (double)val / 1000.0;
+			}
+			else if (no == 18)
+			{
+				// Encoder scale y
+				g_EncoderScaleY = (double)val / 1000.0;
 			}
 		}
 	}
@@ -434,6 +474,9 @@ void init_data()
 	g_MotionCommand = 0;
 	g_Running = 0;
 	g_Alarm = 0;
+
+	g_EncoderScaleX = (double)get_var(17) / 1000.0;
+	g_EncoderScaleY = (double)get_var(18) / 1000.0;
 
 	debugf("Sensor Type = %d", get_var(VAR_SENSOR_TYPE));
 	debugf("Wafer Size = %d", get_var(VAR_WAFER_SIZE));
@@ -678,6 +721,13 @@ void reset_system_var()
 	set_var(14, 5000);
 	set_var(15, 1);
 	set_var(16, 20); // Y축 위치가 10보다 클 경우, 다른 위치로 이동 전에 PD 15로 먼저 이동
+
+	set_var(17, 2000); // X축 Encoder scale
+	set_var(18, 2000); // Y축 Encoder scale
+	g_EncoderScaleX = 2.0;
+	g_EncoderScaleY = 2.0;
+	set_var(19, 10); // X축 Encoder 허용 오차
+	set_var(20, 10); // Y축 Encoder 허용 오차
 
 	set_var(91, 0);
 	set_var(90, 600); // Hold Break (10분)

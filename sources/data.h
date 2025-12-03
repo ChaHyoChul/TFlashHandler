@@ -32,6 +32,9 @@ extern int g_OverRun_LimitCount;
 
 extern char g_BreakReleaseStepNo;
 
+extern double g_EncoderScaleX;
+extern double g_EncoderScaleY;
+
 typedef struct _POINT_DATA
 {
 	union

@@ -408,6 +408,7 @@ void MainControl()
 	switch (g_MotionCommand)
 	{
 	case COMM_IDLE:
+		CheckEncoder();
 		break;
 	case COMM_ORIGIN:
 		if (breakRelease() == 0)
@@ -627,6 +628,66 @@ void BreakControl()
 		{
 			// break release - delay time 때문에 각 이동 매크로에서 release 한다
 			// ReleaseBreak();
+		}
+	}
+}
+
+void CheckEncoder()
+{
+	int tolerance_x = get_var(19);
+	int tolerance_y = get_var(20);
+	signed int counter = 0;
+	signed int encoder = 0;
+	int error_count_x = 0;
+	int error_count_y = 0;
+	char msg[128];
+
+	if (g_MotionCommand == COMM_IDLE)
+	{
+		if (tolerance_x > 0)
+		{
+			// error_count_x = (int)CounterRead(0) - (int)(EncoderRead(0) * g_EncoderScaleX);
+			counter = (signed int)CounterRead(0);
+			encoder = (signed int)EncoderRead(0); // * g_EncoderScaleX);
+			encoder = encoder * g_EncoderScaleX;
+
+			if (counter != encoder)
+			{
+				if (counter > encoder)
+					error_count_x = counter - encoder;
+				else
+					error_count_x = encoder - counter;
+
+				if (error_count_x > tolerance_x)
+				{
+					// 에러
+					SetErrorCode(ERR_ENCODER_ERROR_X);
+					// g_OriginCompletedAxes[X_AXIS] = 0;
+					SetOriginCompletedFlag(X_AXIS, FALSE);
+				}
+			}
+		}
+		if (tolerance_y > 0)
+		{
+			counter = (signed int)CounterRead(1);
+			encoder = (signed int)EncoderRead(1); // * g_EncoderScaleY);
+			encoder = encoder * g_EncoderScaleY;
+
+			if (counter != encoder)
+			{
+				if (counter > encoder)
+					error_count_y = counter - encoder;
+				else
+					error_count_y = encoder - counter;
+
+				if (error_count_y > tolerance_y)
+				{
+					// 에러
+					SetErrorCode(ERR_ENCODER_ERROR_Y);
+					// g_OriginCompletedAxes[Y_AXIS] = 0;
+					SetOriginCompletedFlag(Y_AXIS, FALSE);
+				}
+			}
 		}
 	}
 }
@@ -1278,6 +1339,7 @@ char CommOrigin()
 		for (axis = 0; axis < MAX_AXIS; ++axis)
 		{
 			CounterReset(axis);
+			EncoderReset(axis);
 			MovVar[axis].m_ucDir = (unsigned char)((~g_MotionParam[axis].m_ucOrgDir) & 1); // Positive ��������
 			MovVar[axis].m_uAcel = 0;													   // ���� �ӵ��� ����
 
@@ -1448,6 +1510,7 @@ char CommOrigin()
 		for (axis = 0; axis < MAX_AXIS; ++axis)
 		{
 			CounterReset(axis); // �������� �����Ѵ�.
+			EncoderReset(axis);
 			SetSpeed(axis, SPEED_NORMAL);
 		}
 
@@ -1617,6 +1680,7 @@ char CommOriginAxis()
 		double org_offset = 0.2;
 
 		CounterReset(g_OriginAxis);
+		EncoderReset(g_OriginAxis);
 
 		switch (g_OriginAxis)
 		{
@@ -1669,6 +1733,7 @@ char CommOriginAxis()
 
 	case 9:
 		CounterReset(g_OriginAxis); // �������� �����Ѵ�.
+		EncoderReset(g_OriginAxis);
 		SetSpeed(g_OriginAxis, SPEED_NORMAL);
 		SetOriginCompletedFlag(g_OriginAxis, 1);
 		timerCount = 20;
@@ -1856,6 +1921,10 @@ void InitAxis()
 		}
 
 		CounterReset(axis);
+		// Encoder 초기화
+		SetEncoderDir(axis, 0);
+		EncoderReset(axis);
+		EncoderWrite(axis, 0);
 	}
 }
 
@@ -2279,6 +2348,7 @@ char CommHome()
 
 	case 16: // 9:
 		CounterReset(origin_axis[origin_index]);
+		EncoderReset(origin_axis[origin_index]);
 		step++;
 		break;
 
@@ -2339,6 +2409,7 @@ char CommHome()
 
 	case 20: // 13:
 		CounterReset(origin_axis[origin_index]);
+		EncoderReset(origin_axis[origin_index]);
 		SetSpeed(origin_axis[origin_index], SPEED_NORMAL);
 		SetOriginCompletedFlag(origin_axis[origin_index], 1);
 		delay_count = 20;
