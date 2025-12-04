@@ -191,7 +191,7 @@ void InitAxis();
 // ��� ���� ��ƾ (1ms Ÿ�̸� ���ͷ�Ʈ)
 void MainControl();
 void BreakControl();
-void CheckEncoder();
+int CheckEncoder();
 
 void JogStart(char axis, char dir);
 void JogStop(char axis);

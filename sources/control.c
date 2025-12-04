@@ -413,146 +413,146 @@ void MainControl()
 	case COMM_ORIGIN:
 		if (breakRelease() == 0)
 			break;
-		res = CommOrigin();
+		res = CommOrigin(); // Encoder 상시 체크
 		UpdateState(res);
 		break;
 	case COMM_PTP:
 		if (breakRelease() == 0)
 			break;
-		res = CommMove();
+		res = CommMove(); // Encoder 체크 X
 		UpdateState(res);
 		break;
 	case COMM_ORIGIN_A:
 		if (breakRelease() == 0)
 			break;
-		res = CommOriginAxis();
+		res = CommOriginAxis(); // Encoder 상시 체크
 		UpdateState(res);
 		break;
 	case COMM_ERROR_STOP:
-		res = CommErrorStop();
+		res = CommErrorStop(); // Encoder 체크 X
 		UpdateState(res);
 		break;
 
 	case COMM_HOME:
 		if (breakRelease() == 0)
 			break;
-		res = CommHome();
+		res = CommHome(); // Encoder 상시 체크
 		UpdateState(res);
 		break;
 	case COMM_MMLD:
 		if (breakRelease() == 0)
 			break;
-		res = CommMMLD();
+		res = CommMMLD(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_MGRI:
-		res = CommGripUngrip();
+		res = CommGripUngrip(); // Encoder 체크 X
 		UpdateState(res);
 		break;
 	case COMM_MUNG:
-		res = CommGripUngrip();
+		res = CommGripUngrip(); // Encoder 체크 X
 		UpdateState(res);
 		break;
 	case COMM_MLOA:
 		if (breakRelease() == 0)
 			break;
-		res = CommMLOA();
+		res = CommMLOA(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_MASP:
 		if (breakRelease() == 0)
 			break;
-		res = CommMoveXY_With_Offset();
+		res = CommMoveXY_With_Offset(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_MDIS:
 		if (breakRelease() == 0)
 			break;
-		res = CommMoveXY();
+		res = CommMoveXY(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_MSHA:
 		if (breakRelease() == 0)
 			break;
-		res = CommShake();
+		res = CommShake(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_MWAS:
 		if (breakRelease() == 0)
 			break;
-		res = CommWaste();
+		res = CommWaste(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_AWAS:
 		if (breakRelease() == 0)
 			break;
-		res = CommAsyncWaste();
+		res = CommAsyncWaste(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_MWRD:
 		if (breakRelease() == 0)
 			break;
-		res = CommReadyWaste();
+		res = CommReadyWaste(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_MWPR:
 		if (breakRelease() == 0)
 			break;
-		res = CommPourWaste();
+		res = CommPourWaste(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_MSEP:
 		if (breakRelease() == 0)
 			break;
-		res = CommSeparate();
+		res = CommSeparate(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_EQIL:
 		if (breakRelease() == 0)
 			break;
-		res = CommSeparateLongSide();
+		res = CommSeparateLongSide(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_EQIS:
 		if (breakRelease() == 0)
 			break;
-		res = CommSeparateShortSide();
+		res = CommSeparateShortSide(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_MSHK:
 		if (breakRelease() == 0)
 			break;
-		res = CommShakeUsingPD6();
+		res = CommShakeUsingPD6(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_SWIRL:
 		if (breakRelease() == 0)
 			break;
-		res = CommSWIRL();
+		res = CommSWIRL(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_MAMV:
 		if (breakRelease() == 0)
 			break;
-		res = CommMAMV();
+		res = CommMAMV(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_MRGI:
 		if (breakRelease() == 0)
 			break;
-		res = CommMRGI();
+		res = CommMRGI(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_RASP:
 		if (breakRelease() == 0)
 			break;
-		res = CommRASP();
+		res = CommRASP(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	case COMM_RAMV:
 		if (breakRelease() == 0)
 			break;
-		res = CommRAMV();
+		res = CommRAMV(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
 	}
@@ -632,7 +632,7 @@ void BreakControl()
 	}
 }
 
-void CheckEncoder()
+int CheckEncoder()
 {
 	int tolerance_x = get_var(19);
 	int tolerance_y = get_var(20);
@@ -641,8 +641,11 @@ void CheckEncoder()
 	int error_count_x = 0;
 	int error_count_y = 0;
 	char msg[128];
+	int ret = 1;
 
-	if (g_MotionCommand == COMM_IDLE)
+	//	if (g_MotionCommand == COMM_IDLE)
+	// 모터 에러 상태가 아닐때만
+	if (IsError() == 0)
 	{
 		if (tolerance_x > 0)
 		{
@@ -664,6 +667,7 @@ void CheckEncoder()
 					SetErrorCode(ERR_ENCODER_ERROR_X);
 					// g_OriginCompletedAxes[X_AXIS] = 0;
 					SetOriginCompletedFlag(X_AXIS, FALSE);
+					ret = 0;
 				}
 			}
 		}
@@ -686,10 +690,13 @@ void CheckEncoder()
 					SetErrorCode(ERR_ENCODER_ERROR_Y);
 					// g_OriginCompletedAxes[Y_AXIS] = 0;
 					SetOriginCompletedFlag(Y_AXIS, FALSE);
+					ret = 0;
 				}
 			}
 		}
 	}
+
+	return ret;
 }
 
 void SystemCheck()
@@ -1196,6 +1203,11 @@ char CommOrigin()
 	int res = 0;
 	char move_status = 0;
 
+	if (CheckEncoder() == 0)
+	{
+		step = 91;
+	}
+
 	switch (step)
 	{
 	// Error Handling
@@ -1295,6 +1307,7 @@ char CommOrigin()
 		if (NEG_LIMIT(Y_AXIS) != SENS_ON && g_MoveStartErrorCode[Y_AXIS]) // MoveStart(Y_AXIS))
 		{
 			step = 91;
+			return NORMAL_RUNNING;
 		}
 		else
 		{
@@ -1576,6 +1589,11 @@ char CommOriginAxis()
 	{
 		SetErrorCode(ERR_WRONG_COMMAND);
 		return ERROR_STOPPED;
+	}
+
+	if (CheckEncoder() == 0)
+	{
+		step = 91;
 	}
 
 	switch (step)
@@ -2142,6 +2160,11 @@ char CommHome()
 
 	char sz[64];
 
+	if (CheckEncoder() == 0)
+	{
+		step = 91;
+	}
+
 	switch (step)
 	{
 		// Error Handling
@@ -2656,7 +2679,15 @@ char CommMMLD()
 	case 2:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 10;
+			step = 3;
+		}
+		break;
+	case 3:
+		step = 10;
+		if (CheckEncoder() == 0)
+		{
+			step = 91;
+			return NORMAL_RUNNING;
 		}
 		break;
 
@@ -2687,6 +2718,11 @@ char CommMMLD()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -2879,6 +2915,11 @@ char CommMoveXY()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -2914,6 +2955,11 @@ char CommMoveXY()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -2997,6 +3043,11 @@ char CommMoveXY_With_Offset()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3037,6 +3088,11 @@ char CommMoveXY_With_Offset()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3111,6 +3167,11 @@ char CommMLOA()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3136,6 +3197,11 @@ char CommMLOA()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3228,6 +3294,11 @@ char CommShake()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3266,6 +3337,11 @@ char CommShake()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3308,6 +3384,11 @@ char CommShake()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3349,6 +3430,11 @@ char CommShake()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 
 	case 23:
@@ -3437,6 +3523,11 @@ char CommShakeUsingPD6()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3475,6 +3566,11 @@ char CommShakeUsingPD6()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3502,6 +3598,11 @@ char CommShakeUsingPD6()
 		if (IsStopped())
 		{
 			step = 20;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3544,6 +3645,11 @@ char CommShakeUsingPD6()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3584,7 +3690,13 @@ char CommShakeUsingPD6()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
+		break;
 
 	case 33:
 		move_start = move_pd_with_speed_ratio(POINT_NEW_LOAD, 0x02, SPEED_NORMAL, g_MoveRatio);
@@ -3608,7 +3720,13 @@ char CommShakeUsingPD6()
 		if (IsStopped())
 		{
 			step = 40;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
+		break;
 
 		// 종료
 	case 40:
@@ -3684,6 +3802,11 @@ char CommWaste()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3717,6 +3840,11 @@ char CommWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3746,6 +3874,11 @@ char CommWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3786,6 +3919,11 @@ char CommWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3814,6 +3952,11 @@ char CommWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3920,6 +4063,11 @@ char CommAsyncWaste()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 11;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3948,6 +4096,11 @@ char CommAsyncWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -3975,6 +4128,11 @@ char CommAsyncWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 		// y축 이동 후 Async signal on
@@ -4040,6 +4198,11 @@ char CommAsyncWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4080,6 +4243,11 @@ char CommAsyncWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4109,6 +4277,11 @@ char CommAsyncWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4184,6 +4357,11 @@ char CommReadyWaste()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4210,6 +4388,11 @@ char CommReadyWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4236,6 +4419,11 @@ char CommReadyWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4312,6 +4500,11 @@ char CommPourWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4352,6 +4545,11 @@ char CommPourWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4380,6 +4578,11 @@ char CommPourWaste()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4468,6 +4671,11 @@ char CommSeparate()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4497,6 +4705,11 @@ char CommSeparate()
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4544,6 +4757,11 @@ char CommSeparate()
 		{
 			delay_count = get_var(VAR_DELAY_MOV);
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4585,6 +4803,11 @@ char CommSeparate()
 		{
 			delay_count = get_var(VAR_DELAY_MOV);
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4623,6 +4846,11 @@ char CommSeparate()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4711,6 +4939,11 @@ char CommSeparateLongSide()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 11;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4740,7 +4973,13 @@ char CommSeparateLongSide()
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
+		break;
 
 		// 용액이 나누어 질때까지 대기
 	case 14:
@@ -4792,6 +5031,11 @@ char CommSeparateLongSide()
 		{
 			delay_count = get_var(VAR_DELAY_SEP2);
 			step += 1;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4832,6 +5076,11 @@ char CommSeparateLongSide()
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4920,6 +5169,11 @@ char CommSeparateShortSide()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 11;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4949,6 +5203,11 @@ char CommSeparateShortSide()
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -4986,13 +5245,21 @@ char CommSeparateShortSide()
 		break;
 
 	case 17:
-		if (get_var(VAR_HW_TYPE) == 0)
+		if (IsStopped())
 		{
-			step = 30;
-		}
-		else
-		{
-			step = 20;
+			if (get_var(VAR_HW_TYPE) == 0)
+			{
+				step = 30;
+			}
+			else
+			{
+				step = 20;
+			}
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5022,6 +5289,11 @@ char CommSeparateShortSide()
 		{
 			delay_count = get_var(VAR_DELAY_SEP2);
 			step += 1;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5042,6 +5314,11 @@ char CommSeparateShortSide()
 		{
 			delay_count = get_var(VAR_DELAY_SEP2);
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 	case 31:
@@ -5081,6 +5358,11 @@ char CommSeparateShortSide()
 		{
 			delay_count = 100; // get_var(VAR_DELAY_MOV);
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5121,7 +5403,13 @@ char CommSeparateShortSide()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
+		break;
 
 	case 39:
 		HoldMotors();
@@ -5213,6 +5501,11 @@ char CommSWIRL()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 11;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5239,6 +5532,11 @@ char CommSWIRL()
 		if (IsStopped())
 		{
 			step = 14;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5264,6 +5562,11 @@ char CommSWIRL()
 		if (IsStopped())
 		{
 			step = 20;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5299,12 +5602,16 @@ char CommSWIRL()
 		{
 			step = 31;
 		}
-		else
+		else if (move_start == 2)
 		{
 			g_MoveStartErrorLine = __LINE__;
 			SetErrorCode(ERR_MOTOR_ERROR);
 			step = 91;
 			return NORMAL_RUNNING;
+		}
+		else
+		{
+			step = 91;
 		}
 		break;
 
@@ -5323,12 +5630,16 @@ char CommSWIRL()
 		{
 			step = 33;
 		}
-		else
+		else if (move_start == 2)
 		{
 			g_MoveStartErrorLine = __LINE__;
 			SetErrorCode(ERR_MOTOR_ERROR);
 			step = 91;
 			return NORMAL_RUNNING;
+		}
+		else
+		{
+			step = 91;
 		}
 		break;
 	case 33:
@@ -5407,6 +5718,11 @@ char CommMAMV()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5437,6 +5753,11 @@ char CommMAMV()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5512,6 +5833,11 @@ char CommRAMV()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5543,6 +5869,11 @@ char CommRAMV()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5574,6 +5905,11 @@ char CommRAMV()
 		{
 			delay_count = g_nRegripDelay;
 			step += 1;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5614,6 +5950,11 @@ char CommRAMV()
 		if (IsStopped())
 		{
 			step += 1;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5645,6 +5986,11 @@ char CommRAMV()
 		if (IsStopped())
 		{
 			step += 1;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5721,6 +6067,11 @@ char CommMRGI()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5749,6 +6100,11 @@ char CommMRGI()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5779,6 +6135,11 @@ char CommMRGI()
 			delay_count = get_var(2);
 			step += 1;
 			// sendf("dc = %d\r\n", delay_count);
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5819,6 +6180,11 @@ char CommMRGI()
 		if (IsStopped())
 		{
 			step += 1;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5847,6 +6213,11 @@ char CommMRGI()
 		if (IsStopped())
 		{
 			step += 1;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5923,6 +6294,11 @@ char CommRASP()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5954,6 +6330,11 @@ char CommRASP()
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -5985,6 +6366,11 @@ char CommRASP()
 		{
 			delay_count = g_nRegripDelay;
 			step += 1;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -6025,6 +6411,11 @@ char CommRASP()
 		if (IsStopped())
 		{
 			step += 1;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -6061,6 +6452,11 @@ char CommRASP()
 		if (IsStopped())
 		{
 			step += 1;
+			if (CheckEncoder() == 0)
+			{
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 		}
 		break;
 
@@ -6084,6 +6480,7 @@ char CommRASP()
 // - 0 : continue
 // - 1 : end
 // - 2 : motor error
+// - 3 : encoder error
 int do_shake_xy(char reset_step, int axis, int angle, int count)
 {
 	const int POINT_NEW_LOAD = 15;
@@ -6124,6 +6521,8 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+				return 3;
 		}
 		break;
 	case 5:
@@ -6156,6 +6555,8 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+				return 3;
 		}
 		break;
 	case 8:
@@ -6195,6 +6596,8 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+				return 3;
 		}
 		break;
 	case 14:
@@ -6231,6 +6634,8 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+				return 3;
 		}
 		break;
 	case 18:
@@ -6267,6 +6672,8 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+				return 3;
 		}
 		break;
 	case 33:
@@ -6306,6 +6713,8 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		if (IsStopped())
 		{
 			step++;
+			if (CheckEncoder() == 0)
+				return 3;
 		}
 		break;
 	case 38:

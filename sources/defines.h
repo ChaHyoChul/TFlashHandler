@@ -90,7 +90,8 @@
 // #define SOFTWARE_VERSION "TFLASK-H 01.02.10" // X축 Move Torque를 65로 변경 (기존 50)
 // #define SOFTWARE_VERSION "TFLASK-H 01.03.00" // X축 브레이크 동작 수정
 // #define SOFTWARE_VERSION "TFLASK-H 01.03.01" // X축 브레이크 동작 수정
-#define SOFTWARE_VERSION "TFLASK-H 01.04.01" // Encoder
+// #define SOFTWARE_VERSION "TFLASK-H 01.04.01" // Encoder
+#define SOFTWARE_VERSION "TFLASK-H 01.04.02" // Encoder. Home 동작 중 엔코더 상시 체크. 매크로 실행 중 Teahcing 위치 이동 후 위치 체크 후 다음 위치로 이동
 
 // Settings
 #define COMPORT_BAUDRATE (57600)
