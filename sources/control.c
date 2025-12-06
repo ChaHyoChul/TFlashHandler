@@ -607,6 +607,7 @@ int breakRelease()
 
 void BreakControl()
 {
+	static int BREAK_COUNT = 100;
 	unsigned long break_hold_count = 0;
 
 	break_hold_count = get_var(90);
@@ -621,13 +622,19 @@ void BreakControl()
 		// macro run 중 release
 		if (g_MotionCommand == COMM_IDLE)
 		{
-			// break hold
-			HoldBreak();
+			BREAK_COUNT -= 1;
+			if (BREAK_COUNT < 0)
+			{
+				BREAK_COUNT += 1;
+				// break hold
+				HoldBreak();
+			}
 		}
 		else
 		{
 			// break release - delay time 때문에 각 이동 매크로에서 release 한다
 			// ReleaseBreak();
+			BREAK_COUNT = get_var(90);
 		}
 	}
 }
