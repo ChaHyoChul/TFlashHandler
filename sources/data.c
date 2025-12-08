@@ -38,6 +38,8 @@ char g_BreakReleaseStepNo = 0;
 
 double g_EncoderScaleX = 2.0;
 double g_EncoderScaleY = 2.0;
+int g_MaxEncoderDeviationX = 0;
+int g_MaxEncoderDeviationY = 0;
 
 static int g_OriginOffset[MAX_AXIS] = {0, 0, 0};
 static int g_Vars[MAX_VARS] = {
@@ -210,12 +212,14 @@ void clear_error()
 		CounterReset(X_AXIS);
 		EncoderReset(X_AXIS);
 		EncoderWrite(X_AXIS, 0);
+		g_MaxEncoderDeviationX = 0;
 	}
 	if (prevErrorCode == ERR_ENCODER_ERROR_Y)
 	{
 		CounterReset(Y_AXIS);
 		EncoderReset(Y_AXIS);
 		EncoderWrite(Y_AXIS, 0);
+		g_MaxEncoderDeviationY = 0;
 	}
 }
 
@@ -732,8 +736,10 @@ void reset_system_var()
 	set_var(91, 0);
 	set_var(90, 600); // Hold Break (10분)
 
-	set_var(17, 0);
-	set_var(18, 0);
-	set_var(19, 0);
-	set_var(20, 0);
+	set_var(17, 2000); // Encoder scale x
+	set_var(18, 2000); // Encoder scale y
+	set_var(19, 100);  // 1번축 허용 오차
+	set_var(20, 100);  // 2번축 허용 오차
+	set_var(21, 500);  // IDLE 상태 체크 주기
+	set_var(22, 500);  // MACRO RUN 상태 체크 주기
 }

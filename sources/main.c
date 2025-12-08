@@ -125,6 +125,9 @@ int _tmain(void)
 	// Release break
 	ReleaseBreak();
 
+	g_MaxEncoderDeviationX = 0;
+	g_MaxEncoderDeviationY = 0;
+
 	//	sprintf(str, "Robots and Design Co., Ltd. - PreAlignerV400\r\n");
 	//	SerialWriteBytes(UART_PORT0, str, strlen(str));
 
@@ -156,7 +159,7 @@ int _tmain(void)
 		{
 			MainControl();
 			BreakControl();
-			// CheckEncoder();
+			CheckEncoder();
 		}
 
 		if ((counter % systemCheckIntervalTime) == 0) // about 0.5ms interval
@@ -2254,6 +2257,11 @@ void DoCmd(char *cmd)
 		ex *= g_EncoderScaleX;
 		ey *= g_EncoderScaleY;
 		sprintf(str, "RAPO %d,%d,%d,%d\r\n", cx, cy, ex, ey);
+		send(str);
+	}
+	else if (IS_COMMAND_N(cmd, "REMX"))
+	{
+		sprintf(str, "REMX %d,%d\r\n", g_MaxEncoderDeviationX, g_MaxEncoderDeviationY);
 		send(str);
 	}
 	else

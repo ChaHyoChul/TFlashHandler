@@ -408,7 +408,6 @@ void MainControl()
 	switch (g_MotionCommand)
 	{
 	case COMM_IDLE:
-		CheckEncoder();
 		break;
 	case COMM_ORIGIN:
 		if (breakRelease() == 0)
@@ -639,8 +638,10 @@ void BreakControl()
 	}
 }
 
+// call about 1ms
 int CheckEncoder()
 {
+	static int COUNT = 1000;
 	int tolerance_x = get_var(19);
 	int tolerance_y = get_var(20);
 	signed int counter = 0;
@@ -650,7 +651,21 @@ int CheckEncoder()
 	char msg[128];
 	int ret = 1;
 
-	//	if (g_MotionCommand == COMM_IDLE)
+	COUNT -= 1;
+	if (COUNT > 0)
+		return ret;
+	else
+	{
+		if (g_MotionCommand == COMM_IDLE)
+		{
+			COUNT = get_var(21); // IDLE 상태에서 체크 주기
+		}
+		else
+		{
+			COUNT = get_var(22); // MOVEING 상태에서 체크 주기
+		}
+	}
+
 	// 모터 에러 상태가 아닐때만
 	if (IsError() == 0)
 	{
@@ -674,7 +689,14 @@ int CheckEncoder()
 					SetErrorCode(ERR_ENCODER_ERROR_X);
 					// g_OriginCompletedAxes[X_AXIS] = 0;
 					SetOriginCompletedFlag(X_AXIS, FALSE);
+					// Motor Stop
+					StopMotors();
 					ret = 0;
+				}
+
+				if (error_count_x > g_MaxEncoderDeviationX)
+				{
+					g_MaxEncoderDeviationX = error_count_x;
 				}
 			}
 		}
@@ -697,7 +719,14 @@ int CheckEncoder()
 					SetErrorCode(ERR_ENCODER_ERROR_Y);
 					// g_OriginCompletedAxes[Y_AXIS] = 0;
 					SetOriginCompletedFlag(Y_AXIS, FALSE);
+					// Motor Stop
+					StopMotors();
 					ret = 0;
+				}
+
+				if (error_count_y > g_MaxEncoderDeviationY)
+				{
+					g_MaxEncoderDeviationY = error_count_y;
 				}
 			}
 		}
@@ -1210,9 +1239,9 @@ char CommOrigin()
 	int res = 0;
 	char move_status = 0;
 
-	if (CheckEncoder() == 0)
+	if (IsError())
 	{
-		step = 91;
+		step = 93;
 	}
 
 	switch (step)
@@ -1598,9 +1627,9 @@ char CommOriginAxis()
 		return ERROR_STOPPED;
 	}
 
-	if (CheckEncoder() == 0)
+	if (IsError())
 	{
-		step = 91;
+		step = 93;
 	}
 
 	switch (step)
@@ -1796,6 +1825,11 @@ char CommMove()
 	char move_status = 0;
 	char move_start = 0;
 
+	if (IsError())
+	{
+		step = 93;
+	}
+
 	switch (step)
 	{
 	// Error Handling
@@ -1814,7 +1848,6 @@ char CommMove()
 	case 93:
 		HoldMotors();
 		step = 0;
-
 		return ERROR_STOPPED;
 
 	case 0:
@@ -2167,9 +2200,9 @@ char CommHome()
 
 	char sz[64];
 
-	if (CheckEncoder() == 0)
+	if (IsError())
 	{
-		step = 91;
+		step = 93;
 	}
 
 	switch (step)
@@ -2640,6 +2673,11 @@ char CommMMLD()
 	float pos[3];
 	int move_start = 0;
 
+	if (IsError())
+	{
+		step = 93;
+	}
+
 	switch (step)
 	{
 		// Error handling
@@ -2691,11 +2729,6 @@ char CommMMLD()
 		break;
 	case 3:
 		step = 10;
-		if (CheckEncoder() == 0)
-		{
-			step = 91;
-			return NORMAL_RUNNING;
-		}
 		break;
 
 	case 10:
@@ -2725,11 +2758,6 @@ char CommMMLD()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -2872,6 +2900,11 @@ char CommMoveXY()
 	char move_status = 0;
 	POINT_DATA pd;
 
+	if (IsError())
+	{
+		step = 93;
+	}
+
 	switch (step)
 	{
 		// Error handling
@@ -2922,11 +2955,6 @@ char CommMoveXY()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -2962,11 +2990,6 @@ char CommMoveXY()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -2998,6 +3021,11 @@ char CommMoveXY_With_Offset()
 	char move_start = 0;
 	char move_status = 0;
 	POINT_DATA pd;
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -3050,11 +3078,6 @@ char CommMoveXY_With_Offset()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3095,11 +3118,6 @@ char CommMoveXY_With_Offset()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3130,6 +3148,11 @@ char CommMLOA()
 	char move_start = 0;
 	char move_status = 0;
 	POINT_DATA pd;
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -3174,11 +3197,6 @@ char CommMLOA()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3204,11 +3222,6 @@ char CommMLOA()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3255,6 +3268,11 @@ char CommShake()
 	int move_start = 0;
 	POINT_DATA pd;
 
+	if (IsError())
+	{
+		step = 93;
+	}
+
 	switch (step)
 	{
 		// Error handling
@@ -3301,11 +3319,6 @@ char CommShake()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3344,11 +3357,6 @@ char CommShake()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3391,11 +3399,6 @@ char CommShake()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3437,11 +3440,6 @@ char CommShake()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 
 	case 23:
@@ -3483,6 +3481,11 @@ char CommShakeUsingPD6()
 
 	int move_start = 0;
 	POINT_DATA pd;
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -3530,11 +3533,6 @@ char CommShakeUsingPD6()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3573,11 +3571,6 @@ char CommShakeUsingPD6()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3605,11 +3598,6 @@ char CommShakeUsingPD6()
 		if (IsStopped())
 		{
 			step = 20;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3652,11 +3640,6 @@ char CommShakeUsingPD6()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3697,11 +3680,6 @@ char CommShakeUsingPD6()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3727,11 +3705,6 @@ char CommShakeUsingPD6()
 		if (IsStopped())
 		{
 			step = 40;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3762,6 +3735,11 @@ char CommWaste()
 	static int delay_count = 0;
 
 	int move_start = 0;
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -3809,11 +3787,6 @@ char CommWaste()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3847,11 +3820,6 @@ char CommWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3881,11 +3849,6 @@ char CommWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3926,11 +3889,6 @@ char CommWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -3959,11 +3917,6 @@ char CommWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4007,6 +3960,11 @@ char CommAsyncWaste()
 	static int delay_count = 0;
 
 	int move_start = 0;
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -4070,11 +4028,6 @@ char CommAsyncWaste()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 11;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4103,11 +4056,6 @@ char CommAsyncWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4135,11 +4083,6 @@ char CommAsyncWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 		// y축 이동 후 Async signal on
@@ -4205,11 +4148,6 @@ char CommAsyncWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4250,11 +4188,6 @@ char CommAsyncWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4284,11 +4217,6 @@ char CommAsyncWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4316,6 +4244,11 @@ char CommReadyWaste()
 	const int POINT_READY = 11; // Y축 이동
 	static int step = 0;
 	int move_start = 0;
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -4364,11 +4297,6 @@ char CommReadyWaste()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4395,11 +4323,6 @@ char CommReadyWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4426,11 +4349,6 @@ char CommReadyWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4462,6 +4380,11 @@ char CommPourWaste()
 	static int delay_count = 0;
 
 	int move_start = 0;
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -4507,11 +4430,6 @@ char CommPourWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4552,11 +4470,6 @@ char CommPourWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4585,11 +4498,6 @@ char CommPourWaste()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4627,6 +4535,11 @@ char CommSeparate()
 	static int delay_count = 0;
 
 	int move_start = 0;
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -4678,11 +4591,6 @@ char CommSeparate()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4712,11 +4620,6 @@ char CommSeparate()
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4764,11 +4667,6 @@ char CommSeparate()
 		{
 			delay_count = get_var(VAR_DELAY_MOV);
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4810,11 +4708,6 @@ char CommSeparate()
 		{
 			delay_count = get_var(VAR_DELAY_MOV);
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4853,11 +4746,6 @@ char CommSeparate()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4894,6 +4782,11 @@ char CommSeparateLongSide()
 	static int step = 0;
 	static int delay_count = 0;
 	int move_start = 0;
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -4946,11 +4839,6 @@ char CommSeparateLongSide()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 11;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -4980,11 +4868,6 @@ char CommSeparateLongSide()
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5038,11 +4921,6 @@ char CommSeparateLongSide()
 		{
 			delay_count = get_var(VAR_DELAY_SEP2);
 			step += 1;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5083,11 +4961,6 @@ char CommSeparateLongSide()
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5124,6 +4997,11 @@ char CommSeparateShortSide()
 	static int step = 0;
 	static int delay_count = 0;
 	int move_start = 0;
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -5176,11 +5054,6 @@ char CommSeparateShortSide()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 11;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5210,11 +5083,6 @@ char CommSeparateShortSide()
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5262,11 +5130,6 @@ char CommSeparateShortSide()
 			{
 				step = 20;
 			}
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5296,11 +5159,6 @@ char CommSeparateShortSide()
 		{
 			delay_count = get_var(VAR_DELAY_SEP2);
 			step += 1;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5321,11 +5179,6 @@ char CommSeparateShortSide()
 		{
 			delay_count = get_var(VAR_DELAY_SEP2);
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 	case 31:
@@ -5365,11 +5218,6 @@ char CommSeparateShortSide()
 		{
 			delay_count = 100; // get_var(VAR_DELAY_MOV);
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5410,11 +5258,6 @@ char CommSeparateShortSide()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5453,6 +5296,11 @@ char CommSWIRL()
 	float angle[3] = {0.0, 0.0, 0.0};
 	int move_start = 0;
 	POINT_DATA pd;
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -5508,11 +5356,6 @@ char CommSWIRL()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 11;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5539,11 +5382,6 @@ char CommSWIRL()
 		if (IsStopped())
 		{
 			step = 14;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5569,11 +5407,6 @@ char CommSWIRL()
 		if (IsStopped())
 		{
 			step = 20;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5678,6 +5511,11 @@ char CommMAMV()
 	float pos[3];
 	int move_start = 0;
 
+	if (IsError())
+	{
+		step = 93;
+	}
+
 	switch (step)
 	{
 		// Error handling
@@ -5725,11 +5563,6 @@ char CommMAMV()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5760,11 +5593,6 @@ char CommMAMV()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5792,6 +5620,11 @@ char CommRAMV()
 	static int delay_count = 0;
 	int move_start = 0;
 	float pos[3];
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -5840,11 +5673,6 @@ char CommRAMV()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5876,11 +5704,6 @@ char CommRAMV()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5912,11 +5735,6 @@ char CommRAMV()
 		{
 			delay_count = g_nRegripDelay;
 			step += 1;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5957,11 +5775,6 @@ char CommRAMV()
 		if (IsStopped())
 		{
 			step += 1;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -5993,11 +5806,6 @@ char CommRAMV()
 		if (IsStopped())
 		{
 			step += 1;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -6026,6 +5834,11 @@ char CommMRGI()
 	static char step = 0;
 	static int delay_count = 0;
 	int move_start = 0;
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -6074,11 +5887,6 @@ char CommMRGI()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -6107,11 +5915,6 @@ char CommMRGI()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -6142,11 +5945,6 @@ char CommMRGI()
 			delay_count = get_var(2);
 			step += 1;
 			// sendf("dc = %d\r\n", delay_count);
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -6187,11 +5985,6 @@ char CommMRGI()
 		if (IsStopped())
 		{
 			step += 1;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -6220,11 +6013,6 @@ char CommMRGI()
 		if (IsStopped())
 		{
 			step += 1;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -6253,6 +6041,11 @@ char CommRASP()
 	static int delay_count = 0;
 	int move_start = 0;
 	float pos[3];
+
+	if (IsError())
+	{
+		step = 93;
+	}
 
 	switch (step)
 	{
@@ -6301,11 +6094,6 @@ char CommRASP()
 		if (move_done(0x02) && IsStopped())
 		{
 			step = 10;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -6337,11 +6125,6 @@ char CommRASP()
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -6373,11 +6156,6 @@ char CommRASP()
 		{
 			delay_count = g_nRegripDelay;
 			step += 1;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -6418,11 +6196,6 @@ char CommRASP()
 		if (IsStopped())
 		{
 			step += 1;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -6459,11 +6232,6 @@ char CommRASP()
 		if (IsStopped())
 		{
 			step += 1;
-			if (CheckEncoder() == 0)
-			{
-				step = 91;
-				return NORMAL_RUNNING;
-			}
 		}
 		break;
 
@@ -6487,7 +6255,6 @@ char CommRASP()
 // - 0 : continue
 // - 1 : end
 // - 2 : motor error
-// - 3 : encoder error
 int do_shake_xy(char reset_step, int axis, int angle, int count)
 {
 	const int POINT_NEW_LOAD = 15;
@@ -6528,8 +6295,6 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-				return 3;
 		}
 		break;
 	case 5:
@@ -6562,8 +6327,6 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-				return 3;
 		}
 		break;
 	case 8:
@@ -6603,8 +6366,6 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-				return 3;
 		}
 		break;
 	case 14:
@@ -6641,8 +6402,6 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-				return 3;
 		}
 		break;
 	case 18:
@@ -6679,8 +6438,6 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-				return 3;
 		}
 		break;
 	case 33:
@@ -6720,8 +6477,6 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		if (IsStopped())
 		{
 			step++;
-			if (CheckEncoder() == 0)
-				return 3;
 		}
 		break;
 	case 38:

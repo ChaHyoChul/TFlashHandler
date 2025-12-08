@@ -92,7 +92,9 @@
 // #define SOFTWARE_VERSION "TFLASK-H 01.03.01" // X축 브레이크 동작 수정
 // #define SOFTWARE_VERSION "TFLASK-H 01.04.01" // Encoder
 // #define SOFTWARE_VERSION "TFLASK-H 01.04.02" // Encoder. Home 동작 중 엔코더 상시 체크. 매크로 실행 중 Teahcing 위치 이동 후 위치 체크 후 다음 위치로 이동
-#define SOFTWARE_VERSION "TFLASK-H 01.04.03" // Encoder. 브레이크 잡을 때 delay 적용
+// #define SOFTWARE_VERSION "TFLASK-H 01.04.03" // Encoder. 브레이크 잡을 때 delay 적용
+#define SOFTWARE_VERSION "TFLASK-H 1.5.0" // 엔코더 상시 체크 (var 21, 22 추가)
+                                          // 매크로 완료 후 브레이크 잡기전 delay 추가
 
 // Settings
 #define COMPORT_BAUDRATE (57600)

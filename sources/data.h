@@ -34,6 +34,8 @@ extern char g_BreakReleaseStepNo;
 
 extern double g_EncoderScaleX;
 extern double g_EncoderScaleY;
+extern g_MaxEncoderDeviationX;
+extern g_MaxEncoderDeviationY;
 
 typedef struct _POINT_DATA
 {
