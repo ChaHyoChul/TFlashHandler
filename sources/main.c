@@ -66,10 +66,17 @@ extern double g_fRegripYPos;
 extern double g_fRegripZPos;
 extern int g_nRegripDelay;
 extern double g_fMASPOffset[2];
-
 extern POINT_DATA g_PointData[MAX_POINT_DATA];
-
 extern char g_PointDataCommandState;
+
+////////////////////////////////////////////////////
+// v1.5.1-encoder-test 기능 추가용 변수
+// COMM_PTP 명령으로 이동하는 동안 10ms 간격으로 데이터 저장
+extern signed int pulse_count[200];
+extern signed int encoder_count[200];
+extern int pulse_count_index;
+extern int pulse_count_axis;
+////////////////////////////////////////////////////
 
 char g_cMotionComm[MAX_AXIS];
 
@@ -2264,6 +2271,58 @@ void DoCmd(char *cmd)
 		sprintf(str, "REMX %d,%d\r\n", g_MaxEncoderDeviationX, g_MaxEncoderDeviationY);
 		send(str);
 	}
+	// COMM_PTP 명령으로 이동하는 동안 10ms 간격으로 데이터 저장
+	// ERPC : xy_pulse_count_index 리셋
+	// GRPC : xy_pulse_count_index 개수 리턴
+	// GXPC : x_pulse_count 리턴
+	// GXEC : x_encoder_count 리턴
+	// GYPC : y_pulse_count 리턴
+	// GYEC : y_encoder_count 리턴
+	// extern signed int x_pulse_count[500];
+	// extern signed int x_encoder_count[500];
+	// extern signed int y_pulse_count[500];
+	// extern signed int y_encoder_count[500];
+	// extern int xy_pulse_count_index = 0;
+	// else if (IS_COMMAND_N(cmd, "ERPC"))
+	//{
+	//	//	pulse_count_index = 0;
+	//	// send("ERPC\r\n");
+	//}
+	// else if (IS_COMMAND_N(cmd, "GRPC"))
+	//{
+	//	//	sprintf(str, "GRPC %d\r\n", pulse_count_index);
+	//	// send(str);
+	//}
+	// else if (IS_COMMAND_N(cmd, "GXPC"))
+	//{
+	//	// send("GXPC ");
+	//	//	for (i = 0; i < pulse_count_index; i++)
+	//	//	{
+	//	//		sprintf(str, "%d,", pulse_count[i]);
+	//	//		send(str);
+	//	//	}
+	//	// send("\r\n");
+	//}
+	// else if (IS_COMMAND_N(cmd, "GXEC"))
+	//{
+	//	// send("GXEC ");
+	//	//	for (i = 0; i < pulse_count_index; i++)
+	//	//	{
+	//	//		sprintf(str, "%d,", encoder_count[i] * 2);
+	//	//		send(str);
+	//	//	}
+	//	// send("\r\n");
+	//}
+	// else if (IS_COMMAND_N(cmd, "SPRX"))
+	//{
+	//	//	pulse_count_axis = 0;
+	//	// send("SPRX\r\n");
+	//}
+	// else if (IS_COMMAND_N(cmd, "SPRY"))
+	//{
+	//	//	pulse_count_axis = 1;
+	//	// send("SPRY\r\n");
+	//}
 	else
 	{
 		if (strlen(cmd) > 0)

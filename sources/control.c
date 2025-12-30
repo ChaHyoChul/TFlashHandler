@@ -74,6 +74,19 @@ void reset_limit_count(int axis);
 int inc_pos_limit_count(int axis);
 int inc_neg_limit_count(int axis);
 
+// v1.5.1-encoder-test 기능 추가용 변수
+// COMM_PTP 명령으로 이동하는 동안 10ms 간격으로 데이터 저장
+// ERPC : pulse_count_index 리셋
+// GRPC : pulse_count_index 개수 리턴
+// GXPC : pulse_count 리턴
+// GXEC : encoder_count 리턴
+// SRPX : 저장할 축 선택 X
+// SRYY : 저장할 축 선택 Y
+// signed int pulse_count[200];
+// signed int encoder_count[200];
+// int pulse_count_index;
+// int pulse_count_axis;
+
 //
 // Functions
 //
@@ -642,6 +655,7 @@ void BreakControl()
 int CheckEncoder()
 {
 	static int COUNT = 1000;
+	// static int TEST_COUNT = 20; // 10ms 간격으로 데이터 저장
 	int tolerance_x = get_var(19);
 	int tolerance_y = get_var(20);
 	signed int counter = 0;
@@ -650,6 +664,22 @@ int CheckEncoder()
 	int error_count_y = 0;
 	char msg[128];
 	int ret = 1;
+
+	//	if (g_MotionCommand == COMM_PTP && pulse_count_index < 200)
+	//	{
+	//		TEST_COUNT -= 1;
+	//		if (TEST_COUNT < 0)
+	//		{
+	//			pulse_count[pulse_count_index] = (signed int)CounterRead(pulse_count_axis);
+	//			encoder_count[pulse_count_index] = (signed int)EncoderRead(pulse_count_axis);
+	//			pulse_count_index += 1;
+	//			TEST_COUNT = 20;
+	//		}
+	//	}
+	//	else
+	//	{
+	//		TEST_COUNT = 20;
+	//	}
 
 	COUNT -= 1;
 	if (COUNT > 0)

@@ -207,15 +207,31 @@ void clear_error()
 	// x_counter = EncoderRead(0);
 	// y_counter = EncoderRead(1);
 	// 3. 에러 코드가 Encoder 에러일 경우, 해당 축의 위치를 0으로 리셋 한다
-	if (prevErrorCode == ERR_ENCODER_ERROR_X)
+	//	if (prevErrorCode == ERR_ENCODER_ERROR_X)
+	//	{
+	//		CounterReset(X_AXIS);
+	//		EncoderReset(X_AXIS);
+	//		EncoderWrite(X_AXIS, 0);
+	//		g_MaxEncoderDeviationX = 0;
+	//	}
+	//	if (prevErrorCode == ERR_ENCODER_ERROR_Y)
+	//	{
+	//		CounterReset(Y_AXIS);
+	//		EncoderReset(Y_AXIS);
+	//		EncoderWrite(Y_AXIS, 0);
+	//		g_MaxEncoderDeviationY = 0;
+	//	}
+	// 4. 2축에서 동시에 엔코더 에러가 발생했을 경우, 에러 클리어 2번 해야 함
+	// => 2축 동시에 리셋 하도록 수정
+	if (prevErrorCode == ERR_ENCODER_ERROR_X ||
+		prevErrorCode == ERR_ENCODER_ERROR_Y)
 	{
+		// X축 리셋
 		CounterReset(X_AXIS);
 		EncoderReset(X_AXIS);
 		EncoderWrite(X_AXIS, 0);
 		g_MaxEncoderDeviationX = 0;
-	}
-	if (prevErrorCode == ERR_ENCODER_ERROR_Y)
-	{
+		// Y축 리셋
 		CounterReset(Y_AXIS);
 		EncoderReset(Y_AXIS);
 		EncoderWrite(Y_AXIS, 0);
