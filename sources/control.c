@@ -655,6 +655,7 @@ void BreakControl()
 int CheckEncoder()
 {
 	static int COUNT = 1000;
+	static char LED_STATUS = 0;
 	// static int TEST_COUNT = 20; // 10ms 간격으로 데이터 저장
 	int tolerance_x = get_var(19);
 	int tolerance_y = get_var(20);
@@ -682,7 +683,7 @@ int CheckEncoder()
 	//	}
 
 	COUNT -= 1;
-	if (COUNT > 0)
+	if (COUNT >= 0) // 0>0은 false 이므로, 조건문 > 를 >= 으로 변경. COUNT 회수만큼 실행되도록
 		return ret;
 	else
 	{
@@ -699,6 +700,10 @@ int CheckEncoder()
 	// 모터 에러 상태가 아닐때만
 	if (IsError() == 0)
 	{
+		// 체크할 때 output을 toggle 한다
+		LED_STATUS = (LED_STATUS == 0) ? 1 : 0;
+		SetDO(6, LED_STATUS);
+
 		if (tolerance_x > 0)
 		{
 			// error_count_x = (int)CounterRead(0) - (int)(EncoderRead(0) * g_EncoderScaleX);

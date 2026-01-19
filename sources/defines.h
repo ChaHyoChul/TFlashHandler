@@ -96,7 +96,8 @@
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.0" // 엔코더 상시 체크 (var 21, 22 추가)
 // 매크로 완료 후 브레이크 잡기전 delay 추가
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.0-Test" // 엔코더 상시 체크 (var 21, 22 추가)
-#define SOFTWARE_VERSION "TFLASK-H 1.5.1" // 엔코더 상시 체크. 에러 리셋 기능 수정 (Encoder  에러가 있을 경우, X,Y 모두 클리어)
+// #define SOFTWARE_VERSION "TFLASK-H 1.5.1" // 엔코더 상시 체크. 에러 리셋 기능 수정 (Encoder  에러가 있을 경우, X,Y 모두 클리어)
+#define SOFTWARE_VERSION "TFLASK-H 1.5.2" // 엔코더 체크할 때, output 6번 bit 토글
 
 // Settings
 #define COMPORT_BAUDRATE (57600)
