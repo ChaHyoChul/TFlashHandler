@@ -701,8 +701,8 @@ int CheckEncoder()
 	if (IsError() == 0)
 	{
 		// 체크할 때 output을 toggle 한다
-		LED_STATUS = (LED_STATUS == 0) ? 1 : 0;
-		SetDO(6, LED_STATUS);
+		// LED_STATUS = (LED_STATUS == 0) ? 1 : 0;
+		// SetDO(6, LED_STATUS);
 
 		if (tolerance_x > 0)
 		{

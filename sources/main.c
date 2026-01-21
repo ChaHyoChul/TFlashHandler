@@ -80,8 +80,12 @@ extern int pulse_count_axis;
 
 char g_cMotionComm[MAX_AXIS];
 
+char g_TimerIsr_LED_STATUS = 0;
 void TimerIsr_1ms()
 {
+	// 체크할 때 output을 toggle 한다
+	g_TimerIsr_LED_STATUS = (g_TimerIsr_LED_STATUS == 0) ? 1 : 0;
+	SetDO(6, g_TimerIsr_LED_STATUS);
 }
 
 void DoCmd(char *cmd);
