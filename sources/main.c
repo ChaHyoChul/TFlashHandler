@@ -69,6 +69,8 @@ extern double g_fMASPOffset[2];
 extern POINT_DATA g_PointData[MAX_POINT_DATA];
 extern char g_PointDataCommandState;
 
+extern int g_MotorEncoderErrorOutpSignalTime;
+
 ////////////////////////////////////////////////////
 // v1.5.1-encoder-test 기능 추가용 변수
 // COMM_PTP 명령으로 이동하는 동안 10ms 간격으로 데이터 저장
@@ -84,8 +86,9 @@ char g_TimerIsr_LED_STATUS = 0;
 void TimerIsr_1ms()
 {
 	// 체크할 때 output을 toggle 한다
-	g_TimerIsr_LED_STATUS = (g_TimerIsr_LED_STATUS == 0) ? 1 : 0;
-	SetDO(6, g_TimerIsr_LED_STATUS);
+	// g_TimerIsr_LED_STATUS = (g_TimerIsr_LED_STATUS == 0) ? 1 : 0;
+	// SetDO(6, g_TimerIsr_LED_STATUS);
+	CheckEncoderEx();
 }
 
 void DoCmd(char *cmd);
@@ -138,6 +141,7 @@ int _tmain(void)
 
 	g_MaxEncoderDeviationX = 0;
 	g_MaxEncoderDeviationY = 0;
+	g_MotorEncoderErrorOutpSignalTime = 0;
 
 	//	sprintf(str, "Robots and Design Co., Ltd. - PreAlignerV400\r\n");
 	//	SerialWriteBytes(UART_PORT0, str, strlen(str));
@@ -170,7 +174,7 @@ int _tmain(void)
 		{
 			MainControl();
 			BreakControl();
-			CheckEncoder();
+			// CheckEncoder();
 		}
 
 		if ((counter % systemCheckIntervalTime) == 0) // about 0.5ms interval

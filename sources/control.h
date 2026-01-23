@@ -192,6 +192,7 @@ void InitAxis();
 void MainControl();
 void BreakControl();
 int CheckEncoder();
+void CheckEncoderEx();
 
 void JogStart(char axis, char dir);
 void JogStop(char axis);

@@ -98,7 +98,8 @@
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.0-Test" // 엔코더 상시 체크 (var 21, 22 추가)
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.1" // 엔코더 상시 체크. 에러 리셋 기능 수정 (Encoder  에러가 있을 경우, X,Y 모두 클리어)
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.2" // 엔코더 체크할 때, output 6번 bit 토글
-#define SOFTWARE_VERSION "TFLASK-H 1.5.3" // TimerIsr 1ms 테스트 (6bit on -> off)
+// #define SOFTWARE_VERSION "TFLASK-H 1.5.3" // TimerIsr 1ms 테스트 (6bit on -> off)
+#define SOFTWARE_VERSION "TFLASK-H 1.5.4" // TimerIsr() 함수에서 CheckEncoderEx() 함수 실행하도록 수정
 
 // Settings
 #define COMPORT_BAUDRATE (57600)

@@ -40,6 +40,8 @@ double g_fRegripZPos = 0.0;
 int g_nRegripDelay = 0;
 double g_fMASPOffset[2] = {0.0, 0.0};
 
+int g_MotorEncoderErrorOutpSignalTime = 0;
+
 STATUS g_Status = {
 	0,
 };
@@ -768,6 +770,103 @@ int CheckEncoder()
 	}
 
 	return ret;
+}
+
+void CheckEncoderEx()
+{
+	//	static int nErrOutputCount = 0; // Output on 일 때, 500으로 초기화
+	int tolerance_x = get_var(19);
+	int tolerance_y = get_var(20);
+	// int output_signal = get_var(23);
+	signed int counter = 0;
+	signed int encoder = 0;
+	int error_count_x = 0;
+	int error_count_y = 0;
+
+	// 에러 Output clear
+	if (g_MotorEncoderErrorOutpSignalTime >= 1)
+	{
+		g_MotorEncoderErrorOutpSignalTime -= 1;
+	}
+	else if (g_MotorEncoderErrorOutpSignalTime == 0)
+	{
+		g_MotorEncoderErrorOutpSignalTime = -1;
+		SetDO(6, 0);
+	}
+
+	// 모터 에러 상태가 아닐때만
+	if (IsError() == 0)
+	{
+		// 체크할 때 output을 toggle 한다
+		// LED_STATUS = (LED_STATUS == 0) ? 1 : 0;
+		// SetDO(6, LED_STATUS);
+
+		if (tolerance_x > 0)
+		{
+			// error_count_x = (int)CounterRead(0) - (int)(EncoderRead(0) * g_EncoderScaleX);
+			counter = (signed int)CounterRead(0);
+			encoder = (signed int)EncoderRead(0); // * g_EncoderScaleX);
+			encoder = encoder * g_EncoderScaleX;
+
+			if (counter != encoder)
+			{
+				if (counter > encoder)
+					error_count_x = counter - encoder;
+				else
+					error_count_x = encoder - counter;
+
+				if (error_count_x > tolerance_x)
+				{
+					// 에러
+					SetErrorCode(ERR_ENCODER_ERROR_X);
+					// g_OriginCompletedAxes[X_AXIS] = 0;
+					SetOriginCompletedFlag(X_AXIS, FALSE);
+					// Motor Stop
+					StopMotors();
+					// 에러 Output On
+					SetDO(6, 1);
+					g_MotorEncoderErrorOutpSignalTime = get_var(23);
+				}
+
+				if (error_count_x > g_MaxEncoderDeviationX)
+				{
+					g_MaxEncoderDeviationX = error_count_x;
+				}
+			}
+		}
+		if (tolerance_y > 0)
+		{
+			counter = (signed int)CounterRead(1);
+			encoder = (signed int)EncoderRead(1); // * g_EncoderScaleY);
+			encoder = encoder * g_EncoderScaleY;
+
+			if (counter != encoder)
+			{
+				if (counter > encoder)
+					error_count_y = counter - encoder;
+				else
+					error_count_y = encoder - counter;
+
+				if (error_count_y > tolerance_y)
+				{
+					// 에러
+					SetErrorCode(ERR_ENCODER_ERROR_Y);
+					// g_OriginCompletedAxes[Y_AXIS] = 0;
+					SetOriginCompletedFlag(Y_AXIS, FALSE);
+					// Motor Stop
+					StopMotors();
+					// 에러 Output On
+					SetDO(6, 1);
+					g_MotorEncoderErrorOutpSignalTime = get_var(23);
+				}
+
+				if (error_count_y > g_MaxEncoderDeviationY)
+				{
+					g_MaxEncoderDeviationY = error_count_y;
+				}
+			}
+		}
+	}
 }
 
 void SystemCheck()
