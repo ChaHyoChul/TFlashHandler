@@ -86,8 +86,8 @@ char g_TimerIsr_LED_STATUS = 0;
 void TimerIsr_1ms()
 {
 	// 체크할 때 output을 toggle 한다
-	g_TimerIsr_LED_STATUS = (g_TimerIsr_LED_STATUS == 0) ? 1 : 0;
-	SetDO(5, g_TimerIsr_LED_STATUS);
+	//	g_TimerIsr_LED_STATUS = (g_TimerIsr_LED_STATUS == 0) ? 1 : 0;
+	//	SetDO(5, g_TimerIsr_LED_STATUS);
 	//
 	CheckEncoderEx();
 }
@@ -473,7 +473,8 @@ void DoCmd(char *cmd)
 	else if (IS_COMMAND(cmd, "DRT"))
 	{
 		clear_error();
-		AsyncWasteOff();
+		AsyncWasteOff();	
+		SetDO(5, 0);
 		send("DRT\r\n");
 	}
 	else if (IS_COMMAND(cmd, "VAR"))

@@ -777,25 +777,64 @@ void CheckEncoderEx()
 	//	static int nErrOutputCount = 0; // Output on 일 때, 500으로 초기화
 	int tolerance_x = get_var(19);
 	int tolerance_y = get_var(20);
-	// int output_signal = get_var(23);
 	signed int counter = 0;
 	signed int encoder = 0;
 	int error_count_x = 0;
 	int error_count_y = 0;
+	//
+	const int error_signal_no = 5;
 
 	// 에러 Output clear
-	if (g_MotorEncoderErrorOutpSignalTime >= 1)
-	{
+	//if (g_MotorEncoderErrorOutpSignalTime >= 1)
+	//{
+	//	g_MotorEncoderErrorOutpSignalTime -= 1;
+	//}
+	//else if (g_MotorEncoderErrorOutpSignalTime == 0)
+	//{
+	//	g_MotorEncoderErrorOutpSignalTime = -1;
+	//	SetDO(error_signal_no, 0);
+	//}
+
+	// 위 코드에서 간헐적으로 출력이 안꺼지는 현상 - 개선 1 (테스트는 안함) 
+	// if (g_MotorEncoderErrorOutpSignalTime == 0) {
+	// 	g_MotorEncoderErrorOutpSignalTime = -1;
+	// 	SetDO(error_signal_no, 0);
+	// }
+	// else if (g_MotorEncoderErrorOutpSignalTime == -1) {
+	// 	;
+	// }
+	// else if (g_MotorEncoderErrorOutpSignalTime >= 1) {
+	// 	g_MotorEncoderErrorOutpSignalTime -= 1;
+	// }
+	// else {
+	// 	g_MotorEncoderErrorOutpSignalTime = 0;
+	// }
+
+	// 위 코드에서 간헐적으로 출력이 안꺼지는 현상 - 개선 2 
+	if (g_MotorEncoderErrorOutpSignalTime == 0) {
+		g_MotorEncoderErrorOutpSignalTime = -1;
+		SetDO(error_signal_no, 0);
+	}
+	else if (g_MotorEncoderErrorOutpSignalTime == -1) {
+		;
+	}
+	else if (g_MotorEncoderErrorOutpSignalTime > get_var(23)) {
+		g_MotorEncoderErrorOutpSignalTime = 0;
+	}
+	else if (g_MotorEncoderErrorOutpSignalTime >= 1) {
 		g_MotorEncoderErrorOutpSignalTime -= 1;
 	}
-	else if (g_MotorEncoderErrorOutpSignalTime == 0)
-	{
-		g_MotorEncoderErrorOutpSignalTime = -1;
-		SetDO(6, 0);
+	else if (g_MotorEncoderErrorOutpSignalTime <= -2) {
+		g_MotorEncoderErrorOutpSignalTime = 0;
+	}
+	else {
+		g_MotorEncoderErrorOutpSignalTime = 0;
 	}
 
-	// 모터 에러 상태가 아닐때만
-	if (IsError() == 0)
+	// 모터 에러 상태가 아닐때만. IsError() 함수에서 CommError는 체크하지 않는다 
+	//if (IsError() == 0)
+	if (!IsCommError(g_ErrorCode) &&
+		!(g_ErrorCode == ERR_ENCODER_ERROR_X || g_ErrorCode == ERR_ENCODER_ERROR_Y))
 	{
 		// 체크할 때 output을 toggle 한다
 		// LED_STATUS = (LED_STATUS == 0) ? 1 : 0;
@@ -824,7 +863,7 @@ void CheckEncoderEx()
 					// Motor Stop
 					StopMotors();
 					// 에러 Output On
-					SetDO(6, 1);
+					SetDO(error_signal_no, 1);
 					g_MotorEncoderErrorOutpSignalTime = get_var(23);
 				}
 
@@ -856,7 +895,7 @@ void CheckEncoderEx()
 					// Motor Stop
 					StopMotors();
 					// 에러 Output On
-					SetDO(6, 1);
+					SetDO(error_signal_no, 1);
 					g_MotorEncoderErrorOutpSignalTime = get_var(23);
 				}
 

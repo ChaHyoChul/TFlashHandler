@@ -100,7 +100,10 @@
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.2" // 엔코더 체크할 때, output 6번 bit 토글
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.3" // TimerIsr 1ms 테스트 (6bit on -> off)
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.4" // TimerIsr() 함수에서 CheckEncoderEx() 함수 실행하도록 수정
-#define SOFTWARE_VERSION "TFLASK-H 1.5.4-a" // TimerIsr() 함수에 output 5번 trigger 신호 출력
+// #define SOFTWARE_VERSION "TFLASK-H 1.5.4-a" // TimerIsr() 함수에 output 5번 trigger 신호 출력
+// #define SOFTWARE_VERSION "TFLASK-H 1.5.5" // Encoder 에러 신호 변경
+// #define SOFTWARE_VERSION "TFLASK-H 1.5.5-a" // Encoder 에러 신호 길이 조건 개선, Encoder 에러 체크 조건 변경 (신호가 안꺼지는 현상 수정)
+#define SOFTWARE_VERSION "TFLASK-H 1.5.5-b" // DRT 명령에 Outout 5번 신호 OFF
 
 // Settings
 #define COMPORT_BAUDRATE (57600)
