@@ -103,7 +103,10 @@
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.4-a" // TimerIsr() 함수에 output 5번 trigger 신호 출력
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.5" // Encoder 에러 신호 변경
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.5-a" // Encoder 에러 신호 길이 조건 개선, Encoder 에러 체크 조건 변경 (신호가 안꺼지는 현상 수정)
-#define SOFTWARE_VERSION "TFLASK-H 1.5.5-b" // DRT 명령에 Outout 5번 신호 OFF
+// #define SOFTWARE_VERSION "TFLASK-H 1.5.5-b" // DRT 명령에 Outout 5번 신호 OFF
+#define SOFTWARE_VERSION "TFLASK-H 1.5.5-c" // Origin complete가 false 이면, encoder 체크 하지 않는다. 
+                                            // Home 동작 전에 pulse count를 모두 0으로 초기화 한다 
+                                            // (Home 동작전 움직였을 수 있음)
 
 // Settings
 #define COMPORT_BAUDRATE (57600)

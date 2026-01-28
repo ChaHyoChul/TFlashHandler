@@ -227,15 +227,9 @@ void clear_error()
 		prevErrorCode == ERR_ENCODER_ERROR_Y)
 	{
 		// X축 리셋
-		CounterReset(X_AXIS);
-		EncoderReset(X_AXIS);
-		EncoderWrite(X_AXIS, 0);
-		g_MaxEncoderDeviationX = 0;
+		reset_encoder_xy(X_AXIS);
 		// Y축 리셋
-		CounterReset(Y_AXIS);
-		EncoderReset(Y_AXIS);
-		EncoderWrite(Y_AXIS, 0);
-		g_MaxEncoderDeviationY = 0;
+		reset_encoder_xy(Y_AXIS);
 	}
 }
 
@@ -758,4 +752,20 @@ void reset_system_var()
 	set_var(20, 100);  // 2번축 허용 오차
 	set_var(21, 500);  // IDLE 상태 체크 주기
 	set_var(22, 500);  // MACRO RUN 상태 체크 주기
+}
+
+void reset_encoder_xy(int axis)
+{
+	if (axis == X_AXIS || axis == Y_AXIS)
+	{
+		CounterReset(axis);
+		EncoderReset(axis);
+		EncoderWrite(axis, 0);
+		if (axis == X_AXIS) {
+			g_MaxEncoderDeviationX = 0;
+		}
+		else {
+			g_MaxEncoderDeviationY = 0;
+		}
+	}
 }

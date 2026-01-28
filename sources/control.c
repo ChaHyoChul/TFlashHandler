@@ -781,6 +781,7 @@ void CheckEncoderEx()
 	signed int encoder = 0;
 	int error_count_x = 0;
 	int error_count_y = 0;
+	char is_homing = 0;
 	//
 	const int error_signal_no = 5;
 
@@ -833,7 +834,12 @@ void CheckEncoderEx()
 
 	// 모터 에러 상태가 아닐때만. IsError() 함수에서 CommError는 체크하지 않는다 
 	//if (IsError() == 0)
-	if (!IsCommError(g_ErrorCode) &&
+	is_homing = (g_MotionCommand == COMM_ORIGIN) || 
+				(g_MotionCommand == COMM_ORIGIN_A) || 
+				(g_MotionCommand == COMM_HOME);
+
+	if ((IsOriginCompleted() || is_homing) && 
+		!IsCommError(g_ErrorCode) &&
 		!(g_ErrorCode == ERR_ENCODER_ERROR_X || g_ErrorCode == ERR_ENCODER_ERROR_Y))
 	{
 		// 체크할 때 output을 toggle 한다
@@ -1560,8 +1566,9 @@ char CommOrigin()
 	case 9:
 		for (axis = 0; axis < MAX_AXIS; ++axis)
 		{
-			CounterReset(axis);
-			EncoderReset(axis);
+			// CounterReset(axis);
+			// EncoderReset(axis);
+			reset_encoder_xy(axis);
 			MovVar[axis].m_ucDir = (unsigned char)((~g_MotionParam[axis].m_ucOrgDir) & 1); // Positive ��������
 			MovVar[axis].m_uAcel = 0;													   // ���� �ӵ��� ����
 
@@ -1731,8 +1738,9 @@ char CommOrigin()
 	case 18:
 		for (axis = 0; axis < MAX_AXIS; ++axis)
 		{
-			CounterReset(axis); // �������� �����Ѵ�.
-			EncoderReset(axis);
+			//CounterReset(axis); // �������� �����Ѵ�.
+			//EncoderReset(axis);
+			reset_encoder_xy(axis);
 			SetSpeed(axis, SPEED_NORMAL);
 		}
 
@@ -1906,8 +1914,9 @@ char CommOriginAxis()
 		POINT_DATA pd = get_point_data(12);
 		double org_offset = 0.2;
 
-		CounterReset(g_OriginAxis);
-		EncoderReset(g_OriginAxis);
+		//CounterReset(g_OriginAxis);
+		//EncoderReset(g_OriginAxis);
+		reset_encoder_xy(g_OriginAxis);
 
 		switch (g_OriginAxis)
 		{
@@ -1959,8 +1968,9 @@ char CommOriginAxis()
 		break;
 
 	case 9:
-		CounterReset(g_OriginAxis); // �������� �����Ѵ�.
-		EncoderReset(g_OriginAxis);
+		//CounterReset(g_OriginAxis); // �������� �����Ѵ�.
+		//EncoderReset(g_OriginAxis);
+		reset_encoder_xy(g_OriginAxis);
 		SetSpeed(g_OriginAxis, SPEED_NORMAL);
 		SetOriginCompletedFlag(g_OriginAxis, 1);
 		timerCount = 20;
@@ -2151,7 +2161,8 @@ void InitAxis()
 			debugf("Axis(%d) DriverError!!! (%d)", axis, DriverErrorCheck(axis));
 		}
 
-		CounterReset(axis);
+		//CounterReset(axis);
+		reset_encoder_xy(axis);
 		// Encoder 초기화
 		SetEncoderDir(axis, 0);
 		EncoderReset(axis);
@@ -2583,8 +2594,9 @@ char CommHome()
 		break;
 
 	case 16: // 9:
-		CounterReset(origin_axis[origin_index]);
-		EncoderReset(origin_axis[origin_index]);
+		//CounterReset(origin_axis[origin_index]);
+		//EncoderReset(origin_axis[origin_index]);
+		reset_encoder_xy(origin_axis[origin_index]);
 		step++;
 		break;
 
@@ -2644,8 +2656,9 @@ char CommHome()
 		//
 
 	case 20: // 13:
-		CounterReset(origin_axis[origin_index]);
-		EncoderReset(origin_axis[origin_index]);
+		//CounterReset(origin_axis[origin_index]);
+		//EncoderReset(origin_axis[origin_index]);
+		reset_encoder_xy(origin_axis[origin_index]);
 		SetSpeed(origin_axis[origin_index], SPEED_NORMAL);
 		SetOriginCompletedFlag(origin_axis[origin_index], 1);
 		delay_count = 20;

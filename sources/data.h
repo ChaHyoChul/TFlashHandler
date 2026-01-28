@@ -149,4 +149,6 @@ void reset_motion_param();
 void reset_point_data();
 void reset_system_var();
 
+void reset_encoder_xy(int axis);
+
 #endif // #ifndef _DATA_H_

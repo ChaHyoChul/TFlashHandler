@@ -782,6 +782,8 @@ void DoCmd(char *cmd)
 		}
 
 		SetCommand("ORA");
+		reset_encoder_xy(X_AXIS);
+		reset_encoder_xy(Y_AXIS);
 		SetControlCommand(COMM_ORIGIN_A);
 		g_ResponseSend = 1;
 		send("ORA\r\n");
@@ -1499,6 +1501,8 @@ void DoCmd(char *cmd)
 		}
 
 		SetCommand("HOME");
+		reset_encoder_xy(X_AXIS);
+		reset_encoder_xy(Y_AXIS);
 		SetControlCommand(COMM_HOME);
 		g_ResponseSend = 1;
 		send("HOME\r\n");
