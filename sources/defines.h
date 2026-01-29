@@ -108,7 +108,9 @@
                                             // Home 동작 전에 pulse count를 모두 0으로 초기화 한다 
                                             // (Home 동작전 움직였을 수 있음)
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.5-d" // 0128-1530. 통신이 들어오는 동안 encoder check timer 함수 skip 
-#define SOFTWARE_VERSION "TFLASK-H 1.5.5-e" // 0128-1430. 통신이 들어오는 동안 encoder check timer 함수 skip =>  g_TimerIsr_Skip=0 위치 변경
+// #define SOFTWARE_VERSION "TFLASK-H 1.5.5-e" // 0128-1430. 통신이 들어오는 동안 encoder check timer 함수 skip =>  g_TimerIsr_Skip=0 위치 변경
+
+#define SOFTWARE_VERSION "TFLASK-H 1.5.6-a" // 0129-0850. 통신이 들어오는 동안 encoder check timer 함수 skip =>  g_TimerIsr_Skip=0 위치 변경
 
 
 // Settings

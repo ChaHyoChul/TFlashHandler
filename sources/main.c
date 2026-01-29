@@ -81,8 +81,8 @@ extern int pulse_count_axis;
 ////////////////////////////////////////////////////
 
 char g_cMotionComm[MAX_AXIS];
-char g_TimerIsr_LED_STATUS = 0;
-char volatile g_TimerIsr_Skip = 0;
+// char g_TimerIsr_LED_STATUS = 0;
+// char volatile g_TimerIsr_Skip = 0;
 
 void TimerIsr_1ms()
 {
@@ -90,8 +90,8 @@ void TimerIsr_1ms()
 	//	g_TimerIsr_LED_STATUS = (g_TimerIsr_LED_STATUS == 0) ? 1 : 0;
 	//	SetDO(5, g_TimerIsr_LED_STATUS);
 	//
-	if (g_TimerIsr_Skip == 1) return; 
-	CheckEncoderEx();
+	// if (g_TimerIsr_Skip == 1) return; 
+	// CheckEncoderEx();
 }
 
 void DoCmd(char *cmd);
@@ -195,8 +195,6 @@ int _tmain(void)
 		
 		while (PopRcvChar(UART_PORT0, &ch) != 0)
 		{
-			if (nszCmdOfs >= 1) { g_TimerIsr_Skip = 1; }
-
 			if (nszCmdOfs == 0)
 			{
 				if (ch == ' ' || ch == '\r' || ch == '\n')
@@ -215,7 +213,6 @@ int _tmain(void)
 				ch = 0;
 				memset(szCmd, 0, sizeof(szCmd));
 				nszCmdOfs = 0;
-				g_TimerIsr_Skip = 0;
 
 				timeCommElapsed = GetTicCountUS() - timeCommStart;
 				g_CommReceiveTime = (timeCommElapsed + 9 * g_CommReceiveTime) / 10;

@@ -17,27 +17,28 @@
 #define COMM_ERROR_STOP 10
 #define COMM_ORIGIN_A 18
 
-#define COMM_HOME 31  // homming
-#define COMM_MGRI 32  // grip					PD1
-#define COMM_MUNG 33  // ungrip 				PD2
-#define COMM_MLOA 34  // movexy(load) 		PD3
-#define COMM_MASP 35  // movexy(aspirate) 	PD4
-#define COMM_MDIS 36  // movexy(dispense) 	PD5
-#define COMM_MSHA 37  // shake 				Not used PD VAR6(회수) VAR7(Delay)
-#define COMM_MWAS 38  // waste 				PD8   VAR8(Delay)
-#define COMM_MSEP 39  // separate 			PD9-10
-#define COMM_AWAS 40  // async waste 			PD11 -> PD08 (PD11 이동 -> Output On PD8)
-#define COMM_MWRD 41  // ready waste
-#define COMM_MWPR 42  // pour waste
-#define COMM_EQIL 43  // separate long shape
-#define COMM_EQIS 44  // separate short shape
-#define COMM_MSHK 45  // shake 				PD6 for ready pos. VAR6(회수) VAR7(Delay)
-#define COMM_SWIRL 46 // shake
-#define COMM_MMLD 47  // move x,y
-#define COMM_MAMV 48  // move x,y
-#define COMM_MRGI 49  // re-grip
-#define COMM_RASP 50  // re-grip and aspirate
-#define COMM_RAMV 51  // regrip and move x,y
+					  // * 표시는 이동 후 엔코더 에러시 Gentry로 신호를 출력해야 하는 명령 
+#define COMM_HOME 31  //   homming
+#define COMM_MGRI 32  //   grip					PD1
+#define COMM_MUNG 33  //   ungrip 				PD2
+#define COMM_MLOA 34  //   movexy(load) 			PD3
+#define COMM_MASP 35  // * movexy(aspirate) 		PD4
+#define COMM_MDIS 36  // * movexy(dispense) 		PD5
+#define COMM_MSHA 37  //   shake 					Not used PD VAR6(회수) VAR7(Delay)
+#define COMM_MWAS 38  //   waste 					PD8   VAR8(Delay)
+#define COMM_MSEP 39  //   separate 				PD9-10
+#define COMM_AWAS 40  //   async waste 			PD11 -> PD08 (PD11 이동 -> Output On PD8)
+#define COMM_MWRD 41  //   ready waste
+#define COMM_MWPR 42  //   pour waste
+#define COMM_EQIL 43  //   separate long shape
+#define COMM_EQIS 44  //   separate short shape
+#define COMM_MSHK 45  //   shake 					PD6 for ready pos. VAR6(회수) VAR7(Delay)
+#define COMM_SWIRL 46 //   shake
+#define COMM_MMLD 47  //   move x,y
+#define COMM_MAMV 48  // * move x,y
+#define COMM_MRGI 49  //   re-grip
+#define COMM_RASP 50  // * re-grip and aspirate
+#define COMM_RAMV 51  // * regrip and move x,y
 
 // speed type at SetSpeed()
 #define SPEED_ORG (0)
