@@ -16,6 +16,7 @@ extern MOTION_PARAM g_MotionParam[MAX_AXIS];
 extern char str[128]; // �ø��� �۽��� ���� ���ڿ�
 
 extern char g_MotionCommand;
+extern char g_MotionCommandBackup;
 extern int g_ErrorCode;
 
 extern double motor_x_pitch;
@@ -75,6 +76,7 @@ int g_NegLimitCount[3] = {0, 0, 0};
 void reset_limit_count(int axis);
 int inc_pos_limit_count(int axis);
 int inc_neg_limit_count(int axis);
+void encoderErrorPcoc(int axis);
 
 // v1.5.1-encoder-test 기능 추가용 변수
 // COMM_PTP 명령으로 이동하는 동안 10ms 간격으로 데이터 저장
@@ -284,6 +286,7 @@ char SetControlCommand(char cmd)
 	{
 		g_BreakReleaseStepNo = 0;
 		g_MotionCommand = cmd;
+		g_MotionCommandBackup = cmd;
 	}
 
 	return prev;
@@ -581,6 +584,7 @@ void MainControl()
 		if (g_UserStop < 3)
 		{
 			g_MotionCommand = COMM_ERROR_STOP;
+			g_MotionCommandBackup = COMM_ERROR_STOP;
 			g_GoToError = 0;
 		}
 	}
@@ -785,32 +789,6 @@ void CheckEncoderEx()
 	//
 	const int error_signal_no = 5;
 
-	// 에러 Output clear
-	//if (g_MotorEncoderErrorOutpSignalTime >= 1)
-	//{
-	//	g_MotorEncoderErrorOutpSignalTime -= 1;
-	//}
-	//else if (g_MotorEncoderErrorOutpSignalTime == 0)
-	//{
-	//	g_MotorEncoderErrorOutpSignalTime = -1;
-	//	SetDO(error_signal_no, 0);
-	//}
-
-	// 위 코드에서 간헐적으로 출력이 안꺼지는 현상 - 개선 1 (테스트는 안함) 
-	// if (g_MotorEncoderErrorOutpSignalTime == 0) {
-	// 	g_MotorEncoderErrorOutpSignalTime = -1;
-	// 	SetDO(error_signal_no, 0);
-	// }
-	// else if (g_MotorEncoderErrorOutpSignalTime == -1) {
-	// 	;
-	// }
-	// else if (g_MotorEncoderErrorOutpSignalTime >= 1) {
-	// 	g_MotorEncoderErrorOutpSignalTime -= 1;
-	// }
-	// else {
-	// 	g_MotorEncoderErrorOutpSignalTime = 0;
-	// }
-
 	// 위 코드에서 간헐적으로 출력이 안꺼지는 현상 - 개선 2 
 	if (g_MotorEncoderErrorOutpSignalTime == 0) {
 		g_MotorEncoderErrorOutpSignalTime = -1;
@@ -863,13 +841,14 @@ void CheckEncoderEx()
 				if (error_count_x > tolerance_x)
 				{
 					// 에러
-					SetErrorCode(ERR_ENCODER_ERROR_X);
-					// g_OriginCompletedAxes[X_AXIS] = 0;
-					SetOriginCompletedFlag(X_AXIS, FALSE);
-					// Motor Stop
-					StopMotors();
-					// 에러 Output On
-					SetDO(error_signal_no, 1);
+					// SetErrorCode(ERR_ENCODER_ERROR_X);
+					// // g_OriginCompletedAxes[X_AXIS] = 0;
+					// SetOriginCompletedFlag(X_AXIS, FALSE);
+					// // Motor Stop
+					// StopMotors();
+					// // 에러 Output On
+					// SetDO(error_signal_no, 1);
+					encoderErrorPcoc(X_AXIS);
 					g_MotorEncoderErrorOutpSignalTime = get_var(23);
 				}
 
@@ -894,14 +873,15 @@ void CheckEncoderEx()
 
 				if (error_count_y > tolerance_y)
 				{
-					// 에러
-					SetErrorCode(ERR_ENCODER_ERROR_Y);
-					// g_OriginCompletedAxes[Y_AXIS] = 0;
-					SetOriginCompletedFlag(Y_AXIS, FALSE);
-					// Motor Stop
-					StopMotors();
-					// 에러 Output On
-					SetDO(error_signal_no, 1);
+					// // 에러
+					// SetErrorCode(ERR_ENCODER_ERROR_Y);
+					// // g_OriginCompletedAxes[Y_AXIS] = 0;
+					// SetOriginCompletedFlag(Y_AXIS, FALSE);
+					// // Motor Stop
+					// StopMotors();
+					// // 에러 Output On
+					// SetDO(error_signal_no, 1);
+					encoderErrorPcoc(Y_AXIS);
 					g_MotorEncoderErrorOutpSignalTime = get_var(23);
 				}
 
@@ -911,6 +891,36 @@ void CheckEncoderEx()
 				}
 			}
 		}
+	}
+}
+
+void encoderErrorPcoc(int axis)
+{
+	const int error_signal_no = 5; 
+
+	if (axis == X_AXIS) {
+		SetErrorCode(ERR_ENCODER_ERROR_X);
+		SetOriginCompletedFlag(X_AXIS, FALSE);
+	}
+	else if (axis == Y_AXIS) {
+		SetErrorCode(ERR_ENCODER_ERROR_Y);
+		SetOriginCompletedFlag(Y_AXIS, FALSE);	
+	}
+	else {
+		return ;
+	}
+
+	// Motor Stop
+	StopMotors();
+	
+	// 에러 Output On
+	if (g_MotionCommandBackup == COMM_MASP || 
+		g_MotionCommandBackup == COMM_MDIS || 
+		g_MotionCommandBackup == COMM_MAMV || 
+		g_MotionCommandBackup == COMM_RASP || 
+		g_MotionCommandBackup == COMM_RAMV)
+	{
+		SetDO(error_signal_no, 1);
 	}
 }
 

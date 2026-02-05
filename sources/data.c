@@ -13,6 +13,7 @@
 // global data
 char g_LastCommand[32] = "";
 char g_MotionCommand = 0;
+char g_MotionCommandBackup = 0;
 int g_ErrorCode = 0;
 char g_OriginCompleted = 0;
 char g_OriginRunning = 0;
@@ -180,6 +181,9 @@ void clear_error()
 
 	g_ErrorCode = 0;
 	g_MotionCommand = 0;
+	g_MotionCommandBackup = 0;
+	g_OriginCompleted = 0;
+	g_OriginRunning = 0;
 	g_PointDataCommandState = CMD_READY;
 
 	g_OverRun_Command = 0;
@@ -486,6 +490,7 @@ void init_data()
 
 	// reset global variables
 	g_MotionCommand = 0;
+	g_MotionCommandBackup = 0;
 	g_Running = 0;
 	g_Alarm = 0;
 

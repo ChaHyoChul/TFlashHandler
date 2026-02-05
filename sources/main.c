@@ -55,6 +55,7 @@ extern int g_ShakeAngle;
 extern int g_MoveOffset[MAX_AXIS];
 extern int g_OriginAxis;
 extern char g_MotionCommand;
+extern char g_MotionCommandBackup;
 extern int g_ErrorCode;
 extern int g_ShakeAngleX;
 extern int g_ShakeAngleY;
@@ -178,6 +179,7 @@ int _tmain(void)
 			MainControl();
 			BreakControl();
 			// CheckEncoder();
+			CheckEncoderEx();
 		}
 
 		if ((counter % systemCheckIntervalTime) == 0) // about 0.5ms interval
@@ -2288,6 +2290,12 @@ void DoCmd(char *cmd)
 		sprintf(str, "REMX %d,%d\r\n", g_MaxEncoderDeviationX, g_MaxEncoderDeviationY);
 		send(str);
 	}
+	else if (IS_COMMAND_N(cmd, "GMCC"))
+	{
+		sprintf(str, "GMCC %d, %d\r\n", g_MotionCommand, g_MotionCommandBackup);
+		send(str);
+	}
+	
 	// COMM_PTP 명령으로 이동하는 동안 10ms 간격으로 데이터 저장
 	// ERPC : xy_pulse_count_index 리셋
 	// GRPC : xy_pulse_count_index 개수 리턴

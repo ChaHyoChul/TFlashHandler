@@ -6,6 +6,7 @@
 
 extern char g_LastCommand[32];
 extern char g_MotionCommand;
+extern char g_MotionCommandBackup;
 extern int g_ErrorCode;
 extern char g_OriginCompleted;
 extern char g_OriginRunning;

@@ -20,6 +20,7 @@ int g_TimerCount = 0;
 
 extern int  g_ErrorCode;
 extern char g_MotionCommand;
+extern char g_MotionCommandBackup;
 extern int g_MoveOffset[MAX_AXIS];
 extern MOTION_PARAM g_MotionParam[MAX_AXIS];
 

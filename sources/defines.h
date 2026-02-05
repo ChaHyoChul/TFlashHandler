@@ -110,7 +110,8 @@
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.5-d" // 0128-1530. 통신이 들어오는 동안 encoder check timer 함수 skip 
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.5-e" // 0128-1430. 통신이 들어오는 동안 encoder check timer 함수 skip =>  g_TimerIsr_Skip=0 위치 변경
 
-#define SOFTWARE_VERSION "TFLASK-H 1.5.6-a" // 0129-0850. 통신이 들어오는 동안 encoder check timer 함수 skip =>  g_TimerIsr_Skip=0 위치 변경
+// #define SOFTWARE_VERSION "TFLASK-H 1.5.6-a" // 0129-0850. 통신이 들어오는 동안 encoder check timer 함수 skip =>  g_TimerIsr_Skip=0 위치 변경
+#define SOFTWARE_VERSION "TFLASK-H 1.5.6-b" // 0129-1400. Main loop에 Encoder 체크 기능 추가. ASP/DISP 명령일 때 만 Encoder 에러 신호 출력 
 
 
 // Settings
