@@ -643,17 +643,17 @@ void reset_motion_param()
 	// AHM. 원점 센서
 	g_MotionParam[X_AXIS].m_ucOrgSensor = 8;
 	g_MotionParam[Y_AXIS].m_ucOrgSensor = 2;
-	g_MotionParam[Z_AXIS].m_ucOrgSensor = 4;
+	g_MotionParam[Z_AXIS].m_ucOrgSensor = 0;	// 공압 그리퍼 
 
 	// ANL. -Limit 센서
 	g_MotionParam[X_AXIS].m_ucNegLimit = 8;
 	g_MotionParam[Y_AXIS].m_ucNegLimit = 2;
-	g_MotionParam[Z_AXIS].m_ucNegLimit = 4;
+	g_MotionParam[Z_AXIS].m_ucNegLimit = 0;		// 공압 그리퍼 
 
 	// APL. +Limit 센서
 	g_MotionParam[X_AXIS].m_ucPosLimit = 7;
 	g_MotionParam[Y_AXIS].m_ucPosLimit = 3;
-	g_MotionParam[Z_AXIS].m_ucPosLimit = 0; // 5; Z축 +Limit는 Grip 센서로 사용
+	g_MotionParam[Z_AXIS].m_ucPosLimit = 0; 	// 공압 그리퍼 
 
 	// ALD. Lead 값
 	g_MotionParam[X_AXIS].m_fLead = 10000.0;
@@ -672,12 +672,12 @@ void reset_motion_param()
 	// HTQ. 정지 토크
 	g_MotionParam[X_AXIS].m_ucHoldTorque = 32; // 25;
 	g_MotionParam[Y_AXIS].m_ucHoldTorque = 25;
-	g_MotionParam[Z_AXIS].m_ucHoldTorque = 10;
+	g_MotionParam[Z_AXIS].m_ucHoldTorque = 10; //10;
 
 	// MTQ. 이동 토크
 	g_MotionParam[X_AXIS].m_ucMoveTorque = 65; // 50;
 	g_MotionParam[Y_AXIS].m_ucMoveTorque = 50;
-	g_MotionParam[Z_AXIS].m_ucMoveTorque = 30;
+	g_MotionParam[Z_AXIS].m_ucMoveTorque = 10; //30;
 
 	save_motion_param();
 }
@@ -724,39 +724,42 @@ void reset_system_var()
 {
 	// Var
 	set_var(1, 10);
-	set_var(2, 3000); // ReGrip (msec)
-	set_var(3, 0);
-	set_var(4, 5);
-	set_var(5, 6);
-	set_var(6, 1); //
-	set_var(7, 200);
-	set_var(8, 3000);
-	set_var(9, 5000);
-	set_var(10, 2000);
+	set_var(2, 3000); 	// ReGrip 대기 시간 (msec)
+	set_var(3, 5000);	// Grip/Ungrip timeout 시간 
+	set_var(4, 0);
+	set_var(5, 6);		// Flask 감지 센서 번호 
+	set_var(6, 0); 		// 미사용 
+	set_var(7, 200);	// Shake 동작 중 대기 시간 
+	set_var(8, 3000);	// Waste delay (기울어진 후 대기시간)
+	set_var(9, 5000);	// 용액을 나눌 때, Flask를 세운 후 대기 시간 
+	set_var(10, 2000);	// 
 	// set_var(11, 0);
-	set_var(11, 1); // HW Type (NND 부터 1)
-	set_var(12, 10);
-	set_var(13, 15);
-	set_var(14, 5000);
-	set_var(15, 1);
-	set_var(16, 20); // Y축 위치가 10보다 클 경우, 다른 위치로 이동 전에 PD 15로 먼저 이동
+	set_var(11, 1); 	// HW Type (NND 부터 1)
+	set_var(12, 10);	// HOME 동작 중 X축 회피 거리 (default 10도)
+	set_var(13, 0);		// SCARA 동기 신호 입력 번호 (미사용)
+	set_var(14, 5000);	// SCARA 동기 신호 대기 시간 Timeout (미사용)
+	set_var(15, 1);		// SCARA 동기 신호 사용 여부 (1: 미사용)
+	set_var(16, 20); 	// Y축 위치가 20보다 클 경우, 다른 위치로 이동 전에 PD 15로 먼저 이동
 
-	set_var(17, 2000); // X축 Encoder scale
-	set_var(18, 2000); // Y축 Encoder scale
+	set_var(17, 2000); 	// X축 Encoder scale
+	set_var(18, 2000); 	// Y축 Encoder scale
 	g_EncoderScaleX = 2.0;
 	g_EncoderScaleY = 2.0;
-	set_var(19, 10); // X축 Encoder 허용 오차
-	set_var(20, 10); // Y축 Encoder 허용 오차
+	set_var(19, 40); 	// X축 Encoder 허용 오차
+	set_var(20, 40); 	// Y축 Encoder 허용 오차
+	set_var(21, 100); 	// X축 Encoder 측정 주기 (미사용)
+	set_var(22, 100); 	// Y축 Encoder 측정 주기 (미사용)
+	set_var(23, 1000); 	// Gentry error signal 유지 시간 
 
-	set_var(91, 0);
-	set_var(90, 600); // Hold Break (10분)
+	set_var(91, 0);		// Demo Mode (Flask 유무 센서 미사용. 0:사용, 1:미사용)
+	set_var(90, 300); 	// 브레이크 동작 delay (브레이크 풀고 delay 후 동작 시작. 동작 완료 후 delay 시간 후 브레이크 잡는다) 
 
-	set_var(17, 2000); // Encoder scale x
-	set_var(18, 2000); // Encoder scale y
-	set_var(19, 100);  // 1번축 허용 오차
-	set_var(20, 100);  // 2번축 허용 오차
-	set_var(21, 500);  // IDLE 상태 체크 주기
-	set_var(22, 500);  // MACRO RUN 상태 체크 주기
+//	set_var(17, 2000); // Encoder scale x
+//	set_var(18, 2000); // Encoder scale y
+//	set_var(19, 100);  // 1번축 허용 오차
+//	set_var(20, 100);  // 2번축 허용 오차
+//	set_var(21, 500);  // IDLE 상태 체크 주기
+//	set_var(22, 500);  // MACRO RUN 상태 체크 주기
 }
 
 void reset_encoder_xy(int axis)

@@ -953,7 +953,7 @@ void SystemCheck()
 		{
 			SetErrorCode(ERR_EMERGENCY);
 			GoToError();
-			for (axis = 0; axis < MAX_AXIS; ++axis)
+			for (axis = 0; axis < NUM_AXIS; ++axis)
 			{
 				MovVar[g_OriginAxis].m_uAcel = EMERGENCY_STOP_DECEL;
 				MoveStop(axis);
@@ -984,7 +984,7 @@ void SystemCheck()
 	{
 		// IDLE 상태에서, 모터가 이동중일 경우 Limit 센서 확인
 		// MMA, MMI, JOG 명령등
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			if (GetMoveStatus(axis) != MOVE_STS_STOP)
 			{
@@ -1038,7 +1038,7 @@ void SystemCheck()
 	}
 	else
 	{
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			switch (get_axis_sensor(axis))
 			{
@@ -1309,7 +1309,7 @@ void UpdateOriginCompletedStatus()
 	char axis = 0;
 	char flag = 1;
 
-	for (axis = 0; axis < MAX_AXIS; ++axis)
+	for (axis = 0; axis < NUM_AXIS; ++axis)
 	{
 		if (g_OriginNeed[axis] && g_OriginCompletedAxes[axis] == 0)
 		{
@@ -1323,7 +1323,7 @@ void UpdateOriginCompletedStatus()
 
 void SetOriginCompletedFlag(char axis, char flag)
 {
-	if (axis < 0 || axis >= MAX_AXIS)
+	if (axis < 0 || axis >= NUM_AXIS)
 	{
 		return;
 	}
@@ -1348,7 +1348,7 @@ char IsStopped()
 	char axis = 0;
 	char moveStatus = 0;
 
-	for (axis = 0; axis < MAX_AXIS; ++axis)
+	for (axis = 0; axis < NUM_AXIS; ++axis)
 	{
 		moveStatus = GetMoveStatus(axis);
 		if (moveStatus != MOVE_STS_STOP)
@@ -1364,7 +1364,7 @@ void HoldMotors()
 {
 	char axis = 0;
 
-	for (axis = 0; axis < MAX_AXIS; ++axis)
+	for (axis = 0; axis < NUM_AXIS; ++axis)
 	{
 		SetHoldTorque(axis);
 	}
@@ -1374,7 +1374,7 @@ void StopMotors()
 {
 	char axis = 0;
 
-	for (axis = 0; axis < MAX_AXIS; ++axis)
+	for (axis = 0; axis < NUM_AXIS; ++axis)
 	{
 		MoveStop(axis);
 	}
@@ -1456,7 +1456,7 @@ char CommOrigin()
 
 	// Start
 	case 0: // Motion ���������� Origin Parameter �� �����Ѵ�.
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			SetOriginCompletedFlag(axis, 0);
 		}
@@ -1472,47 +1472,13 @@ char CommOrigin()
 		++step;
 		break;
 
+		// Z축 HOME 기능 제거 
 	case 3:
-		MovVar[Z_AXIS].m_uS = g_MotionParam[Z_AXIS].m_uOrgSLimit;
-		MovVar[Z_AXIS].m_ucDir = g_MotionParam[Z_AXIS].m_ucOrgDir;
-		SetSpeed(Z_AXIS, SPEED_ORG);
-
-		g_MoveStartErrorCode[Z_AXIS] = MoveStart(Z_AXIS);
-		g_MoveStartErrorLine = __LINE__;
-		if (NEG_LIMIT(Z_AXIS) != SENS_ON && g_MoveStartErrorCode[Z_AXIS]) // MoveStart(Z_AXIS))
-		{
-			step = 91;
-			return NORMAL_RUNNING;
-		}
-		else
-		{
-			++step;
-			debugf("step=%d", step);
-		}
-
-		DelayMoveStart();
-
-		break;
-
-	case 4:
-		if (HOME_SENSOR(Z_AXIS) == SENS_ON)
-		{
-			MoveStop(Z_AXIS);
-			++step;
-		}
-
-		break;
-
-	case 5:
-		if (IsStopped())
-		{
-			++step;
-		}
-
+		step = 6; 
 		break;
 
 	case 6:
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			MovVar[axis].m_uS = g_MotionParam[axis].m_uOrgSLimit;
 			MovVar[axis].m_ucDir = g_MotionParam[axis].m_ucOrgDir;
@@ -1545,7 +1511,7 @@ char CommOrigin()
 		break;
 
 	case 7:
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			if (HOME_SENSOR(axis) == SENS_ON) // NegLimit Sensor�� ON �� �� ���� �̵��Ѵ�.
 			{
@@ -1574,10 +1540,8 @@ char CommOrigin()
 		break;
 
 	case 9:
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
-			// CounterReset(axis);
-			// EncoderReset(axis);
 			reset_encoder_xy(axis);
 			MovVar[axis].m_ucDir = (unsigned char)((~g_MotionParam[axis].m_ucOrgDir) & 1); // Positive ��������
 			MovVar[axis].m_uAcel = 0;													   // ���� �ӵ��� ����
@@ -1598,7 +1562,7 @@ char CommOrigin()
 		break;
 
 	case 10:
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			if (HOME_SENSOR(axis) == SENS_OFF) // NegLimit Sensor OFF �� �� ���� �̵��Ѵ�.
 			{
@@ -1628,7 +1592,7 @@ char CommOrigin()
 		break;
 
 	case 12:
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			nNegLimitOutPos[axis] = CounterRead(axis);			   // ���������� Positive �������� �̵��Ͽ� ������ OFF �� ��ġ (��ġ ����)
 			MovVar[axis].m_ucDir = g_MotionParam[axis].m_ucOrgDir; // Negative ��������
@@ -1650,7 +1614,7 @@ char CommOrigin()
 		break;
 
 	case 13:
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			if (HOME_SENSOR(axis) == SENS_ON) // NegLimit Sensor ON �� �� ���� �̵��Ѵ�.
 			{
@@ -1680,7 +1644,7 @@ char CommOrigin()
 		break;
 
 	case 15:
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			nNegLimitInPos[axis] = CounterRead(axis); // ���������� Negative �������� �̵��Ͽ� ������ ON �� ��ġ (��ġ ����)
 
@@ -1710,7 +1674,7 @@ char CommOrigin()
 		break;
 
 	case 16:
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			move_status = GetMoveStatus(axis);
 			switch (move_status)
@@ -1733,7 +1697,6 @@ char CommOrigin()
 			++step;
 			debugf("step=%d", step);
 		}
-
 		break;
 
 	case 17:
@@ -1746,14 +1709,11 @@ char CommOrigin()
 		break;
 
 	case 18:
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
-			//CounterReset(axis); // �������� �����Ѵ�.
-			//EncoderReset(axis);
 			reset_encoder_xy(axis);
 			SetSpeed(axis, SPEED_NORMAL);
 		}
-
 		++step;
 
 	case 19:
@@ -1780,7 +1740,7 @@ char CommOrigin()
 	case 22:
 		step = 0;
 
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			SetOriginCompletedFlag(axis, 1);
 		}
@@ -1812,16 +1772,16 @@ char CommOriginAxis()
 	int res = 0;
 	char move_status = 0;
 
-	if (g_OriginAxis < 0 || g_OriginAxis >= MAX_AXIS)
+	if (g_OriginAxis < 0 || g_OriginAxis >= NUM_AXIS)
 	{
 		SetErrorCode(ERR_WRONG_COMMAND);
 		return ERROR_STOPPED;
 	}
 
-	if (IsError())
-	{
-		step = 93;
-	}
+	// if (IsError())
+	// {
+	// 	step = 93;
+	// }
 
 	switch (step)
 	{
@@ -1924,8 +1884,6 @@ char CommOriginAxis()
 		POINT_DATA pd = get_point_data(12);
 		double org_offset = 0.2;
 
-		//CounterReset(g_OriginAxis);
-		//EncoderReset(g_OriginAxis);
 		reset_encoder_xy(g_OriginAxis);
 
 		switch (g_OriginAxis)
@@ -1978,8 +1936,6 @@ char CommOriginAxis()
 		break;
 
 	case 9:
-		//CounterReset(g_OriginAxis); // �������� �����Ѵ�.
-		//EncoderReset(g_OriginAxis);
 		reset_encoder_xy(g_OriginAxis);
 		SetSpeed(g_OriginAxis, SPEED_NORMAL);
 		SetOriginCompletedFlag(g_OriginAxis, 1);
@@ -2044,7 +2000,7 @@ char CommMove()
 		return ERROR_STOPPED;
 
 	case 0:
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			if (g_MoveOffset[axis] != 0)
 			{
@@ -2087,7 +2043,7 @@ char CommMove()
 		break;
 
 	case 1:
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			move_status = GetMoveStatus(axis);
 			switch (move_status)
@@ -2124,7 +2080,7 @@ char CommMove()
 
 	case 3:
 		debugf("SetHoldTorque");
-		for (axis = 0; axis < MAX_AXIS; ++axis)
+		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
 			SetHoldTorque(axis);
 			g_MoveOffset[axis] = 0;
@@ -2221,7 +2177,7 @@ void MotionStop()
 {
 	char axis = 0;
 
-	for (axis = 0; axis < MAX_AXIS; ++axis)
+	for (axis = 0; axis < NUM_AXIS; ++axis)
 	{
 		MoveStop(axis);
 		SetHoldTorque(axis);
@@ -2381,6 +2337,7 @@ char CommHome()
 	// static int org_axis = 0;	//  원점복귀 하는 축 번호 Z->Y->X 순서
 	static int step = 0;
 	static int delay_count = 0;
+	const char is_demo_mode_var = 91;
 
 	int axis = 0;
 	int temp = 0;
@@ -2421,7 +2378,7 @@ char CommHome()
 	case 0:
 		// g_OriginAxis = Z_AXIS;
 		origin_index = 0;
-		for (axis = 0; axis < MAX_AXIS; axis++)
+		for (axis = 0; axis < NUM_AXIS; axis++)
 		{
 			SetOriginCompletedFlag(axis, 0);
 		}
@@ -2604,8 +2561,6 @@ char CommHome()
 		break;
 
 	case 16: // 9:
-		//CounterReset(origin_axis[origin_index]);
-		//EncoderReset(origin_axis[origin_index]);
 		reset_encoder_xy(origin_axis[origin_index]);
 		step++;
 		break;
@@ -2665,9 +2620,7 @@ char CommHome()
 		break;
 		//
 
-	case 20: // 13:
-		//CounterReset(origin_axis[origin_index]);
-		//EncoderReset(origin_axis[origin_index]);
+	case 20: 
 		reset_encoder_xy(origin_axis[origin_index]);
 		SetSpeed(origin_axis[origin_index], SPEED_NORMAL);
 		SetOriginCompletedFlag(origin_axis[origin_index], 1);
@@ -2693,10 +2646,8 @@ char CommHome()
 		break;
 
 	case 30: // 15:
-		// if (--g_OriginAxis >= X_AXIS) { step = 10; }
-		// else { step++; }
 		origin_index += 1;
-		if (origin_index >= MAX_AXIS)
+		if (origin_index >= NUM_AXIS)
 		{
 			step++;
 		}
@@ -2792,60 +2743,39 @@ char CommHome()
 		///////////////////////////////////////////////////////
 		// v1.2.6 Flask가 있으면 Grip 한다. Demo mode와 관련 없이 동작 한다
 	case 110:
-		if (!IsExistFlask())
-		{
-			step = 120;
-		}
-		else
-		{
-			step = 111;
-		}
+		if (!IsExistFlask()) { step = 120; }
+		else { step = 111; }
 		break;
 	case 111:
-		if (IsGrip())
-		{
-			step = 120;
-		}
-		else
-		{
-			step = 112;
-		}
+		if (IsGrip()) { step = 120; }
+		else { step = 112; }
 	case 112:
-		// Z축을 Grip 될때까지 이동한다. 15mm 이동 후 감지 되면 멈춘다
-		// 감지되지 않으면???
-		g_MoveOffset[Z_AXIS] = (int)(15 / g_MotionParam[Z_AXIS].m_fScaleFactor);
-		SetMoveOffset(Z_AXIS, g_MoveOffset[Z_AXIS]);
-		SetSpeedRatio(Z_AXIS, SPEED_NORMAL, 60);
-		g_MoveStartErrorCode[Z_AXIS] = MoveStart(Z_AXIS);
-		g_MoveStartErrorLine = __LINE__;
-		if (g_MoveStartErrorCode[Z_AXIS])
-		{
-			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
-			return NORMAL_RUNNING;
-		}
-		DelayMoveStart();
+		// Z축을 Grip
+		Grip();
+		IsTimeoutGripUngrip(1, 1);
 		step = 113;
 		break;
 	case 113:
 		if (IsGrip())
 		{
-			MoveStop(Z_AXIS);
+			if (get_var(is_demo_mode_var) == 0) {
+				SetErrorCode(ERR_GRIP_ERROR);
+				step = 91;
+				return NORMAL_RUNNING;
+			}
 			step = 114;
 			break;
 		}
-		if (move_done(0x04))
+		if (IsTimeoutGripUngrip(0, 1) != 0)
 		{
-			step = 116;
-			break;
+			Grip();
+			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
+			step = 91;
+			return NORMAL_RUNNING;
 		}
 		break;
 	case 114:
-		if (IsStopped())
-		{
-			Delay1ms();
-			step = 116;
-		}
+		step = 116;
 		break;
 	case 116:
 		step = 120;
@@ -2973,108 +2903,84 @@ char CommMMLD()
 	return 0;
 }
 
-// g_MoveOffset[] 변수에 위치를 저장해 놓고, 그 위치로 이동한다
+// 공압 Sol 동작 
+// g_MovePointData가 1이면 Grip, 2이면 Ungrip 
 char CommGripUngrip()
 {
 	static char step = 0;
-	int varGripOption = 6;
-	int axis = 0;
-	char flag = 1;
-	char move_start = 0;
-	char move_status = 0;
+	char is_demo_mode_var = 91;
 
 	switch (step)
 	{
 		// Error handling
-	case 91:
-		StopMotors();
-		step++;
-		break;
-	case 92:
-		if (IsStopped())
-		{
-			step++;
-		}
-		break;
-	case 93:
-		HoldMotors();
-		step = 0;
-		return ERROR_STOPPED;
+	case 91: Grip(); step++; break;	// 디폴트 상태 (Grip)
+	case 92: step++; break;
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
 
-		// Start
-		// move_offset 값이 0이면 MoveStart() 함수에서 3번 에러 발생
-		// offset = target_pos - current_pos
-		// point data 2번. Z축 위치 사용
+		// Grip/Ungrip Output 출력 
 	case 0:
-		if (g_MovePointDataNo != 0)
+		switch (g_MovePointDataNo)
 		{
-			move_start = move_pd(g_MovePointDataNo, 0x04);
-			g_MoveStartErrorLine = __LINE__;
-			if (move_start)
-			{
-				SetErrorCode(ERR_MOTOR_ERROR);
-				step = 91;
-				return NORMAL_RUNNING;
-			}
-			DelayMoveStart();
-			step++;
-		}
-		else
-		{
-			step = 4;
+		case 1: step = 1; break; // Grip 
+		case 2: step = 10; break; // Ungrip 
+		default:step = 30; break; 
 		}
 		break;
 
+		// Grip 
 	case 1:
-		// 이 옵션에서는 91번 변수를 사용하지 않는다 (Grip 센서 사용 유무)
-		// 옵션을 사용하지 않아도 센서가 고장났을 경우 티칭 위치까지만 이동하며,
-		// 이 후 Grip 센서가 들어오지 않기 때문임
-		if (g_MovePointDataNo == 1 && get_var(varGripOption) != 0)
-		{
-			// Grip일 경우, Grip 센서가 들어오면 바로 멈춘다
-			if (IsGrip())
-			{
-				MoveStop(Z_AXIS);
-				step = 2;
-				break;
-			}
-		}
-		if (move_done(0x04))
-		{
-			step++;
-		}
+		Grip();
+		IsTimeoutGripUngrip(1, 1);
+		step++;
 		break;
 
 	case 2:
-		if (IsStopped())
+		if (IsGrip())
 		{
-			step++;
-		}
-		break;
-
-	case 3:
-		if (g_MovePointDataNo == 1)
-		{
-			// send("case 3\r\n");
-			// Grip일 때, Grip 센서가 감지되는지 확인
-			if ((get_var(91) == 0) && !IsGrip())
-			{
-				// send("case 3 : error routine\r\n");
-				//  Error
-				SetErrorCode(ERR_GRIP_ERROR);
-				step = 91;
-				return NORMAL_RUNNING;
+			if (get_var(is_demo_mode_var) == 0) {
+				// 플라스트 유무 체크. 플라스크 없으면 에러  
+				if (IsExistFlask() == 0) {
+					SetErrorCode(ERR_GRIP_ERROR);
+					step = 91;
+					return NORMAL_RUNNING;
+				}
 			}
+			step = 30;
+			break;
 		}
-		step++;
+		// timeout이면 1 리턴 
+		if (IsTimeoutGripUngrip(0, 1) != 0) {
+			// Timeout 에러 
+			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
+			step = 91; 
+			return NORMAL_RUNNING;
+		}
 		break;
 
-	case 4:
-		SetHoldTorque(Z_AXIS);
-		g_MovePointDataNo = 0;
-		g_MoveOffset[Z_AXIS] = 0;
+		// Ungrip 
+	case 10:
+		Ungrip();
+		IsTimeoutGripUngrip(1, 1);
 		step++;
 		break;
+	case 11:
+		if (IsUngrip())
+		{
+			step = 30;
+			break;
+		}
+		// timeout이면 1 리턴 
+		if (IsTimeoutGripUngrip(0, 1) != 0) {
+			// Timepout 에러 
+			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
+			step = 91;
+			return NORMAL_RUNNING;
+		}
+		break; 
+
+	case 30:
+		step = 0;
+		return NORMAL_FINISHED;
 
 	default:
 		step = 0;
@@ -3190,7 +3096,7 @@ char CommMoveXY()
 		break;
 
 	case 13:
-		for (axis = 0; axis < 2; axis++)
+		for (axis = 0; axis < NUM_AXIS; axis++)
 		{
 			SetHoldTorque(axis);
 			g_MovePointDataNo = 0;
@@ -3422,7 +3328,7 @@ char CommMLOA()
 		break;
 
 	case 6:
-		for (axis = 0; axis < 2; axis++)
+		for (axis = 0; axis < NUM_AXIS; axis++)
 		{
 			SetHoldTorque(axis);
 			g_MovePointDataNo = 0;
@@ -5815,6 +5721,7 @@ char CommRAMV()
 	static char step = 0;
 	static int delay_count = 0;
 	int move_start = 0;
+	char is_demo_mode_var = 91;
 	float pos[3];
 
 	if (IsError())
@@ -5825,20 +5732,9 @@ char CommRAMV()
 	switch (step)
 	{
 		// Error handling
-	case 91:
-		StopMotors();
-		step++;
-		break;
-	case 92:
-		if (IsStopped())
-		{
-			step++;
-		}
-		break;
-	case 93:
-		HoldMotors();
-		step = 0;
-		return ERROR_STOPPED;
+	case 91: StopMotors(); step++; break;
+	case 92: if (IsStopped()) { step++; } break;
+	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
 
 		// y축 위치를 확인 한다
 	case 0:
@@ -5904,74 +5800,61 @@ char CommRAMV()
 		break;
 
 		// Gripper Ungrip. PD7번의 Z축 위치로 이동
-	case 13:
-		pos[0] = pos[1] = 0.0;
-		pos[2] = g_fRegripZPos;
-		move_start = move_abs(0x04, pos, SPEED_NORMAL, g_MoveRatio);
-		g_MoveStartErrorLine = __LINE__;
-		if (move_start)
-		{
-			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
-			return NORMAL_RUNNING;
-		}
-		DelayMoveStart();
-		step += 1;
-		break;
-
+	case 13: 
+		Ungrip();
+		IsTimeoutGripUngrip(1, 1);
+		step++; 
+		break; 
 	case 14:
-		if (move_done(0x04))
+		if (IsUngrip())
 		{
-			step++;
+			delay_count = get_var(2);
+			step = 16; break; 
+		}
+		if (IsTimeoutGripUngrip(0, 1) != 0) 
+		{
+			// Timeout 에러 
+			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
+			step = 91;
+			return NORMAL_RUNNING; 
 		}
 		break;
-
-	case 15:
-		if (IsStopped())
-		{
-			delay_count = g_nRegripDelay;
-			step += 1;
-		}
-		break;
-
-		// Wait (PD2)
+		
+	// Wait (PD2)
 	case 16:
-		if (--delay_count > 0)
-		{
-			Delay1ms();
-		}
-		else
-		{
-			step += 1;
-		}
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step += 1; } 
 		break;
 
 		// GRIP
 	case 17:
-		move_start = move_pd_with_speed_ratio(POINT_GRIP, 0x04, SPEED_NORMAL, g_MoveRatio);
-		g_MoveStartErrorLine = __LINE__;
-		if (move_start)
+		Grip(); 
+		IsTimeoutGripUngrip(1, 1);
+		step++;
+		break; 
+	case 18:
+		if (IsGrip())
 		{
-			SetErrorCode(ERR_MOTOR_ERROR);
+			if (get_var(is_demo_mode_var) == 0) {
+				if (IsExistFlask() == 0) {
+					SetErrorCode(ERR_GRIP_ERROR);
+					step = 91;
+					return NORMAL_RUNNING;
+				}
+			}
+			delay_count = 500;
+			step += 1; break; 
+		}
+		if (IsTimeoutGripUngrip(0, 1) != 0) {
+			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
 			step = 91;
 			return NORMAL_RUNNING;
-		}
-		DelayMoveStart();
-		step += 1;
-		break;
-
-	case 18:
-		if (move_done(0x04))
-		{
-			step += 1;
 		}
 		break;
 
 	case 19:
-		if (IsStopped())
-		{
-			step += 1;
-		}
+		if (--delay_count > 0) { Delay1ms(); }
+		else {step = 20; }
 		break;
 
 		// x, y 위치로 이동
@@ -6030,6 +5913,7 @@ char CommMRGI()
 	static char step = 0;
 	static int delay_count = 0;
 	int move_start = 0;
+	char is_demo_mode_var = 91;
 
 	if (IsError())
 	{
@@ -6115,75 +5999,64 @@ char CommMRGI()
 		break;
 
 		// Gripper Ungrip. PD7번의 Z축 위치로 이동
-	case 13:
-		move_start = move_pd_with_speed_ratio(POINT_REGRIP, 0x04, SPEED_NORMAL, g_MoveRatio);
-		g_MoveStartErrorLine = __LINE__;
-		if (move_start)
+	case 13: 
+		Ungrip();
+		IsTimeoutGripUngrip(1, 1);
+		step++; 
+		break; 
+	case 14:
+		if (IsUngrip())
 		{
-			SetErrorCode(ERR_MOTOR_ERROR);
+			delay_count = get_var(2);
+			step = 16; break; 
+		}
+		if (IsTimeoutGripUngrip(0, 1) != 0)
+		{
+			// Timeout 에러 
+			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
 			step = 91;
 			return NORMAL_RUNNING;
 		}
-		DelayMoveStart();
-		step += 1;
-		break;
-
-	case 14:
-		if (move_done(0x04))
-		{
-			step++;
-		}
-		break;
-
-	case 15:
-		if (IsStopped())
-		{
-			delay_count = get_var(2);
-			step += 1;
-			// sendf("dc = %d\r\n", delay_count);
-		}
-		break;
+		break; 
 
 		// Wait (PD2)
 	case 16:
-		if (--delay_count > 0)
-		{
-			Delay1ms();
-		}
-		else
-		{
-			step += 1;
-		}
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step += 1; }
 		break;
 
 		// GRIP
-	case 17:
-		move_start = move_pd_with_speed_ratio(POINT_GRIP, 0x04, SPEED_NORMAL, g_MoveRatio);
-		g_MoveStartErrorLine = __LINE__;
-		if (move_start)
+	case 17: 
+		Grip(); 
+		IsTimeoutGripUngrip(1, 1);
+		step++;
+		break; 
+	case 18:
+		if (IsGrip())
 		{
-			SetErrorCode(ERR_MOTOR_ERROR);
+			if (get_var(is_demo_mode_var) == 0) {
+				if (IsExistFlask() == 0) {
+					SetErrorCode(ERR_GRIP_ERROR);
+					step = 91;
+					return NORMAL_RUNNING;
+				}
+			}
+			delay_count = 500;
+			step += 1; break;
+		}
+		if (IsTimeoutGripUngrip(0, 1) != 0) {
+			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
 			step = 91;
 			return NORMAL_RUNNING;
-		}
-		DelayMoveStart();
-		step += 1;
-		break;
-
-	case 18:
-		if (move_done(0x04))
-		{
-			step += 1;
 		}
 		break;
 
 	case 19:
-		if (IsStopped())
-		{
-			step += 1;
-		}
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step = 20; }
 		break;
 
+		// NEW LOAD 위치로 이동
 		// LOAD 위치로 이동
 	case 20:
 		move_start = move_pd_with_speed_ratio(POINT_NEW_LOAD, 0x03, SPEED_NORMAL, g_MoveRatio);
@@ -6236,6 +6109,7 @@ char CommRASP()
 	static char step = 0;
 	static int delay_count = 0;
 	int move_start = 0;
+	char is_demo_mode_var = 91;
 	float pos[3];
 
 	if (IsError())
@@ -6326,73 +6200,60 @@ char CommRASP()
 
 		// Gripper Ungrip. PD7번의 Z축 위치로 이동
 	case 13:
-		pos[0] = pos[1] = 0.0;
-		pos[2] = g_fRegripZPos;
-		move_start = move_abs(0x04, pos, SPEED_NORMAL, g_MoveRatio);
-		g_MoveStartErrorLine = __LINE__;
-		if (move_start)
+		Ungrip();
+		IsTimeoutGripUngrip(1, 1);
+		step++;
+		break;
+	case 14:
+		if (IsUngrip())
 		{
-			SetErrorCode(ERR_MOTOR_ERROR);
+			delay_count = get_var(2);
+			step = 16; break;
+		}
+		if (IsTimeoutGripUngrip(0, 1) != 0)
+		{
+			// Timeout 에러 
+			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
 			step = 91;
 			return NORMAL_RUNNING;
-		}
-		DelayMoveStart();
-		step += 1;
-		break;
-
-	case 14:
-		if (move_done(0x04))
-		{
-			step++;
-		}
-		break;
-
-	case 15:
-		if (IsStopped())
-		{
-			delay_count = g_nRegripDelay;
-			step += 1;
 		}
 		break;
 
 		// Wait (PD2)
 	case 16:
-		if (--delay_count > 0)
-		{
-			Delay1ms();
-		}
-		else
-		{
-			step += 1;
-		}
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step += 1; }
 		break;
 
 		// GRIP
 	case 17:
-		move_start = move_pd_with_speed_ratio(POINT_GRIP, 0x04, SPEED_NORMAL, g_MoveRatio);
-		g_MoveStartErrorLine = __LINE__;
-		if (move_start)
+		Grip();
+		IsTimeoutGripUngrip(1, 1);
+		step++;
+		break;
+	case 18:
+		if (IsGrip())
 		{
-			SetErrorCode(ERR_MOTOR_ERROR);
+			if (get_var(is_demo_mode_var) == 0) {
+				if (IsExistFlask() == 0) {
+					SetErrorCode(ERR_GRIP_ERROR);
+					step = 91;
+					return NORMAL_RUNNING;
+				}
+			}
+			delay_count = 500;
+			step += 1; break;
+		}
+		if (IsTimeoutGripUngrip(0, 1) != 0) {
+			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
 			step = 91;
 			return NORMAL_RUNNING;
 		}
-		DelayMoveStart();
-		step += 1;
 		break;
-
-	case 18:
-		if (move_done(0x04))
-		{
-			step += 1;
-		}
-		break;
-
+		
 	case 19:
-		if (IsStopped())
-		{
-			step += 1;
-		}
+		if (--delay_count > 0) { Delay1ms(); }
+		else { step = 20; }
 		break;
 
 		// ASP 위치로 이동
@@ -6701,7 +6562,7 @@ int move_pd(int pd_no, char sel_axis)
 
 	pd = get_point_data(pd_no);
 
-	for (axis = 0; axis < MAX_AXIS; axis++)
+	for (axis = 0; axis < NUM_AXIS; axis++)
 	{
 		if ((sel_axis & mask) == mask)
 		{
@@ -6749,7 +6610,7 @@ int move_pd_with_speed(int pd_no, int sel_axis, int spd_type)
 
 	pd = get_point_data(pd_no);
 
-	for (axis = 0; axis < MAX_AXIS; axis++)
+	for (axis = 0; axis < NUM_AXIS; axis++)
 	{
 		if ((sel_axis & mask) == mask)
 		{
@@ -6797,7 +6658,7 @@ int move_pd_with_speed_ratio(int pd_no, int sel_axis, int spd_type, int spd_rati
 
 	pd = get_point_data(pd_no);
 
-	for (axis = 0; axis < MAX_AXIS; axis++)
+	for (axis = 0; axis < NUM_AXIS; axis++)
 	{
 		if ((sel_axis & mask) == mask)
 		{
@@ -6847,7 +6708,7 @@ int move_pd_with_speed_ratio_xy_offset(int pd_no, int sel_axis, int spd_type, in
 	pd.x += xoffset;
 	pd.y += yoffset;
 
-	for (axis = 0; axis < MAX_AXIS; axis++)
+	for (axis = 0; axis < NUM_AXIS; axis++)
 	{
 		if ((sel_axis & mask) == mask)
 		{
@@ -6893,7 +6754,7 @@ int move_inc(int sel_axis, float dist[], int spd_type, int spd_ratio)
 	char axis;
 	char mask = 1;
 
-	for (axis = 0; axis < MAX_AXIS; axis++)
+	for (axis = 0; axis < NUM_AXIS; axis++)
 	{
 		if ((sel_axis & mask) == mask)
 		{
@@ -6927,7 +6788,7 @@ int move_abs(int sel_axis, float dist[], int spd_type, int spd_ratio)
 	char axis;
 	char mask = 1;
 
-	for (axis = 0; axis < MAX_AXIS; axis++)
+	for (axis = 0; axis < NUM_AXIS; axis++)
 	{
 		if ((sel_axis & mask) == mask)
 		{
@@ -6966,7 +6827,7 @@ char move_done(char sel_axis)
 	char flag = 1;
 	char mask = 1;
 
-	for (axis = 0; axis < MAX_AXIS; axis++)
+	for (axis = 0; axis < NUM_AXIS; axis++)
 	{
 		if ((sel_axis & mask) == mask)
 		{
@@ -7003,14 +6864,6 @@ char IsReleaseBreak()
 	unsigned char b = GetDOBit(1, 7);
 	// return b;
 	return 1;
-}
-
-// Grip 센서 확인
-char IsGrip()
-{
-	int bit_no = get_var(4);
-	unsigned char b = GetDIBit(1, bit_no);
-	return b;
 }
 
 // 플라스크가 있는지 확인
@@ -7086,4 +6939,45 @@ char IsYAxisPositionMovable()
 		return 1;
 	}
 	return 0;
+}
+
+// 공압 그리퍼 
+
+void Grip()
+{
+	SetDO(DO_GRIP_UNGRIP, 0);
+}
+
+void Ungrip()
+{
+	SetDO(DO_GRIP_UNGRIP, 1);
+}
+
+char IsGrip()
+{
+	char b = (char)GetDIBit(1, DI_SENS_GRIP);
+	return b;
+}
+
+char IsUngrip()
+{
+	char b = (char)GetDIBit(1, DI_SENS_UNGRIP);
+	return b;
+}
+
+char IsTimeoutGripUngrip(char is_first, int delay_ms)
+{
+	static unsigned int timeout_count = 0;
+
+	DelayMS(delay_ms);
+	if (is_first == 1) { timeout_count = 0; }
+	else { 
+		timeout_count += delay_ms;
+		if (timeout_count > get_var(3)) 
+		{
+			return 1;
+		}
+	}
+
+	return 0;	
 }

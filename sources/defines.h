@@ -111,7 +111,9 @@
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.5-e" // 0128-1430. 통신이 들어오는 동안 encoder check timer 함수 skip =>  g_TimerIsr_Skip=0 위치 변경
 
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.6-a" // 0129-0850. 통신이 들어오는 동안 encoder check timer 함수 skip =>  g_TimerIsr_Skip=0 위치 변경
-#define SOFTWARE_VERSION "TFLASK-H 1.5.6-b" // 0129-1400. Main loop에 Encoder 체크 기능 추가. ASP/DISP 명령일 때 만 Encoder 에러 신호 출력 
+// #define SOFTWARE_VERSION "TFLASK-H 1.5.6-b" // 0129-1400. Main loop에 Encoder 체크 기능 추가. ASP/DISP 명령일 때 만 Encoder 에러 신호 출력 
+
+#define SOFTWARE_VERSION "TFLASK-H 3.0.0-gripper" // 공압 그리퍼 
 
 
 // Settings
@@ -132,6 +134,7 @@
 #define X_AXIS (0)
 #define Y_AXIS (1)
 #define Z_AXIS (2)
+#define NUM_AXIS (2)
 
 // Error List
 
@@ -149,6 +152,7 @@
 #define ERR_GRIP_ERROR (13)
 #define ERR_ENCODER_ERROR_X (14)
 #define ERR_ENCODER_ERROR_Y (15)
+#define ERR_GRIP_UNGRIP_TIMEOUT (16)
 
 #define ERR_RANGE_OVER (215)
 #define ERR_SAMPLING_ERROR (216)
@@ -245,6 +249,10 @@
 
 #define MAX_DI (16)
 #define MAX_DO (8) //(12)
+
+#define DO_GRIP_UNGRIP (6)
+#define DI_SENS_UNGRIP (4) 
+#define DI_SENS_GRIP (5)
 
 // Etc
 #define EMERGENCY_STOP_DECEL (768)
