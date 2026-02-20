@@ -606,6 +606,7 @@ int breakRelease()
 		tickCount = get_var(90);
 		ReleaseBreak();
 		g_BreakReleaseStepNo = 1;
+		ret = 0;
 		break;
 	case 1:
 		tickCount -= 1;
@@ -613,9 +614,10 @@ int breakRelease()
 		{
 			g_BreakReleaseStepNo = 2;
 		}
+		ret = 0; 
 		break;
 	case 2:
-		g_BreakReleaseStepNo = 0;
+		// g_BreakReleaseStepNo = 0;
 		ret = 1;
 		break;
 	}

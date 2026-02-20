@@ -113,7 +113,9 @@
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.6-a" // 0129-0850. 통신이 들어오는 동안 encoder check timer 함수 skip =>  g_TimerIsr_Skip=0 위치 변경
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.6-b" // 0129-1400. Main loop에 Encoder 체크 기능 추가. ASP/DISP 명령일 때 만 Encoder 에러 신호 출력 
 
-#define SOFTWARE_VERSION "TFLASK-H 3.0.0-gripper" // 공압 그리퍼 
+// #define SOFTWARE_VERSION "TFLASK-H 3.0.0-gripper" // 공압 그리퍼 
+
+#define SOFTWARE_VERSION "TFLASK-H 3.0.1-gripper" // breakRelease() 함수 수정. Macro 동작전 break 풀린 후 대기 시간 없이 바로 동작되는 버그 수정 
 
 
 // Settings

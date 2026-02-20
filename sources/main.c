@@ -2384,7 +2384,7 @@ char checkBeforeRun(char *cmd,
 		return 0;
 	}
 	if (checkReleaseBreak && !IsReleaseBreak())
-	{
+	{ 
 		sprintf(str, "%s E11\r\n", cmd);
 		send(str);
 		return 0;
