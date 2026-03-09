@@ -114,8 +114,9 @@
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.6-b" // 0129-1400. Main loop에 Encoder 체크 기능 추가. ASP/DISP 명령일 때 만 Encoder 에러 신호 출력 
 
 // #define SOFTWARE_VERSION "TFLASK-H 3.0.0-gripper" // 공압 그리퍼 
+// #define SOFTWARE_VERSION "TFLASK-H 3.0.1-gripper" // breakRelease() 함수 수정. Macro 동작전 break 풀린 후 대기 시간 없이 바로 동작되는 버그 수정 
 
-#define SOFTWARE_VERSION "TFLASK-H 3.0.1-gripper" // breakRelease() 함수 수정. Macro 동작전 break 풀린 후 대기 시간 없이 바로 동작되는 버그 수정 
+#define SOFTWARE_VERSION "TFLASK-H 3.0.2-gripper" // Gripper 센서 동작 변경  
 
 
 // Settings

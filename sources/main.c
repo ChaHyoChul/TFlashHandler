@@ -2373,7 +2373,7 @@ char checkBeforeRun(char *cmd,
 		SendResponseRaw(cmd, ERR_ORIGIN_ERROR);
 		return 0;
 	}
-	if (checkStopped && !IsStopped())
+	if (checkStopped && (!IsStopped() || (g_MotionCommand != COMM_IDLE)))
 	{
 		SendResponseRaw(cmd, ERR_COMMAND_IN_RUNNING);
 		return 0;
@@ -2401,7 +2401,7 @@ char checkBeforeRun(char *cmd,
 	if (checkGripperGrip)
 	{
 		// IsGripperGripPosition
-		if ((get_var(91) == 0) && !IsGrip())
+		if ((get_var(91) == 0) && !IsGrip(TRUE))
 		{
 			sprintf(str, "%s E15\r\n", cmd);
 			send(str);

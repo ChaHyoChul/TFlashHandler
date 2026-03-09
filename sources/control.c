@@ -2749,7 +2749,7 @@ char CommHome()
 		else { step = 111; }
 		break;
 	case 111:
-		if (IsGrip()) { step = 120; }
+		if (IsGrip(TRUE)) { step = 120; }
 		else { step = 112; }
 	case 112:
 		// Z축을 Grip
@@ -2758,24 +2758,34 @@ char CommHome()
 		step = 113;
 		break;
 	case 113:
-		if (IsGrip())
-		{
-			if (get_var(is_demo_mode_var) == 0) {
-				SetErrorCode(ERR_GRIP_ERROR);
-				step = 91;
-				return NORMAL_RUNNING;
-			}
-			step = 114;
-			break;
-		}
+		// if (IsGrip(TRUE))
+		// {
+		// 	if (get_var(is_demo_mode_var) == 0) {
+		// 		SetErrorCode(ERR_GRIP_ERROR);
+		// 		step = 91;
+		// 		return NORMAL_RUNNING;
+		// 	}
+		// 	step = 114;
+		// 	break;
+		// }
+		// if (IsTimeoutGripUngrip(0, 1) != 0)
+		// {
+		// 	Grip();
+		// 	SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
+		// 	step = 91;
+		// 	return NORMAL_RUNNING;
+		// }
+		// break;
+
+		// Grip Timeout 시간 동안 대기 
 		if (IsTimeoutGripUngrip(0, 1) != 0)
 		{
-			Grip();
-			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
-			step = 91;
-			return NORMAL_RUNNING;
+			if (IsGrip(TRUE)) { step = 114; break; }
+			else { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
 		}
+		// if (GetDIBit(1, DI_SENS_GRIP) == 1) { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
 		break;
+
 	case 114:
 		step = 116;
 		break;
@@ -2937,27 +2947,44 @@ char CommGripUngrip()
 		break;
 
 	case 2:
-		if (IsGrip())
+		// if (IsGrip())
+		// {
+		// 	if (get_var(is_demo_mode_var) == 0) {
+		// 		// 플라스트 유무 체크. 플라스크 없으면 에러  
+		// 		if (IsExistFlask() == 0) {
+		// 			SetErrorCode(ERR_GRIP_ERROR);
+		// 			step = 91;
+		// 			return NORMAL_RUNNING;
+		// 		}
+		// 	}
+		// 	step = 30;
+		// 	break;
+		// }
+		// // timeout이면 1 리턴 
+		// if (IsTimeoutGripUngrip(0, 1) != 0) {
+		// 	// Timeout 에러 
+		// 	SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
+		// 	step = 91; 
+		// 	return NORMAL_RUNNING;
+		// }
+		// break;
+		
+		// Grip Timeout 시간 동안 대기 
+		if (IsTimeoutGripUngrip(0, 1) != 0)
 		{
+			// 플라스크 유무 체크 
 			if (get_var(is_demo_mode_var) == 0) {
-				// 플라스트 유무 체크. 플라스크 없으면 에러  
 				if (IsExistFlask() == 0) {
 					SetErrorCode(ERR_GRIP_ERROR);
 					step = 91;
 					return NORMAL_RUNNING;
 				}
 			}
-			step = 30;
-			break;
+			if (IsGrip(TRUE)) { step = 30; break; } 
+			else { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
 		}
-		// timeout이면 1 리턴 
-		if (IsTimeoutGripUngrip(0, 1) != 0) {
-			// Timeout 에러 
-			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
-			step = 91; 
-			return NORMAL_RUNNING;
-		}
-		break;
+		// if (GetDIBit(1, DI_SENS_GRIP) == 1) { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
+		break; 
 
 		// Ungrip 
 	case 10:
@@ -5835,8 +5862,29 @@ char CommRAMV()
 		step++;
 		break; 
 	case 18:
-		if (IsGrip())
+		// if (IsGrip())
+		// {
+		// 	if (get_var(is_demo_mode_var) == 0) {
+		// 		if (IsExistFlask() == 0) {
+		// 			SetErrorCode(ERR_GRIP_ERROR);
+		// 			step = 91;
+		// 			return NORMAL_RUNNING;
+		// 		}
+		// 	}
+		// 	delay_count = 500;
+		// 	step += 1; break; 
+		// }
+		// if (IsTimeoutGripUngrip(0, 1) != 0) {
+		// 	SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
+		// 	step = 91;
+		// 	return NORMAL_RUNNING;
+		// }
+		// break;
+
+		// Grip Timeout 시간 동안 대기 
+		if (IsTimeoutGripUngrip(0, 1) != 0)
 		{
+			// 플라스크 유무 체크 
 			if (get_var(is_demo_mode_var) == 0) {
 				if (IsExistFlask() == 0) {
 					SetErrorCode(ERR_GRIP_ERROR);
@@ -5844,15 +5892,11 @@ char CommRAMV()
 					return NORMAL_RUNNING;
 				}
 			}
-			delay_count = 500;
-			step += 1; break; 
+			if (IsGrip(TRUE)) { step += 1; break; } 
+			else { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
 		}
-		if (IsTimeoutGripUngrip(0, 1) != 0) {
-			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
-			step = 91;
-			return NORMAL_RUNNING;
-		}
-		break;
+		// if (GetDIBit(1, DI_SENS_GRIP) == 1) { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
+		break;	
 
 	case 19:
 		if (--delay_count > 0) { Delay1ms(); }
@@ -6034,8 +6078,29 @@ char CommMRGI()
 		step++;
 		break; 
 	case 18:
-		if (IsGrip())
+		// if (IsGrip())
+		// {
+		// 	if (get_var(is_demo_mode_var) == 0) {
+		// 		if (IsExistFlask() == 0) {
+		// 			SetErrorCode(ERR_GRIP_ERROR);
+		// 			step = 91;
+		// 			return NORMAL_RUNNING;
+		// 		}
+		// 	}
+		// 	delay_count = 500;
+		// 	step += 1; break;
+		// }
+		// if (IsTimeoutGripUngrip(0, 1) != 0) {
+		// 	SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
+		// 	step = 91;
+		// 	return NORMAL_RUNNING;
+		// }
+		// break;
+		
+		// Grip Timeout 시간 동안 대기 
+		if (IsTimeoutGripUngrip(0, 1) != 0)
 		{
+			// 플라스크 유무 체크 
 			if (get_var(is_demo_mode_var) == 0) {
 				if (IsExistFlask() == 0) {
 					SetErrorCode(ERR_GRIP_ERROR);
@@ -6043,15 +6108,11 @@ char CommMRGI()
 					return NORMAL_RUNNING;
 				}
 			}
-			delay_count = 500;
-			step += 1; break;
+			if (IsGrip(TRUE)) { step += 1; break; } 
+			else { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
 		}
-		if (IsTimeoutGripUngrip(0, 1) != 0) {
-			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
-			step = 91;
-			return NORMAL_RUNNING;
-		}
-		break;
+		// if (GetDIBit(1, DI_SENS_GRIP) == 1) { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
+		break; 
 
 	case 19:
 		if (--delay_count > 0) { Delay1ms(); }
@@ -6234,8 +6295,29 @@ char CommRASP()
 		step++;
 		break;
 	case 18:
-		if (IsGrip())
+		// if (IsGrip())
+		// {
+		// 	if (get_var(is_demo_mode_var) == 0) {
+		// 		if (IsExistFlask() == 0) {
+		// 			SetErrorCode(ERR_GRIP_ERROR);
+		// 			step = 91;
+		// 			return NORMAL_RUNNING;
+		// 		}
+		// 	}
+		// 	delay_count = 500;
+		// 	step += 1; break;
+		// }
+		// if (IsTimeoutGripUngrip(0, 1) != 0) {
+		// 	SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
+		// 	step = 91;
+		// 	return NORMAL_RUNNING;
+		// }
+		// break;
+		
+		// Grip Timeout 시간 동안 대기 
+		if (IsTimeoutGripUngrip(0, 1) != 0)
 		{
+			// 플라스크 유무 체크 
 			if (get_var(is_demo_mode_var) == 0) {
 				if (IsExistFlask() == 0) {
 					SetErrorCode(ERR_GRIP_ERROR);
@@ -6243,16 +6325,12 @@ char CommRASP()
 					return NORMAL_RUNNING;
 				}
 			}
-			delay_count = 500;
-			step += 1; break;
+			if (IsGrip(TRUE)) { step += 1; break; } 
+			else { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
 		}
-		if (IsTimeoutGripUngrip(0, 1) != 0) {
-			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
-			step = 91;
-			return NORMAL_RUNNING;
-		}
-		break;
-		
+		// if (GetDIBit(1, DI_SENS_GRIP) == 1) { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
+		break; 
+
 	case 19:
 		if (--delay_count > 0) { Delay1ms(); }
 		else { step = 20; }
@@ -6955,10 +7033,31 @@ void Ungrip()
 	SetDO(DO_GRIP_UNGRIP, 1);
 }
 
-char IsGrip()
+// grip output 및 센서 input 확인
+// demo 모드일 경우, input 센서는 확인하지 않는다 
+char IsGrip(char check_sensor)
 {
-	char b = (char)GetDIBit(1, DI_SENS_GRIP);
-	return b;
+	// char b = (char)GetDIBit(1, DI_SENS_GRIP);
+	// return b;
+
+	char is_demo_mode_var = 91;
+	char outp = (char)GetDOBit(1, DO_GRIP_UNGRIP);
+	char inp_grip  = (char)GetDIBit(1, DI_SENS_GRIP);
+	char inp_ungrip  = (char)GetDIBit(1, DI_SENS_UNGRIP);
+	char ret = 0;
+
+	if (check_sensor == 0 || get_var(is_demo_mode_var) != 0) 
+	{
+		// output만 확인 
+		ret = (outp == 0) ? 1 : 0;
+	}
+	else 
+	{
+		// output과 sensor 모두 확인 
+		ret = (outp == 0 && inp_grip == 0 && inp_ungrip == 0) ? 1 : 0;
+	}
+
+	return ret;
 }
 
 char IsUngrip()
