@@ -477,6 +477,16 @@ void DoCmd(char *cmd)
 	}
 	else if (IS_COMMAND(cmd, "DRT"))
 	{
+		// 2026/03/12 수정 내용 
+        // 이전엔 DRT 명령에 Enn 응답이 없었으나 
+        // 이번 수정에서 Running 중 DRT 명령이 오면, 에러 응답 전달 
+        // 정상적으로 정지 상태에서 DRT가 전달되면 아래 Enn은 실행될 일 없음 
+        if (!(g_MotionCommand == COMM_IDLE && IsStopped()))
+        {
+            SendResponseRaw("DRT", ERR_COMMAND_IN_RUNNING);
+            return;
+        }
+
 		clear_error();
 		AsyncWasteOff();	
 		SetDO(5, 0);
