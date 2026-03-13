@@ -176,9 +176,32 @@ unsigned char get_axis_sensor_state(char axis, char type)
 #define CHECK_USER_STOP()       \
 	if (g_UserStop > 0)         \
 	{                           \
-		step = 0;               \
+		g_MacroStepNo = 0;      \
 		return NORMAL_FINISHED; \
 	}
+
+#define CHECK_MOVE_TIMEOUT(VAR)					\
+        if (get_var(24) != 0)           		\
+        {                               		\
+            VAR += 1;                   		\
+            if (VAR > get_var(24))      		\
+            {                               	\
+                SetErrorCode(ERR_TIME_OVER);	\
+                g_MacroStepNo = 91;         	\
+                return NORMAL_RUNNING;      	\
+            }                               	\
+        }
+
+#define CHECK_MOVE_TIMEOUT2(VAR)				\
+        if (get_var(24) != 0)           		\
+        {                               		\
+            VAR += 1;                   		\
+            if (VAR > get_var(24))      		\
+            {                               	\
+                return 3;				      	\
+            }                               	\
+        }
+
 
 static volatile char g_idi_send = 0;
 static char g_idi_buffer[256] = "";
@@ -287,6 +310,7 @@ char SetControlCommand(char cmd)
 		g_BreakReleaseStepNo = 0;
 		g_MotionCommand = cmd;
 		g_MotionCommandBackup = cmd;
+		g_MacroStepNo = 0;
 	}
 
 	return prev;
@@ -585,6 +609,7 @@ void MainControl()
 		{
 			g_MotionCommand = COMM_ERROR_STOP;
 			g_MotionCommandBackup = COMM_ERROR_STOP;
+			g_MacroStepNo = 0;
 			g_GoToError = 0;
 		}
 	}
@@ -594,6 +619,7 @@ void MainControl()
 // 0이면 대기 중
 // 1이면 대기 종료
 // 2025.11.04 step 변수를 전역으로 만들고, 외부에서 실행 전 초기화 한다
+// 2026.03.12 동작전 브레이크 풀린 후 대기 없이 바로 이동하는 현상 수정 
 int breakRelease()
 {
 	static int prevMotionCommand = -1;
@@ -614,10 +640,10 @@ int breakRelease()
 		{
 			g_BreakReleaseStepNo = 2;
 		}
-		ret = 0; 
+		ret = 0;
 		break;
 	case 2:
-		// g_BreakReleaseStepNo = 0;
+		//g_BreakReleaseStepNo = 0;
 		ret = 1;
 		break;
 	}
@@ -1349,17 +1375,23 @@ char IsStopped()
 {
 	char axis = 0;
 	char moveStatus = 0;
+	char stopped = 1;
 
 	for (axis = 0; axis < NUM_AXIS; ++axis)
 	{
 		moveStatus = GetMoveStatus(axis);
-		if (moveStatus != MOVE_STS_STOP)
+		if (moveStatus == MOVE_STS_INPOS)
 		{
-			return 0;
+			MoveStop(axis);
+			stopped = 0;
+		}
+		else if (moveStatus != MOVE_STS_STOP)
+		{
+			stopped = 0;
 		}
 	}
 
-	return 1;
+	return stopped;
 }
 
 void HoldMotors()
@@ -1384,30 +1416,30 @@ void StopMotors()
 
 char CommErrorStop()
 {
-	static int step = 0;
+	//static int step = 0;
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 	// Error Handling
 	case 0:
 		StopMotors();
-		++step;
+		++g_MacroStepNo;
 		break;
 
 	case 1:
 		if (IsStopped())
 		{
-			++step;
+			++g_MacroStepNo;
 		}
 		break;
 
 	case 2:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -1416,7 +1448,7 @@ char CommErrorStop()
 
 char CommOrigin()
 {
-	static int step = 0;
+	// static int step = 0;
 	static int nNegLimitInPos[MAX_AXIS] = {0, 0, 0};
 	static int nNegLimitOutPos[MAX_AXIS] = {0, 0, 0};
 	static POINT_DATA pd = {
@@ -1432,28 +1464,28 @@ char CommOrigin()
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 	// Error Handling
 	case 91:
 		StopMotors();
-		++step;
+		++g_MacroStepNo;
 		break;
 
 	case 92:
 		if (IsStopped())
 		{
-			++step;
+			++g_MacroStepNo;
 		}
 		break;
 
 	case 93:
 		HoldMotors();
 		// VACUUM_OFF;
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 	// Start
@@ -1463,15 +1495,15 @@ char CommOrigin()
 			SetOriginCompletedFlag(axis, 0);
 		}
 
-		step = 3;
+		g_MacroStepNo = 3;
 		break;
 
 	case 1:
-		++step;
+		++g_MacroStepNo;
 		break;
 
 	case 2:
-		++step;
+		++g_MacroStepNo;
 		break;
 
 		// Z축 HOME 기능 제거 
@@ -1491,7 +1523,7 @@ char CommOrigin()
 		g_MoveStartErrorLine = __LINE__;
 		if (NEG_LIMIT(X_AXIS) != SENS_ON && g_MoveStartErrorCode[X_AXIS]) // MoveStart(X_AXIS))
 		{
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 
@@ -1499,13 +1531,13 @@ char CommOrigin()
 		g_MoveStartErrorLine = __LINE__;
 		if (NEG_LIMIT(Y_AXIS) != SENS_ON && g_MoveStartErrorCode[Y_AXIS]) // MoveStart(Y_AXIS))
 		{
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		else
 		{
-			++step;
-			debugf("step=%d", step);
+			++g_MacroStepNo;
+			debugf("step=%d", g_MacroStepNo);
 		}
 
 		DelayMoveStart();
@@ -1527,8 +1559,8 @@ char CommOrigin()
 
 		if (flag == 1)
 		{
-			++step;
-			debugf("step=%d", step);
+			++g_MacroStepNo;
+			debugf("step=%d", g_MacroStepNo);
 		}
 
 		break;
@@ -1536,7 +1568,7 @@ char CommOrigin()
 	case 8:
 		if (IsStopped())
 		{
-			++step;
+			++g_MacroStepNo;
 		}
 
 		break;
@@ -1551,7 +1583,7 @@ char CommOrigin()
 			if (MoveStart(axis))
 			{
 				g_MoveStartErrorLine = __LINE__;
-				step = 91;
+				g_MacroStepNo = 91;
 				SetErrorCode(ERR_MOTOR_ERROR);
 				return NORMAL_RUNNING;
 			}
@@ -1559,8 +1591,8 @@ char CommOrigin()
 
 		DelayMoveStart();
 
-		++step;
-		debugf("step=%d", step);
+		++g_MacroStepNo;
+		debugf("step=%d", g_MacroStepNo);
 		break;
 
 	case 10:
@@ -1578,8 +1610,8 @@ char CommOrigin()
 
 		if (flag == 1)
 		{
-			++step;
-			debugf("step=%d", step);
+			++g_MacroStepNo;
+			debugf("step=%d", g_MacroStepNo);
 		}
 
 		break;
@@ -1587,8 +1619,8 @@ char CommOrigin()
 	case 11:
 		if (IsStopped())
 		{
-			++step;
-			debugf("step=%d", step);
+			++g_MacroStepNo;
+			debugf("step=%d", g_MacroStepNo);
 		}
 
 		break;
@@ -1603,7 +1635,7 @@ char CommOrigin()
 			if (MoveStart(axis))
 			{
 				g_MoveStartErrorLine = __LINE__;
-				step = 91;
+				g_MacroStepNo = 91;
 				SetErrorCode(ERR_MOTOR_ERROR);
 				return NORMAL_RUNNING;
 			}
@@ -1611,8 +1643,8 @@ char CommOrigin()
 
 		DelayMoveStart();
 
-		++step;
-		debugf("step=%d", step);
+		++g_MacroStepNo;
+		debugf("step=%d", g_MacroStepNo);
 		break;
 
 	case 13:
@@ -1630,8 +1662,8 @@ char CommOrigin()
 
 		if (flag == 1)
 		{
-			++step;
-			debugf("step=%d", step);
+			++g_MacroStepNo;
+			debugf("step=%d", g_MacroStepNo);
 		}
 
 		break;
@@ -1639,8 +1671,8 @@ char CommOrigin()
 	case 14:
 		if (IsStopped())
 		{
-			++step;
-			debugf("step=%d", step);
+			++g_MacroStepNo;
+			debugf("step=%d", g_MacroStepNo);
 		}
 
 		break;
@@ -1663,7 +1695,7 @@ char CommOrigin()
 			if (MoveStart(axis))
 			{
 				g_MoveStartErrorLine = __LINE__;
-				step = 91;
+				g_MacroStepNo = 91;
 				SetErrorCode(ERR_MOTOR_ERROR);
 				return NORMAL_RUNNING; // ���� : ������ ����
 			}
@@ -1671,8 +1703,8 @@ char CommOrigin()
 
 		DelayMoveStart();
 
-		++step;
-		debugf("step=%d", step);
+		++g_MacroStepNo;
+		debugf("step=%d", g_MacroStepNo);
 		break;
 
 	case 16:
@@ -1696,16 +1728,16 @@ char CommOrigin()
 
 		if (flag == 1)
 		{
-			++step;
-			debugf("step=%d", step);
+			++g_MacroStepNo;
+			debugf("step=%d", g_MacroStepNo);
 		}
 		break;
 
 	case 17:
 		if (IsStopped())
 		{
-			++step;
-			debugf("step=%d", step);
+			++g_MacroStepNo;
+			debugf("step=%d", g_MacroStepNo);
 		}
 
 		break;
@@ -1716,22 +1748,23 @@ char CommOrigin()
 			reset_encoder_xy(axis);
 			SetSpeed(axis, SPEED_NORMAL);
 		}
-		++step;
+		++g_MacroStepNo;
+		break;
 
 	case 19:
-		++step;
+		++g_MacroStepNo;
 		break;
 
 	case 20:
 		// VACUUM_OFF;
-		++step;
+		++g_MacroStepNo;
 		timerCount = 0;
 		break;
 
 	case 21:
 		if (timerCount > 300)
 		{
-			++step;
+			++g_MacroStepNo;
 			break;
 		}
 
@@ -1740,7 +1773,7 @@ char CommOrigin()
 		break;
 
 	case 22:
-		step = 0;
+		g_MacroStepNo = 0;
 
 		for (axis = 0; axis < NUM_AXIS; ++axis)
 		{
@@ -1760,7 +1793,7 @@ char CommOrigin()
 
 char CommOriginAxis()
 {
-	static int step = 0;
+	//static int step = 0;
 	static int nNegLimitInPos[MAX_AXIS] = {0, 0, 0};
 	static int nNegLimitOutPos[MAX_AXIS] = {0, 0, 0};
 	static POINT_DATA pd = {
@@ -1785,22 +1818,22 @@ char CommOriginAxis()
 	// 	step = 93;
 	// }
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 	// Error Handling
 	case 91:
 		StopMotors();
-		++step;
+		++g_MacroStepNo;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			++step;
+			++g_MacroStepNo;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 	// Start
@@ -1815,14 +1848,14 @@ char CommOriginAxis()
 		g_MoveStartErrorLine = __LINE__;
 		if (NEG_LIMIT(g_OriginAxis) != SENS_ON && g_MoveStartErrorCode[g_OriginAxis]) // MoveStart(g_OriginAxis))
 		{
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 
 		DelayMoveStart();
 
-		++step;
-		debugf("step=%d", step);
+		++g_MacroStepNo;
+		debugf("step=%d", g_MacroStepNo);
 		break;
 
 		// Home 센서가 ON 되면 멈춘다
@@ -1830,7 +1863,7 @@ char CommOriginAxis()
 		if (HOME_SENSOR(g_OriginAxis) == SENS_ON) // NegLimit Sensor�� ON �� �� ���� �̵��Ѵ�.
 		{
 			MoveStop(g_OriginAxis);
-			++step;
+			++g_MacroStepNo;
 		}
 		break;
 
@@ -1838,7 +1871,7 @@ char CommOriginAxis()
 		if (IsStopped())
 		{
 			Delay1ms();
-			++step;
+			++g_MacroStepNo;
 		}
 		break;
 
@@ -1852,15 +1885,15 @@ char CommOriginAxis()
 		g_MoveStartErrorLine = __LINE__;
 		if (g_MoveStartErrorCode[g_OriginAxis])
 		{
-			step = 91;
+			g_MacroStepNo = 91;
 			SetErrorCode(ERR_MOTOR_ERROR);
 			return NORMAL_RUNNING;
 		}
 
 		DelayMoveStart();
 
-		++step;
-		debugf("step=%d", step);
+		++g_MacroStepNo;
+		debugf("step=%d", g_MacroStepNo);
 		break;
 
 		//  홈 센서가 OFF 되면 멈춘다
@@ -1868,7 +1901,7 @@ char CommOriginAxis()
 		if (HOME_SENSOR(g_OriginAxis) == SENS_OFF) // NegLimit Sensor OFF �� �� ���� �̵��Ѵ�.
 		{
 			MoveStop(g_OriginAxis);
-			++step;
+			++g_MacroStepNo;
 		}
 		break;
 
@@ -1876,7 +1909,7 @@ char CommOriginAxis()
 		if (IsStopped())
 		{
 			Delay1ms();
-			++step;
+			++g_MacroStepNo;
 		}
 		break;
 
@@ -1909,11 +1942,11 @@ char CommOriginAxis()
 		if (g_MoveStartErrorCode[g_OriginAxis])
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		g_MacroStepNo++;
 	}
 	break;
 	case 7:
@@ -1922,10 +1955,10 @@ char CommOriginAxis()
 		{
 		case MOVE_STS_INPOS:
 			MoveStop(g_OriginAxis);
-			step++;
+			g_MacroStepNo++;
 			break;
 		case MOVE_STS_STOP:
-			step++;
+			g_MacroStepNo++;
 			break;
 		}
 		break;
@@ -1933,7 +1966,7 @@ char CommOriginAxis()
 		if (IsStopped())
 		{
 			Delay1ms();
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 
@@ -1942,7 +1975,7 @@ char CommOriginAxis()
 		SetSpeed(g_OriginAxis, SPEED_NORMAL);
 		SetOriginCompletedFlag(g_OriginAxis, 1);
 		timerCount = 20;
-		++step;
+		++g_MacroStepNo;
 
 	case 10:
 		if (--timerCount > 0)
@@ -1950,11 +1983,11 @@ char CommOriginAxis()
 			Delay1ms();
 			break;
 		}
-		++step;
+		++g_MacroStepNo;
 		break;
 
 	case 11:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED; // ���� : Move Origin ���� �Ϸ�
 
 	default:
@@ -1971,34 +2004,34 @@ char CommMove()
 	char axis = 0;
 	static int state[MAX_AXIS] = {0, 0, 0};
 	unsigned char dir = 0;
-	static int step = 0;
+	// static int step = 0;
 	int flag = 1;
 	char move_status = 0;
 	char move_start = 0;
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 	// Error Handling
 	case 91:
 		StopMotors();
-		++step;
+		++g_MacroStepNo;
 		break;
 
 	case 92:
 		if (IsStopped())
 		{
-			++step;
+			++g_MacroStepNo;
 		}
 		break;
 
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 	case 0:
@@ -2032,7 +2065,7 @@ char CommMove()
 
 					SetErrorCode(ERR_MOTOR_ERROR);
 
-					step = 91;
+					g_MacroStepNo = 91;
 					return NORMAL_RUNNING;
 				}
 			}
@@ -2040,8 +2073,8 @@ char CommMove()
 
 		DelayMoveStart();
 
-		++step;
-		debugf("step=%d", step);
+		++g_MacroStepNo;
+		debugf("step=%d", g_MacroStepNo);
 		break;
 
 	case 1:
@@ -2065,8 +2098,8 @@ char CommMove()
 
 		if (flag == 1)
 		{
-			++step;
-			debugf("step=%d", step);
+			++g_MacroStepNo;
+			debugf("step=%d", g_MacroStepNo);
 		}
 
 		break;
@@ -2074,8 +2107,8 @@ char CommMove()
 	case 2:
 		if (IsStopped())
 		{
-			++step;
-			debugf("step=%d", step);
+			++g_MacroStepNo;
+			debugf("step=%d", g_MacroStepNo);
 		}
 
 		break;
@@ -2088,12 +2121,12 @@ char CommMove()
 			g_MoveOffset[axis] = 0;
 		}
 
-		step = 0;
+		g_MacroStepNo = 0;
 
 		return NORMAL_FINISHED; // ���� : Move Origin ���� �Ϸ�
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED; // ���� : Move Origin ���� ��?
 	}
 
@@ -2337,7 +2370,7 @@ char CommHome()
 	static int nNegLimitOutPos[MAX_AXIS] = {0, 0, 0};
 	static int nNegLimitInPos[MAX_AXIS] = {0, 0, 0};
 	// static int org_axis = 0;	//  원점복귀 하는 축 번호 Z->Y->X 순서
-	static int step = 0;
+	// static int step = 0;
 	static int delay_count = 0;
 	const char is_demo_mode_var = 91;
 
@@ -2355,25 +2388,25 @@ char CommHome()
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error Handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 		// Start
@@ -2385,7 +2418,7 @@ char CommHome()
 			SetOriginCompletedFlag(axis, 0);
 		}
 		// step = 1;
-		step = 110; // v1.2.6 Flask가 있으면 Grip 한다 => Celltrio 확인 후 기능 테스트 예정
+		g_MacroStepNo = 110; // v1.2.6 Flask가 있으면 Grip 한다 => Celltrio 확인 후 기능 테스트 예정
 		break;
 
 		// + 방향으로, VAR12의 위치 만큼 X축 회피
@@ -2393,12 +2426,12 @@ char CommHome()
 		home_x_offset = get_var(12);
 		if (home_x_offset <= 0)
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 			break;
 		}
 		if (POS_LIMIT(X_AXIS) == SENS_ON)
 		{
-			step = 5;
+			g_MacroStepNo = 5;
 			break;
 		} // +limit 감지시 5번 step
 
@@ -2410,17 +2443,17 @@ char CommHome()
 		if (g_MoveStartErrorCode[X_AXIS])
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step = 2;
+		g_MacroStepNo = 2;
 		break;
 	case 2:
 		if (POS_LIMIT(X_AXIS) == SENS_ON)
 		{
 			MoveStop(X_AXIS);
-			step = 5;
+			g_MacroStepNo = 5;
 			break; // +limit 감지시 5번 step
 		}
 		move_status = GetMoveStatus(X_AXIS);
@@ -2428,10 +2461,10 @@ char CommHome()
 		{
 		case MOVE_STS_INPOS:
 			MoveStop(X_AXIS);
-			step = 3;
+			g_MacroStepNo = 3;
 			break;
 		case MOVE_STS_STOP:
-			step = 3;
+			g_MacroStepNo = 3;
 			break;
 		}
 		break;
@@ -2439,7 +2472,7 @@ char CommHome()
 		if (IsStopped())
 		{
 			Delay1ms();
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		break;
 
@@ -2459,11 +2492,11 @@ char CommHome()
 		if (g_MoveStartErrorCode[X_AXIS])
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 6:
 		move_status = GetMoveStatus(X_AXIS);
@@ -2471,10 +2504,10 @@ char CommHome()
 		{
 		case MOVE_STS_INPOS:
 			MoveStop(X_AXIS);
-			step++;
+			g_MacroStepNo++;
 			break;
 		case MOVE_STS_STOP:
-			step++;
+			g_MacroStepNo++;
 			break;
 		}
 		break;
@@ -2482,7 +2515,7 @@ char CommHome()
 		if (IsStopped())
 		{
 			Delay1ms();
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		break;
 
@@ -2498,12 +2531,12 @@ char CommHome()
 		g_MoveStartErrorLine = __LINE__;
 		if (NEG_LIMIT(origin_axis[origin_index]) != SENS_ON && g_MoveStartErrorCode[origin_axis[origin_index]]) // MoveStart(g_OriginAxis))
 		{
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		else
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 
 		DelayMoveStart();
@@ -2514,7 +2547,7 @@ char CommHome()
 		if (HOME_SENSOR(origin_axis[origin_index]) == SENS_ON)
 		{
 			MoveStop(origin_axis[origin_index]);
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 
@@ -2522,7 +2555,7 @@ char CommHome()
 		if (IsStopped())
 		{
 			Delay1ms();
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 
@@ -2536,13 +2569,13 @@ char CommHome()
 		g_MoveStartErrorLine = __LINE__;
 		if (g_MoveStartErrorCode[origin_axis[origin_index]])
 		{
-			step = 91;
+			g_MacroStepNo = 91;
 			SetErrorCode(ERR_MOTOR_ERROR);
 			return NORMAL_RUNNING;
 		}
 
 		DelayMoveStart();
-		step++;
+		g_MacroStepNo++;
 		break;
 
 		// HOME 센서가 OFF 되면 멈춘다
@@ -2550,7 +2583,7 @@ char CommHome()
 		if (HOME_SENSOR(origin_axis[origin_index]) == SENS_OFF)
 		{
 			MoveStop(origin_axis[origin_index]);
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 
@@ -2558,13 +2591,13 @@ char CommHome()
 		if (IsStopped())
 		{
 			Delay1ms();
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 
 	case 16: // 9:
 		reset_encoder_xy(origin_axis[origin_index]);
-		step++;
+		g_MacroStepNo++;
 		break;
 
 		// Offset(0.2) 만큼 이동
@@ -2594,11 +2627,11 @@ char CommHome()
 		if (g_MoveStartErrorCode[origin_axis[origin_index]])
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 18: // 11:
 		move_status = GetMoveStatus(origin_axis[origin_index]);
@@ -2606,10 +2639,10 @@ char CommHome()
 		{
 		case MOVE_STS_INPOS:
 			MoveStop(origin_axis[origin_index]);
-			step++;
+			g_MacroStepNo++;
 			break;
 		case MOVE_STS_STOP:
-			step++;
+			g_MacroStepNo++;
 			break;
 		}
 		break;
@@ -2617,7 +2650,7 @@ char CommHome()
 		if (IsStopped())
 		{
 			Delay1ms();
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 		//
@@ -2627,7 +2660,7 @@ char CommHome()
 		SetSpeed(origin_axis[origin_index], SPEED_NORMAL);
 		SetOriginCompletedFlag(origin_axis[origin_index], 1);
 		delay_count = 20;
-		step++;
+		g_MacroStepNo++;
 		break;
 
 	case 21: // 14:
@@ -2639,11 +2672,11 @@ char CommHome()
 		if (origin_axis[origin_index] == X_AXIS)
 		{
 			// X축 원점복귀 했을 경우, Load 위치로 이동한다
-			step = 100;
+			g_MacroStepNo = 100;
 		}
 		else
 		{
-			step = 30;
+			g_MacroStepNo = 30;
 		}
 		break;
 
@@ -2651,22 +2684,22 @@ char CommHome()
 		origin_index += 1;
 		if (origin_index >= NUM_AXIS)
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		else
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		break;
 
 	case 31: // 16:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 		///////////////////////////////////////////////////////
@@ -2676,7 +2709,7 @@ char CommHome()
 		pd_load = get_point_data(15);
 		if (fabs(pd_load.x) < 0.01)
 		{
-			step = 102;
+			g_MacroStepNo = 102;
 			break;
 		}
 
@@ -2689,16 +2722,16 @@ char CommHome()
 		if (g_MoveStartErrorCode[X_AXIS])
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step = 101;
+		g_MacroStepNo = 101;
 		break;
 	case 101:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
-			step = 102;
+			g_MacroStepNo = 102;
 			delay_count = 20;
 		}
 		break;
@@ -2712,7 +2745,7 @@ char CommHome()
 		pd_load = get_point_data(15);
 		if (fabs(pd_load.y) < 0.01)
 		{
-			step = 104;
+			g_MacroStepNo = 104;
 			break;
 		}
 
@@ -2725,21 +2758,21 @@ char CommHome()
 		if (g_MoveStartErrorCode[Y_AXIS])
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step = 103;
+		g_MacroStepNo = 103;
 		break;
 	case 103:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
-			step = 104;
+			g_MacroStepNo = 104;
 		}
 		break;
 
 	case 104:
-		step = 30;
+		g_MacroStepNo = 30;
 		break;
 
 		///////////////////////////////////////////////////////
@@ -2790,10 +2823,10 @@ char CommHome()
 		step = 116;
 		break;
 	case 116:
-		step = 120;
+		g_MacroStepNo = 120;
 		break;
 	case 120:
-		step = 1;
+		g_MacroStepNo = 1;
 		break;
 	}
 
@@ -2807,42 +2840,43 @@ char CommHome()
 // - Load 기준으로 이동하기 전에 스크로크에 들어오는지 확인
 char CommMMLD()
 {
-	static char step = 0;
+	// static char step = 0;
+	static int timeoutCount = 0;
 	float pos[3];
 	int move_start = 0;
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 		// y축 위치를 확인 한다
 	case 0:
 		if (IsYAxisPositionMovable())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		else
 		{
-			step = 1;
+			g_MacroStepNo = 1;
 		}
 		break;
 
@@ -2853,20 +2887,22 @@ char CommMMLD()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 2:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 3;
+			g_MacroStepNo = 3;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 	case 3:
-		step = 10;
+		g_MacroStepNo = 10;
 		break;
 
 	case 10:
@@ -2878,35 +2914,30 @@ char CommMMLD()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 11:
-		if (move_done(0x03))
+		if (move_done(0x03) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 13;
 		}
-		break;
-
-	case 12:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 13:
 		// SetHoldTorque(Z_AXIS);
 		HoldMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -2919,23 +2950,23 @@ char CommMMLD()
 // g_MovePointData가 1이면 Grip, 2이면 Ungrip 
 char CommGripUngrip()
 {
-	static char step = 0;
+	//static char step = 0;
 	char is_demo_mode_var = 91;
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
-	case 91: Grip(); step++; break;	// 디폴트 상태 (Grip)
-	case 92: step++; break;
-	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
+	case 91: Grip(); g_MacroStepNo++; break;	// 디폴트 상태 (Grip)
+	case 92: g_MacroStepNo++; break;
+	case 93: HoldMotors(); g_MacroStepNo = 0; return ERROR_STOPPED;
 
 		// Grip/Ungrip Output 출력 
 	case 0:
 		switch (g_MovePointDataNo)
 		{
-		case 1: step = 1; break; // Grip 
-		case 2: step = 10; break; // Ungrip 
-		default:step = 30; break; 
+		case 1: g_MacroStepNo = 1; break; // Grip 
+		case 2: g_MacroStepNo = 10; break; // Ungrip 
+		default:g_MacroStepNo = 30; break; 
 		}
 		break;
 
@@ -2943,7 +2974,7 @@ char CommGripUngrip()
 	case 1:
 		Grip();
 		IsTimeoutGripUngrip(1, 1);
-		step++;
+		g_MacroStepNo++;
 		break;
 
 	case 2:
@@ -2976,12 +3007,12 @@ char CommGripUngrip()
 			if (get_var(is_demo_mode_var) == 0) {
 				if (IsExistFlask() == 0) {
 					SetErrorCode(ERR_GRIP_ERROR);
-					step = 91;
+					g_MacroStepNo = 91;
 					return NORMAL_RUNNING;
 				}
 			}
-			if (IsGrip(TRUE)) { step = 30; break; } 
-			else { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
+			if (IsGrip(TRUE)) { g_MacroStepNo = 30; break; } 
+			else { SetErrorCode(ERR_GRIP_ERROR); g_MacroStepNo = 91; return NORMAL_RUNNING; }
 		}
 		// if (GetDIBit(1, DI_SENS_GRIP) == 1) { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
 		break; 
@@ -2990,29 +3021,29 @@ char CommGripUngrip()
 	case 10:
 		Ungrip();
 		IsTimeoutGripUngrip(1, 1);
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 11:
 		if (IsUngrip())
 		{
-			step = 30;
+			g_MacroStepNo = 30;
 			break;
 		}
 		// timeout이면 1 리턴 
 		if (IsTimeoutGripUngrip(0, 1) != 0) {
 			// Timepout 에러 
 			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		break; 
 
 	case 30:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -3024,7 +3055,8 @@ char CommGripUngrip()
 //
 char CommMoveXY()
 {
-	static char step = 0;
+	// static char step = 0;
+	static int timeoutCount = 0;
 	int axis = 0;
 	char flag = 1;
 	char move_start = 0;
@@ -3033,41 +3065,41 @@ char CommMoveXY()
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 		// y축 위치를 확인 한다
 	case 0:
 		if (g_MovePointDataNo == 0)
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 			break;
 		}
 		if (IsYAxisPositionMovable())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		else
 		{
-			step = 1;
+			g_MacroStepNo = 1;
 		}
 		break;
 	case 1:
@@ -3076,17 +3108,19 @@ char CommMoveXY()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 2:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 10:
@@ -3098,30 +3132,25 @@ char CommMoveXY()
 			if (move_start)
 			{
 				SetErrorCode(ERR_MOTOR_ERROR);
-				step = 91;
+				g_MacroStepNo = 91;
 				return NORMAL_RUNNING;
 			}
 			DelayMoveStart();
-			step++;
+			timeoutCount = 0;
+			g_MacroStepNo++;
 		}
 		else
 		{
-			step = 13;
+			g_MacroStepNo = 13;
 		}
 		break;
 
 	case 11:
-		if (move_done(0x03))
+		if (move_done(0x03) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 13;
 		}
-		break;
-
-	case 12:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 13:
@@ -3131,11 +3160,11 @@ char CommMoveXY()
 			g_MovePointDataNo = 0;
 			g_MoveOffset[axis] = 0;
 		}
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -3146,7 +3175,8 @@ char CommMoveXY()
 
 char CommMoveXY_With_Offset()
 {
-	static char step = 0;
+	// static char step = 0;
+	static int timeoutCount = 0;
 	int axis = 0;
 	char flag = 1;
 	char move_start = 0;
@@ -3155,41 +3185,41 @@ char CommMoveXY_With_Offset()
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 		// y축 위치를 확인 한다
 	case 0:
 		if (g_MovePointDataNo == 0)
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 			break;
 		}
 		if (IsYAxisPositionMovable())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		else
 		{
-			step = 1;
+			g_MacroStepNo = 1;
 		}
 		break;
 		// y축을 PD15번 위치로 이동 한다
@@ -3199,17 +3229,19 @@ char CommMoveXY_With_Offset()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 2:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)		
 		break;
 
 	case 10:
@@ -3226,30 +3258,25 @@ char CommMoveXY_With_Offset()
 			if (move_start)
 			{
 				SetErrorCode(ERR_MOTOR_ERROR);
-				step = 91;
+				g_MacroStepNo = 91;
 				return NORMAL_RUNNING;
 			}
 			DelayMoveStart();
-			step++;
+			timeoutCount = 0;
+			g_MacroStepNo++;
 		}
 		else
 		{
-			step = 13;
+			g_MacroStepNo = 13;
 		}
 		break;
 
 	case 11:
-		if (move_done(0x03))
+		if (move_done(0x03) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 13;
 		}
-		break;
-
-	case 12:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 13:
@@ -3259,11 +3286,11 @@ char CommMoveXY_With_Offset()
 			g_MovePointDataNo = 0;
 			g_MoveOffset[axis] = 0;
 		}
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -3273,7 +3300,8 @@ char CommMoveXY_With_Offset()
 
 char CommMLOA()
 {
-	static char step = 0;
+	//static char step = 0;
+	static int timeoutCount = 0;
 	int axis = 0;
 	char flag = 1;
 	char move_start = 0;
@@ -3282,25 +3310,25 @@ char CommMLOA()
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 	case 0:
@@ -3310,25 +3338,20 @@ char CommMLOA()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 1:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 3;
 		}
-		break;
-
-	case 2:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 3:
@@ -3337,23 +3360,19 @@ char CommMLOA()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 4:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 6;
 		}
-		break;
-	case 5:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 6:
@@ -3363,11 +3382,11 @@ char CommMLOA()
 			g_MovePointDataNo = 0;
 			g_MoveOffset[axis] = 0;
 		}
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -3390,47 +3409,48 @@ char CommShake()
 	const int VAR_NUM_MOVE = 6;
 	const int VAR_DELAY_MOVE = 7;
 
-	static char step = 0;
+	// static char step = 0;
 	static float angle_1[3] = {0.0, 0.0, 0.0};
 	static float angle_2[3] = {0.0, 0.0, 0.0};
 	static int delay_count = 0;
 	static int shake_count = 0;
+	static int timeoutCount = 0;
 
 	int move_start = 0;
 	POINT_DATA pd;
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 		// y축 위치를 확인 한다
 	case 0:
 		if (IsYAxisPositionMovable())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		else
 		{
-			step = 1;
+			g_MacroStepNo = 1;
 		}
 		break;
 		// y축을 PD15번 위치로 이동 한다
@@ -3440,17 +3460,19 @@ char CommShake()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 2:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		//
@@ -3460,7 +3482,7 @@ char CommShake()
 		pd = get_point_data(POINT_NEW_LOAD);
 		angle_1[0] = pd.x + g_ShakeAngle;
 		angle_2[0] = pd.x - g_ShakeAngle;
-		step++;
+		g_MacroStepNo++;
 		break;
 
 		// pd15으로 이동 (load point)
@@ -3470,32 +3492,27 @@ char CommShake()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 12:
-		if (move_done(0x03))
+		if (move_done(0x03) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 14;
 		}
-		break;
-
-	case 13:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// shake. X축을 +/-방향으로 이동
 	case 14:
 		if (shake_count >= g_ShakeCount)
 		{
-			step = 20;
+			g_MacroStepNo = 20;
 			break;
 		}
 
@@ -3511,26 +3528,21 @@ char CommShake()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 15:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = g_ShakeTiltDelay; // get_var(VAR_DELAY_MOVE);
-			step++;
+			g_MacroStepNo = 17;
 		}
-		break;
-
-	case 16:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 17:
@@ -3541,7 +3553,7 @@ char CommShake()
 		else
 		{
 			shake_count += 1;
-			step = 14;
+			g_MacroStepNo = 14;
 		}
 		break;
 
@@ -3553,35 +3565,31 @@ char CommShake()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 21:
-		if (move_done(0x03))
+		if (move_done(0x03) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 23;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
-
-	case 22:
-		if (IsStopped())
-		{
-			step++;
-		}
 
 	case 23:
 		HoldMotors();
 		g_MovePointDataNo = 0;
 		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -3604,47 +3612,48 @@ char CommShakeUsingPD6()
 	const int VAR_NUM_MOVE = 6;
 	const int VAR_DELAY_MOVE = 7;
 
-	static char step = 0;
+	//static char step = 0;
 	static float angle_1[3] = {0.0, 0.0, 0.0};
 	static float angle_2[3] = {0.0, 0.0, 0.0};
 	static int delay_count = 0;
 	static int shake_count = 0;
+	static int timeoutCount = 0;
 
 	int move_start = 0;
 	POINT_DATA pd;
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 	// y축 위치를 확인 한다
 	case 0:
 		if (IsYAxisPositionMovable())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		else
 		{
-			step = 1;
+			g_MacroStepNo = 1;
 		}
 		break;
 		// y축을 PD15번 위치로 이동 한다
@@ -3654,17 +3663,19 @@ char CommShakeUsingPD6()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 2:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		//
@@ -3674,7 +3685,7 @@ char CommShakeUsingPD6()
 		pd = get_point_data(POINT_READY);
 		angle_1[0] = pd.x + g_ShakeAngle;
 		angle_2[0] = pd.x - g_ShakeAngle;
-		step = 11;
+		g_MacroStepNo = 11;
 		break;
 
 		// ready 위치로 이동 (x->y)
@@ -3684,25 +3695,20 @@ char CommShakeUsingPD6()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 12:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 14;
 		}
-		break;
-
-	case 13:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 14:
@@ -3711,32 +3717,27 @@ char CommShakeUsingPD6()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 15:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 20;
 		}
-		break;
-
-	case 16:
-		if (IsStopped())
-		{
-			step = 20;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// shake. X축을 +/-방향으로 이동
 	case 20:
 		if (shake_count >= g_ShakeCount)
 		{
-			step = 30;
+			g_MacroStepNo = 30;
 			break;
 		}
 
@@ -3752,26 +3753,21 @@ char CommShakeUsingPD6()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 21:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = g_ShakeTiltDelay; // get_var(VAR_DELAY_MOVE);
-			step++;
+			g_MacroStepNo = 23;
 		}
-		break;
-
-	case 22:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 23:
@@ -3782,7 +3778,7 @@ char CommShakeUsingPD6()
 		else
 		{
 			shake_count += 1;
-			step = 20;
+			g_MacroStepNo = 20;
 		}
 		break;
 
@@ -3793,25 +3789,20 @@ char CommShakeUsingPD6()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 31:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 33;
 		}
-		break;
-
-	case 32:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 33:
@@ -3820,23 +3811,19 @@ char CommShakeUsingPD6()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 34:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 40;
 		}
-		break;
-	case 35:
-		if (IsStopped())
-		{
-			step = 40;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// 종료
@@ -3844,11 +3831,11 @@ char CommShakeUsingPD6()
 		HoldMotors();
 		g_MovePointDataNo = 0;
 		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -3862,43 +3849,44 @@ char CommWaste()
 	const int POINT_NEW_LOAD = 15;
 	const int POINT_WASTE = 8;
 	const int VAR_NUM_WASTE_DELAY = 8;
-	static char step = 0;
+	// static char step = 0;
 	static int delay_count = 0;
+	static int timeoutCount = 0;
 
 	int move_start = 0;
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 		// y축 위치를 확인 한다
 	case 0:
 		if (IsYAxisPositionMovable())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		else
 		{
-			step = 1;
+			g_MacroStepNo = 1;
 		}
 		break;
 		// y축을 PD15번 위치로 이동 한다
@@ -3908,22 +3896,24 @@ char CommWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 2:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 10:
 		delay_count = get_var(VAR_NUM_WASTE_DELAY);
-		step++;
+		g_MacroStepNo++;
 		break;
 
 		// pd8로 이동 (x축)
@@ -3933,25 +3923,20 @@ char CommWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 12:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 14;
 		}
-		break;
-
-	case 13:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// pd8로 이동 (y축)
@@ -3961,26 +3946,21 @@ char CommWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 15:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
 			delay_count = get_var(VAR_NUM_WASTE_DELAY);
-			step++;
+			g_MacroStepNo = 17;
 		}
-		break;
-
-	case 16:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// delay
@@ -3991,7 +3971,7 @@ char CommWaste()
 		}
 		else
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 
@@ -4002,25 +3982,20 @@ char CommWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 19:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 21;
 		}
-		break;
-
-	case 20:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// new load 위치(pd15)로 이동. x축
@@ -4030,36 +4005,31 @@ char CommWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 22:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 24;
 		}
-		break;
-
-	case 23:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 24:
 		HoldMotors();
 		g_MovePointDataNo = 0;
 		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -4087,32 +4057,33 @@ char CommAsyncWaste()
 	const int VAR_NUM_ASYNC_DELAY = 14;
 	const int VAR_NUM_ASYNC_INPUT_NO = 13;
 	const int VAR_NUM_NO_USE_ASYNC_INPUT = 15;
-	static char step = 0;
+	// static char step = 0;
 	static int delay_count = 0;
+	static int timeoutCount = 0;
 
 	int move_start = 0;
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 	case 0:
@@ -4122,23 +4093,23 @@ char CommAsyncWaste()
 			GetWasteAsyncInput())
 		{
 			SetErrorCode(ERR_ASYNC_WASTE_OUTPUT_ON);
-			step = 91;
+			g_MacroStepNo = 91;
 			break;
 		}
 		//
 		delay_count = get_var(VAR_NUM_WASTE_DELAY);
-		step = 1;
+		g_MacroStepNo = 1;
 		break;
 
 	// y축 위치를 확인 한다
 	case 1:
 		if (IsYAxisPositionMovable())
 		{
-			step = 11;
+			g_MacroStepNo = 11;
 		}
 		else
 		{
-			step = 2;
+			g_MacroStepNo = 2;
 		}
 		break;
 
@@ -4149,17 +4120,19 @@ char CommAsyncWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 3:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 11;
+			g_MacroStepNo = 11;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// pd8로 이동 (x축)
@@ -4169,25 +4142,20 @@ char CommAsyncWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 12:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 14;
 		}
-		break;
-
-	case 13:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// pd11로 이동 (y축)
@@ -4197,33 +4165,30 @@ char CommAsyncWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 15:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
 			delay_count = get_var(VAR_NUM_ASYNC_DELAY);
-			step++;
+			g_MacroStepNo = 17;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
-	case 16:
-		if (IsStopped())
-		{
-			step++;
-		}
-		break;
+
 		// y축 이동 후 Async signal on
 	case 17:
 		AsyncWasteOn();
-		step++;
+		g_MacroStepNo++;
 		if (get_var(VAR_NUM_NO_USE_ASYNC_INPUT) != 0)
 		{
 			// SCARA의 Input 신호를 사용하지 않을 경우, step 8을 skip. step 9로 이동
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 		// Async Delay 시간 동안 대기
@@ -4233,7 +4198,7 @@ char CommAsyncWaste()
 		{
 			if (GetWasteAsyncInput())
 			{
-				step++;
+				g_MacroStepNo++;
 				break;
 			}
 			Delay1ms();
@@ -4242,7 +4207,7 @@ char CommAsyncWaste()
 		{
 			// Timeout 에러
 			SetErrorCode(ERR_ASYNC_WASTE_TIMEOUT);
-			step = 91;
+			g_MacroStepNo = 91;
 			// 신호를 끈다
 			AsyncWasteOff();
 			return NORMAL_RUNNING;
@@ -4250,7 +4215,7 @@ char CommAsyncWaste()
 		break;
 
 	case 19:
-		step++;
+		g_MacroStepNo++;
 		break;
 
 		// pd8로 이동 (y축)
@@ -4260,26 +4225,21 @@ char CommAsyncWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 21:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
 			delay_count = get_var(VAR_NUM_WASTE_DELAY);
-			step++;
+			g_MacroStepNo = 23;
 		}
-		break;
-
-	case 22:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// delay
@@ -4290,7 +4250,7 @@ char CommAsyncWaste()
 		}
 		else
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 
@@ -4301,25 +4261,20 @@ char CommAsyncWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 25:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 27;
 		}
-		break;
-
-	case 26:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// load 위치(pd3)로 이동. x축 -> pd15
@@ -4330,36 +4285,31 @@ char CommAsyncWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 28:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 30;
 		}
-		break;
-
-	case 29:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 30:
 		HoldMotors();
 		g_MovePointDataNo = 0;
 		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -4371,43 +4321,44 @@ char CommAsyncWaste()
 // X(PD8) -> Y(PD11)
 char CommReadyWaste()
 {
+	static int timeoutCount = 0;
 	const int POINT_WASTE = 8;	// X축 이동
 	const int POINT_READY = 11; // Y축 이동
-	static int step = 0;
+	// static int step = 0;
 	int move_start = 0;
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 		// y축 위치를 확인 한다
 	case 0:
 		if (IsYAxisPositionMovable())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		else
 		{
-			step = 1;
+			g_MacroStepNo = 1;
 		}
 		break;
 
@@ -4418,17 +4369,19 @@ char CommReadyWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 2:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// X축 (PD8) 이동
@@ -4438,23 +4391,19 @@ char CommReadyWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 11:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 13;
 		}
-		break;
-	case 12:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// Y축 (PD11) 이동
@@ -4464,34 +4413,30 @@ char CommReadyWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 14:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 16;
 		}
-		break;
-	case 15:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 16:
 		HoldMotors();
 		g_MovePointDataNo = 0;
 		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -4507,32 +4452,33 @@ char CommPourWaste()
 	const int POINT_NEW_LOAD = 15;
 	const int POINT_WASTE = 8;
 	const int VAR_NUM_WASTE_DELAY = 8;
-	static char step = 0;
+	// static char step = 0;
 	static int delay_count = 0;
+	static int timeoutCount = 0;
 
 	int move_start = 0;
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 		// pd8로 이동 (y축)
@@ -4542,26 +4488,21 @@ char CommPourWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 1: // 5:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
 			delay_count = get_var(VAR_NUM_WASTE_DELAY);
-			step++;
+			g_MacroStepNo = 3;
 		}
-		break;
-
-	case 2: // 6:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// delay
@@ -4572,7 +4513,7 @@ char CommPourWaste()
 		}
 		else
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 
@@ -4583,25 +4524,20 @@ char CommPourWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 5: // 9:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 7;
 		}
-		break;
-
-	case 6: // 10:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// load 위치(pd3)로 이동. x축
@@ -4611,36 +4547,31 @@ char CommPourWaste()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 8: // 12:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 10;
 		}
-		break;
-
-	case 9: // 13:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 10: // 14:
 		HoldMotors();
 		g_MovePointDataNo = 0;
 		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -4662,47 +4593,48 @@ char CommSeparate()
 	const int VAR_DELAY_SEP = 9;
 	const int VAR_DELAY_MOV = 10;
 
-	static char step = 0;
+	// static char step = 0;
 	static int delay_count = 0;
+	static int timeoutCount = 0;
 
 	int move_start = 0;
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 	case 0:
-		step = 1;
+		g_MacroStepNo = 1;
 		break;
 
 		// y축 위치를 확인 한다
 	case 1:
 		if (IsYAxisPositionMovable())
 		{
-			step = 11;
+			g_MacroStepNo = 11;
 		}
 		else
 		{
-			step = 2;
+			g_MacroStepNo = 2;
 		}
 		break;
 		// y축을 PD15번 위치로 이동 한다
@@ -4712,17 +4644,19 @@ char CommSeparate()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 3:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 10;
+			g_MacroStepNo = 11;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// pd9 로 이동 (x,y 동시)
@@ -4732,26 +4666,21 @@ char CommSeparate()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 12:
-		if (move_done(0x03))
-		{
-			step++;
-		}
-		break;
-
-	case 13:
-		if (IsStopped())
+		if (move_done(0x03) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
-			step++;
+			g_MacroStepNo = 14;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 14:
@@ -4761,7 +4690,7 @@ char CommSeparate()
 		}
 		else
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 
@@ -4770,7 +4699,7 @@ char CommSeparate()
 	case 15:
 		if (get_var(12) == 1)
 		{
-			step = 19;
+			g_MacroStepNo = 19;
 			break;
 		}
 
@@ -4779,26 +4708,21 @@ char CommSeparate()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 16:
-		if (move_done(0x02))
-		{
-			step++;
-		}
-		break;
-
-	case 17:
-		if (IsStopped())
+		if (move_done(0x02) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_MOV);
-			step++;
+			g_MacroStepNo = 18;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 18:
@@ -4808,7 +4732,7 @@ char CommSeparate()
 		}
 		else
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 
@@ -4820,26 +4744,21 @@ char CommSeparate()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 20:
-		if (move_done(0x01))
-		{
-			step++;
-		}
-		break;
-
-	case 21:
-		if (IsStopped())
+		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_MOV);
-			step++;
+			g_MacroStepNo = 22;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 22:
@@ -4849,7 +4768,7 @@ char CommSeparate()
 		}
 		else
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 
@@ -4859,36 +4778,31 @@ char CommSeparate()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 24:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 26;
 		}
-		break;
-
-	case 25:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 26:
 		HoldMotors();
 		g_MovePointDataNo = 0;
 		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -4910,46 +4824,47 @@ char CommSeparateLongSide()
 	const int VAR_DELAY_SEP2 = 10;
 	const int VAR_HW_TYPE = 11;
 
-	static int step = 0;
+	// static int step = 0;
 	static int delay_count = 0;
+	static int timeoutCount = 0;
 	int move_start = 0;
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 	case 0:
-		step = 1;
+		g_MacroStepNo = 1;
 		break;
 
 		// y축 위치를 확인 한다
 	case 1:
 		if (IsYAxisPositionMovable())
 		{
-			step = 11;
+			g_MacroStepNo = 11;
 		}
 		else
 		{
-			step = 2;
+			g_MacroStepNo = 2;
 		}
 		break;
 
@@ -4960,17 +4875,19 @@ char CommSeparateLongSide()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 3:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 11;
+			g_MacroStepNo = 11;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// pd9로 이동. xy 동시
@@ -4980,26 +4897,21 @@ char CommSeparateLongSide()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 12:
-		if (move_done(0x03))
-		{
-			step++;
-		}
-		break;
-
-	case 13:
-		if (IsStopped())
+		if (move_done(0x03) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
-			step++;
+			g_MacroStepNo = 14;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// 용액이 나누어 질때까지 대기
@@ -5010,7 +4922,7 @@ char CommSeparateLongSide()
 		}
 		else
 		{
-			step += 1;
+			g_MacroStepNo += 1;
 		}
 		break;
 
@@ -5018,11 +4930,11 @@ char CommSeparateLongSide()
 	case 15:
 		if (get_var(VAR_HW_TYPE) == 0)
 		{
-			step = 30;
+			g_MacroStepNo = 30;
 		}
 		else
 		{
-			step = 20;
+			g_MacroStepNo = 20;
 		}
 		break;
 
@@ -5033,26 +4945,21 @@ char CommSeparateLongSide()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step += 1;
+		timeoutCount = 0;
+		g_MacroStepNo += 1;
 		break;
 
 	case 21:
-		if (move_done(0x01))
-		{
-			step += 1;
-		}
-		break;
-
-	case 22:
-		if (IsStopped())
+		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP2);
-			step += 1;
+			g_MacroStepNo = 23;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 23:
@@ -5062,7 +4969,7 @@ char CommSeparateLongSide()
 		}
 		else
 		{
-			step = 30;
+			g_MacroStepNo = 30;
 		}
 		break;
 
@@ -5073,37 +4980,32 @@ char CommSeparateLongSide()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 31:
-		if (move_done(0x03))
-		{
-			step++;
-		}
-		break;
-
-	case 32:
-		if (IsStopped())
+		if (move_done(0x03) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
-			step++;
+			g_MacroStepNo = 33;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 33:
 		HoldMotors();
 		g_MovePointDataNo = 0;
 		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -5125,46 +5027,47 @@ char CommSeparateShortSide()
 	const int VAR_DELAY_SEP2 = 10;
 	const int VAR_HW_TYPE = 11;
 
-	static int step = 0;
+	// static int step = 0;
 	static int delay_count = 0;
+	static int timeoutCount = 0;
 	int move_start = 0;
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 	case 0:
-		step = 1;
+		g_MacroStepNo = 1;
 		break;
 
 		// y축 위치를 확인 한다
 	case 1:
 		if (IsYAxisPositionMovable())
 		{
-			step = 11;
+			g_MacroStepNo = 11;
 		}
 		else
 		{
-			step = 2;
+			g_MacroStepNo = 2;
 		}
 		break;
 
@@ -5175,17 +5078,19 @@ char CommSeparateShortSide()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 3:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 11;
+			g_MacroStepNo = 11;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// pd10로 이동. x 축만
@@ -5195,26 +5100,21 @@ char CommSeparateShortSide()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 12:
-		if (move_done(0x03))
-		{
-			step++;
-		}
-		break;
-
-	case 13:
-		if (IsStopped())
+		if (move_done(0x03) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
-			step++;
+			g_MacroStepNo = 14;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// 용액이 나누어 질때까지 대기
@@ -5225,7 +5125,7 @@ char CommSeparateShortSide()
 		}
 		else
 		{
-			step += 1;
+			g_MacroStepNo += 1;
 		}
 		break;
 
@@ -5236,32 +5136,28 @@ char CommSeparateShortSide()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 16:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
-			step++;
-		}
-		break;
-
-	case 17:
-		if (IsStopped())
-		{
+			timeoutCount = 0;
 			if (get_var(VAR_HW_TYPE) == 0)
 			{
-				step = 30;
+				g_MacroStepNo = 30;
 			}
 			else
 			{
-				step = 20;
+				g_MacroStepNo = 20;
 			}
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// PD 14 (Tilt) 위치로 이동
@@ -5271,26 +5167,21 @@ char CommSeparateShortSide()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step += 1;
+		timeoutCount = 0;
+		g_MacroStepNo += 1;
 		break;
 
 	case 21:
-		if (move_done(0x01))
-		{
-			step += 1;
-		}
-		break;
-
-	case 22:
-		if (IsStopped())
+		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP2);
-			step += 1;
+			g_MacroStepNo = 23;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 23:
@@ -5300,7 +5191,7 @@ char CommSeparateShortSide()
 		}
 		else
 		{
-			step = 30;
+			g_MacroStepNo = 30;
 		}
 		break;
 
@@ -5309,8 +5200,9 @@ char CommSeparateShortSide()
 		if (IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP2);
-			step++;
+			g_MacroStepNo++;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 	case 31:
 		if (--delay_count > 0)
@@ -5319,7 +5211,7 @@ char CommSeparateShortSide()
 		}
 		else
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 
@@ -5330,26 +5222,21 @@ char CommSeparateShortSide()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 33:
-		if (move_done(0x01))
-		{
-			step++;
-		}
-		break;
-
-	case 34:
-		if (IsStopped())
+		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = 100; // get_var(VAR_DELAY_MOV);
-			step++;
+			g_MacroStepNo = 35;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 35:
@@ -5359,7 +5246,7 @@ char CommSeparateShortSide()
 		}
 		else
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 
@@ -5371,36 +5258,31 @@ char CommSeparateShortSide()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 37:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 39;
 		}
-		break;
-
-	case 38:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 39:
 		HoldMotors();
 		g_MovePointDataNo = 0;
 		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -5420,9 +5302,10 @@ char CommSeparateShortSide()
 char CommSWIRL()
 {
 	const int POINT_NEW_LOAD = 15;
-	static char step = 0;
+	//static char step = 0;
 	static int delay_count = 0;
 	static int shake_count = 0;
+	static int timeoutCount = 0;
 
 	float angle[3] = {0.0, 0.0, 0.0};
 	int move_start = 0;
@@ -5430,43 +5313,43 @@ char CommSWIRL()
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error Handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 	case 0:
 		delay_count = 0;
 		shake_count = 0;
 		pd = get_point_data(POINT_NEW_LOAD);
-		step = 1;
+		g_MacroStepNo = 1;
 		break;
 
 		// y축 위치를 확인 한다
 	case 1:
 		if (IsYAxisPositionMovable())
 		{
-			step = 11;
+			g_MacroStepNo = 11;
 		}
 		else
 		{
-			step = 2;
+			g_MacroStepNo = 2;
 		}
 		break;
 
@@ -5477,17 +5360,19 @@ char CommSWIRL()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 3:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 11;
+			g_MacroStepNo = 11;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// ready 위치로 이동
@@ -5497,23 +5382,19 @@ char CommSWIRL()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step = 12;
+		timeoutCount = 0;
+		g_MacroStepNo = 12;
 		break;
 	case 12:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
-			step = 13;
+			g_MacroStepNo = 14;
 		}
-		break;
-	case 13:
-		if (IsStopped())
-		{
-			step = 14;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 14:
@@ -5522,23 +5403,19 @@ char CommSWIRL()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step = 15;
+		timeoutCount = 0;
+		g_MacroStepNo = 15;
 		break;
 	case 15:
-		if (move_done(0x02))
+		if (move_done(0x02) && IsStopped())
 		{
-			step = 16;
+			g_MacroStepNo =  20;
 		}
-		break;
-	case 16:
-		if (IsStopped())
-		{
-			step = 20;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		///////////////////////////////////////////////
@@ -5550,71 +5427,85 @@ char CommSWIRL()
 	case 20:
 		if (shake_count++ >= g_ShakeCount)
 		{
-			step = 100;
+			g_MacroStepNo = 100;
 		}
 		else
 		{
-			step = 21;
+			g_MacroStepNo = 21;
 		}
 		break;
 
 		// X축 Shake
 	case 21:
 		do_shake_xy(1, 0x01, g_ShakeAngleX, 1);
-		step = 22;
+		g_MacroStepNo = 22;
 		break;
 	case 22:
 		move_start = do_shake_xy(0, 0x01, g_ShakeAngleX, 1);
 		if (move_start == 0)
 		{
-			step = step;
+			g_MacroStepNo = g_MacroStepNo;
 		}
 		else if (move_start == 1)
 		{
-			step = 31;
+			g_MacroStepNo = 31;
 		}
 		else if (move_start == 2)
 		{
 			g_MoveStartErrorLine = __LINE__;
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
+			return NORMAL_RUNNING;
+		}
+		else if (move_start == 3)
+		{
+			g_MoveStartErrorLine = __LINE__;
+			SetErrorCode(ERR_TIME_OVER);
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		else
 		{
-			step = 91;
+			g_MacroStepNo = 91;
 		}
 		break;
 
 		// Y축 Shake
 	case 31:
 		do_shake_xy(1, 0x02, g_ShakeAngleY, 1);
-		step = 32;
+		g_MacroStepNo = 32;
 		break;
 	case 32:
 		move_start = do_shake_xy(0, 0x02, g_ShakeAngleY, 1);
 		if (move_start == 0)
 		{
-			step = step;
+			g_MacroStepNo = g_MacroStepNo;
 		}
 		else if (move_start == 1)
 		{
-			step = 33;
+			g_MacroStepNo = 33;
 		}
 		else if (move_start == 2)
 		{
 			g_MoveStartErrorLine = __LINE__;
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
+			return NORMAL_RUNNING;
+		}
+		else if (move_start == 3)
+		{
+			g_MoveStartErrorLine = __LINE__;
+			SetErrorCode(ERR_TIME_OVER);
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		else
 		{
-			step = 91;
+			g_MacroStepNo = 91;
 		}
 		break;
 	case 33:
-		step = 11;
+		g_MacroStepNo = 11;
 		break;
 
 		//
@@ -5622,11 +5513,11 @@ char CommSWIRL()
 		HoldMotors();
 		g_MovePointDataNo = 0;
 		g_MoveOffset[X_AXIS] = g_MoveOffset[Y_AXIS] = g_MoveOffset[Z_AXIS] = 0;
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -5638,42 +5529,43 @@ char CommSWIRL()
 //
 char CommMAMV()
 {
-	static char step = 0;
+	// static char step = 0;
+	static int timeoutCount = 0;
 	float pos[3];
 	int move_start = 0;
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 		// y축 위치를 확인 한다
 	case 0:
 		if (IsYAxisPositionMovable())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		else
 		{
-			step = 1;
+			g_MacroStepNo = 1;
 		}
 		break;
 
@@ -5684,17 +5576,19 @@ char CommMAMV()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 2:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 10:
@@ -5706,35 +5600,30 @@ char CommMAMV()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 
 	case 11:
-		if (move_done(0x03))
+		if (move_done(0x03) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 13;
 		}
-		break;
-
-	case 12:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 13:
 		// SetHoldTorque(Z_AXIS);
 		HoldMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -5747,33 +5636,34 @@ char CommMAMV()
 char CommRAMV()
 {
 	const int POINT_GRIP = 1;
-	static char step = 0;
+	// static char step = 0;
 	static int delay_count = 0;
+	static int timeoutCount = 0;
 	int move_start = 0;
 	char is_demo_mode_var = 91;
 	float pos[3];
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
-	case 91: StopMotors(); step++; break;
-	case 92: if (IsStopped()) { step++; } break;
-	case 93: HoldMotors(); step = 0; return ERROR_STOPPED;
+	case 91: StopMotors(); g_MacroStepNo++; break;
+	case 92: if (IsStopped()) { g_MacroStepNo++; } break;
+	case 93: HoldMotors(); g_MacroStepNo = 0; return ERROR_STOPPED;
 
 		// y축 위치를 확인 한다
 	case 0:
 		if (IsYAxisPositionMovable())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		else
 		{
-			step = 1;
+			g_MacroStepNo = 1;
 		}
 		break;
 
@@ -5784,17 +5674,19 @@ char CommRAMV()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 2:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// REGRIP 위치로 X축 이동
@@ -5807,44 +5699,39 @@ char CommRAMV()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step += 1;
+		timeoutCount = 0;
+		g_MacroStepNo += 1;
 		break;
 
 	case 11:
-		if (move_done(0x03))
+		if (move_done(0x03) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 13;
 		}
-		break;
-
-	case 12:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// Gripper Ungrip. PD7번의 Z축 위치로 이동
 	case 13: 
 		Ungrip();
 		IsTimeoutGripUngrip(1, 1);
-		step++; 
+		g_MacroStepNo++; 
 		break; 
 	case 14:
 		if (IsUngrip())
 		{
 			delay_count = get_var(2);
-			step = 16; break; 
+			g_MacroStepNo = 16; break; 
 		}
 		if (IsTimeoutGripUngrip(0, 1) != 0) 
 		{
 			// Timeout 에러 
 			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING; 
 		}
 		break;
@@ -5852,14 +5739,14 @@ char CommRAMV()
 	// Wait (PD2)
 	case 16:
 		if (--delay_count > 0) { Delay1ms(); }
-		else { step += 1; } 
+		else { g_MacroStepNo += 1; } 
 		break;
 
 		// GRIP
 	case 17:
 		Grip(); 
 		IsTimeoutGripUngrip(1, 1);
-		step++;
+		g_MacroStepNo++;
 		break; 
 	case 18:
 		// if (IsGrip())
@@ -5892,15 +5779,15 @@ char CommRAMV()
 					return NORMAL_RUNNING;
 				}
 			}
-			if (IsGrip(TRUE)) { step += 1; break; } 
-			else { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
+			if (IsGrip(TRUE)) { g_MacroStepNo += 1; break; } 
+			else { SetErrorCode(ERR_GRIP_ERROR); g_MacroStepNo = 91; return NORMAL_RUNNING; }
 		}
 		// if (GetDIBit(1, DI_SENS_GRIP) == 1) { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
 		break;	
 
 	case 19:
 		if (--delay_count > 0) { Delay1ms(); }
-		else {step = 20; }
+		else {g_MacroStepNo = 20; }
 		break;
 
 		// x, y 위치로 이동
@@ -5913,35 +5800,30 @@ char CommRAMV()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step += 1;
+		timeoutCount = 0;
+		g_MacroStepNo += 1;
 		break;
 
 	case 21:
-		if (move_done(0x03))
+		if (move_done(0x03) && IsStopped())
 		{
-			step += 1;
+			g_MacroStepNo = 23;
 		}
-		break;
-
-	case 22:
-		if (IsStopped())
-		{
-			step += 1;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 23:
 		// SetHoldTorque(Z_AXIS);
 		HoldMotors();
-		step += 1;
+		g_MacroStepNo += 1;
 		break;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -5956,43 +5838,44 @@ char CommMRGI()
 	const int POINT_GRIP = 1;
 	const int POINT_NEW_LOAD = 15;
 	const int POINT_REGRIP = 7;
-	static char step = 0;
+	// static char step = 0;
 	static int delay_count = 0;
+	static int timeoutCount = 0;
 	int move_start = 0;
 	char is_demo_mode_var = 91;
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 		// y축 위치를 확인 한다
 	case 0:
 		if (IsYAxisPositionMovable())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		else
 		{
-			step = 1;
+			g_MacroStepNo = 1;
 		}
 		break;
 
@@ -6003,17 +5886,19 @@ char CommMRGI()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 2:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// REGRIP 위치로 X, Y축 이동
@@ -6023,25 +5908,20 @@ char CommMRGI()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step += 1;
+		timeoutCount = 0;
+		g_MacroStepNo += 1;
 		break;
 
 	case 11:
-		if (move_done(0x03))
+		if (move_done(0x03) & IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 13;
 		}
-		break;
-
-	case 12:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// Gripper Ungrip. PD7번의 Z축 위치로 이동
@@ -6054,13 +5934,13 @@ char CommMRGI()
 		if (IsUngrip())
 		{
 			delay_count = get_var(2);
-			step = 16; break; 
+			g_MacroStepNo = 16; break; 
 		}
 		if (IsTimeoutGripUngrip(0, 1) != 0)
 		{
 			// Timeout 에러 
 			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		break; 
@@ -6068,14 +5948,14 @@ char CommMRGI()
 		// Wait (PD2)
 	case 16:
 		if (--delay_count > 0) { Delay1ms(); }
-		else { step += 1; }
+		else { g_MacroStepNo += 1; }
 		break;
 
 		// GRIP
 	case 17: 
 		Grip(); 
 		IsTimeoutGripUngrip(1, 1);
-		step++;
+		g_MacroStepNo++;
 		break; 
 	case 18:
 		// if (IsGrip())
@@ -6108,15 +5988,15 @@ char CommMRGI()
 					return NORMAL_RUNNING;
 				}
 			}
-			if (IsGrip(TRUE)) { step += 1; break; } 
-			else { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
+			if (IsGrip(TRUE)) { delay_count = get_var(2); g_MacroStepNo += 1; break; } 
+			else { SetErrorCode(ERR_GRIP_ERROR); g_MacroStepNo = 91; return NORMAL_RUNNING; }
 		}
 		// if (GetDIBit(1, DI_SENS_GRIP) == 1) { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
 		break; 
 
 	case 19:
 		if (--delay_count > 0) { Delay1ms(); }
-		else { step = 20; }
+		else { g_MacroStepNo = 20; }
 		break;
 
 		// NEW LOAD 위치로 이동
@@ -6127,35 +6007,30 @@ char CommMRGI()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step += 1;
+		timeoutCount = 0;
+		g_MacroStepNo += 1;
 		break;
 
 	case 21:
-		if (move_done(0x03))
+		if (move_done(0x03) && IsStopped())
 		{
-			step += 1;
+			g_MacroStepNo = 23;
 		}
-		break;
-
-	case 22:
-		if (IsStopped())
-		{
-			step += 1;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 23:
 		// SetHoldTorque(Z_AXIS);
 		HoldMotors();
-		step += 1;
-		break;
+		g_MacroStepNo = 0;
+		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -6169,44 +6044,45 @@ char CommRASP()
 {
 	const int POINT_GRIP = 1;
 	const int POINT_ASP = 4;
-	static char step = 0;
+	//static char step = 0;
 	static int delay_count = 0;
+	static int timeoutCount = 0;
 	int move_start = 0;
 	char is_demo_mode_var = 91;
 	float pos[3];
 
 	if (IsError())
 	{
-		step = 93;
+		g_MacroStepNo = 93;
 	}
 
-	switch (step)
+	switch (g_MacroStepNo)
 	{
 		// Error handling
 	case 91:
 		StopMotors();
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 92:
 		if (IsStopped())
 		{
-			step++;
+			g_MacroStepNo++;
 		}
 		break;
 	case 93:
 		HoldMotors();
-		step = 0;
+		g_MacroStepNo = 0;
 		return ERROR_STOPPED;
 
 		// y축 위치를 확인 한다
 	case 0:
 		if (IsYAxisPositionMovable())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
 		else
 		{
-			step = 1;
+			g_MacroStepNo = 1;
 		}
 		break;
 
@@ -6217,17 +6093,19 @@ char CommRASP()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step++;
+		timeoutCount = 0;
+		g_MacroStepNo++;
 		break;
 	case 2:
 		if (move_done(0x02) && IsStopped())
 		{
-			step = 10;
+			g_MacroStepNo = 10;
 		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// REGRIP 위치로 X축 이동
@@ -6240,44 +6118,39 @@ char CommRASP()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step += 1;
+		timeoutCount = 0;
+		g_MacroStepNo += 1;
 		break;
 
 	case 11:
-		if (move_done(0x03))
+		if (move_done(0x03) && IsStopped())
 		{
-			step++;
+			g_MacroStepNo = 13;
 		}
-		break;
-
-	case 12:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 		// Gripper Ungrip. PD7번의 Z축 위치로 이동
 	case 13:
 		Ungrip();
 		IsTimeoutGripUngrip(1, 1);
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 14:
 		if (IsUngrip())
 		{
 			delay_count = get_var(2);
-			step = 16; break;
+			g_MacroStepNo = 16; break;
 		}
 		if (IsTimeoutGripUngrip(0, 1) != 0)
 		{
 			// Timeout 에러 
 			SetErrorCode(ERR_GRIP_UNGRIP_TIMEOUT);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		break;
@@ -6285,14 +6158,14 @@ char CommRASP()
 		// Wait (PD2)
 	case 16:
 		if (--delay_count > 0) { Delay1ms(); }
-		else { step += 1; }
+		else { g_MacroStepNo += 1; }
 		break;
 
 		// GRIP
 	case 17:
 		Grip();
 		IsTimeoutGripUngrip(1, 1);
-		step++;
+		g_MacroStepNo++;
 		break;
 	case 18:
 		// if (IsGrip())
@@ -6321,19 +6194,19 @@ char CommRASP()
 			if (get_var(is_demo_mode_var) == 0) {
 				if (IsExistFlask() == 0) {
 					SetErrorCode(ERR_GRIP_ERROR);
-					step = 91;
+					g_MacroStepNo = 91;
 					return NORMAL_RUNNING;
 				}
 			}
-			if (IsGrip(TRUE)) { step += 1; break; } 
-			else { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
+			if (IsGrip(TRUE)) { delay_count = get_var(2); g_MacroStepNo += 1; break; } 
+			else { SetErrorCode(ERR_GRIP_ERROR); g_MacroStepNo = 91; return NORMAL_RUNNING; }
 		}
 		// if (GetDIBit(1, DI_SENS_GRIP) == 1) { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
 		break; 
 
 	case 19:
 		if (--delay_count > 0) { Delay1ms(); }
-		else { step = 20; }
+		else { g_MacroStepNo = 20; }
 		break;
 
 		// ASP 위치로 이동
@@ -6351,35 +6224,30 @@ char CommRASP()
 		if (move_start)
 		{
 			SetErrorCode(ERR_MOTOR_ERROR);
-			step = 91;
+			g_MacroStepNo = 91;
 			return NORMAL_RUNNING;
 		}
 		DelayMoveStart();
-		step += 1;
+		timeoutCount = 0;
+		g_MacroStepNo += 1;
 		break;
 
 	case 21:
-		if (move_done(0x03))
+		if (move_done(0x03) && IsStopped())
 		{
-			step += 1;
+			g_MacroStepNo = 23;
 		}
-		break;
-
-	case 22:
-		if (IsStopped())
-		{
-			step += 1;
-		}
+		CHECK_MOVE_TIMEOUT(timeoutCount)
 		break;
 
 	case 23:
 		// SetHoldTorque(Z_AXIS);
 		HoldMotors();
-		step += 1;
-		break;
+		g_MacroStepNo = 0;
+		return NORMAL_FINISHED;
 
 	default:
-		step = 0;
+		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 	}
 
@@ -6392,6 +6260,7 @@ char CommRASP()
 // - 0 : continue
 // - 1 : end
 // - 2 : motor error
+// - 3 : timeout 
 int do_shake_xy(char reset_step, int axis, int angle, int count)
 {
 	const int POINT_NEW_LOAD = 15;
@@ -6400,6 +6269,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 	static int step = 0;
 	static int shake_count = 0;
 	static int delay_count = 0;
+	static int timeoutCount = 0;
 
 	int move_start = 0;
 	float move_angle[3] = {0.0, 0.0, 0.0};
@@ -6421,19 +6291,16 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 			return 2;
 		}
 		DelayMoveStart();
+		timeoutCount = 0;
 		step++;
 	case 3:
-		if (move_done(0x03))
+		if (move_done(0x03) && IsStopped())
 		{
-			step++;
+			step = 5;
 		}
+		CHECK_MOVE_TIMEOUT2(timeoutCount)
 		break;
-	case 4:
-		if (IsStopped())
-		{
-			step++;
-		}
-		break;
+
 	case 5:
 		if ((axis & 0x02) == 0x02)
 		{
@@ -6447,6 +6314,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 				return 2;
 			}
 			DelayMoveStart();
+			timeoutCount = 0;
 			step++;
 		}
 		else
@@ -6455,16 +6323,11 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		}
 		break;
 	case 6:
-		if (move_done(0x02))
+		if (move_done(0x02) & IsStopped())
 		{
-			step++;
+			step = 8;
 		}
-		break;
-	case 7:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT2(timeoutCount)
 		break;
 	case 8:
 		step = 10;
@@ -6490,21 +6353,18 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 			return 2;
 		}
 		DelayMoveStart();
+		timeoutCount = 0;
 		step++;
 		break;
 	case 12:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = g_ShakeTiltDelay; // get_var(VAR_DELAY_MOVE);
-			step++;
+			step = 14;
 		}
+		CHECK_MOVE_TIMEOUT2(timeoutCount)
 		break;
-	case 13:
-		if (IsStopped())
-		{
-			step++;
-		}
-		break;
+
 	case 14:
 		if (--delay_count > 0)
 		{
@@ -6525,22 +6385,19 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 			return 2;
 		}
 		DelayMoveStart();
+		timeoutCount = 0;
 		step++;
 		break;
 
 	case 16:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = g_ShakeTiltDelay; // get_var(VAR_DELAY_MOVE);
-			step++;
+			step = 18;
 		}
+		CHECK_MOVE_TIMEOUT2(timeoutCount)
 		break;
-	case 17:
-		if (IsStopped())
-		{
-			step++;
-		}
-		break;
+
 	case 18:
 		if (--delay_count > 0)
 		{
@@ -6562,21 +6419,18 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 			return 2;
 		}
 		DelayMoveStart();
+		timeoutCount = 0;
 		step++;
 		break;
 	case 31:
-		if (move_done(0x01))
+		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = 1; // g_ShakeTiltDelay; //get_var(VAR_DELAY_MOVE);
-			step++;
+			step = 33;
 		}
+		CHECK_MOVE_TIMEOUT2(timeoutCount)
 		break;
-	case 32:
-		if (IsStopped())
-		{
-			step++;
-		}
-		break;
+
 	case 33:
 		if (--delay_count > 0)
 		{
@@ -6602,19 +6456,16 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		{
 			return 2;
 		}
+		DelayMoveStart();
+		timeoutCount = 0;
 		step++;
 		break;
 	case 36:
-		if (move_done(0x03))
+		if (move_done(0x03) && IsStopped())
 		{
-			step++;
+			step = 38;
 		}
-		break;
-	case 37:
-		if (IsStopped())
-		{
-			step++;
-		}
+		CHECK_MOVE_TIMEOUT2(timeoutCount)
 		break;
 	case 38:
 		step = 0;

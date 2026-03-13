@@ -32,6 +32,7 @@ extern int g_OverRun_AxisNo;
 extern int g_OverRun_LimitCount;
 
 extern char g_BreakReleaseStepNo;
+extern int g_MacroStepNo;
 
 extern double g_EncoderScaleX;
 extern double g_EncoderScaleY;
