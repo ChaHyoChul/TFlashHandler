@@ -180,25 +180,59 @@ unsigned char get_axis_sensor_state(char axis, char type)
 		return NORMAL_FINISHED; \
 	}
 
-#define CHECK_MOVE_TIMEOUT(VAR)					\
-        if (get_var(24) != 0)           		\
-        {                               		\
-            VAR += 1;                   		\
-            if (VAR > get_var(24))      		\
-            {                               	\
-                SetErrorCode(ERR_TIME_OVER);	\
-                g_MacroStepNo = 91;         	\
-                return NORMAL_RUNNING;      	\
-            }                               	\
+#define CHECK_MOVE_TIMEOUT(VAR, MASK, STEP_VAR, STEP_NO)	\
+        if (get_var(24) != 0)           				\
+        {                   							\
+			char is_error = 0;            				\
+			int axis = 0x01; 							\
+			int i = 0;									\
+            VAR += 1;                   				\
+            if (VAR > get_var(24))      				\
+            {                               			\
+				for (i = 0; i<MAX_AXIS; i++) { 			\
+					if ((axis & MASK) != 0) { 			\
+						if (fabs(get_motor_pos(i) - g_TargetPosition[i]) > 3.0) {	\
+							is_error = 1;				\
+							break;						\
+						}								\
+					}									\
+					axis <<= 1;							\
+				}										\
+				if (is_error != 0) {					\
+                	SetErrorCode(ERR_TIME_OVER);		\
+                	g_MacroStepNo = 91;         		\
+                	return NORMAL_RUNNING;      		\
+				}										\
+				else {									\
+					STEP_VAR = STEP_NO;					\
+				}										\
+            }                               			\
         }
 
-#define CHECK_MOVE_TIMEOUT2(VAR)				\
+#define CHECK_MOVE_TIMEOUT2(VAR, MASK, STEP_VAR, STEP_NO)			\
         if (get_var(24) != 0)           		\
         {                               		\
+			char is_error = 0;            		\
+			int axis = 0x01; 					\
+			int i = 0;							\
             VAR += 1;                   		\
             if (VAR > get_var(24))      		\
             {                               	\
-                return 3;				      	\
+                for (i = 0; i<MAX_AXIS; i++) {	\
+					if ((axis & MASK) != 0) {	\
+						if (fabs(get_motor_pos(i) - g_TargetPosition[i]) > 3.0) {	\
+							is_error = 1;		\
+							break;				\
+						}						\
+					}							\
+					axis <<= 1;					\
+				}								\
+				if (is_error != 0) {			\
+                	return 3;					\
+                }								\
+				else {							\
+					STEP_VAR = STEP_NO;			\
+				}								\
             }                               	\
         }
 
@@ -480,6 +514,11 @@ void MainControl()
 		res = CommHome(); // Encoder 상시 체크
 		UpdateState(res);
 		break;
+
+		/////////////////////////////////////////////
+		// 아래 매크로 부터 MOVE_DONE에 Timeout 체크 
+		/////////////////////////////////////////////
+
 	case COMM_MMLD:
 		if (breakRelease() == 0)
 			break;
@@ -2899,7 +2938,7 @@ char CommMMLD()
 		{
 			g_MacroStepNo = 3;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 3)
 		break;
 	case 3:
 		g_MacroStepNo = 10;
@@ -2927,7 +2966,7 @@ char CommMMLD()
 		{
 			g_MacroStepNo = 13;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 	case 13:
@@ -3120,7 +3159,7 @@ char CommMoveXY()
 		{
 			g_MacroStepNo = 10;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 	case 10:
@@ -3150,7 +3189,7 @@ char CommMoveXY()
 		{
 			g_MacroStepNo = 13;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 	case 13:
@@ -3241,7 +3280,7 @@ char CommMoveXY_With_Offset()
 		{
 			g_MacroStepNo = 10;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)		
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)		
 		break;
 
 	case 10:
@@ -3276,7 +3315,7 @@ char CommMoveXY_With_Offset()
 		{
 			g_MacroStepNo = 13;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 	case 13:
@@ -3351,7 +3390,7 @@ char CommMLOA()
 		{
 			g_MacroStepNo = 3;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 3)
 		break;
 
 	case 3:
@@ -3372,7 +3411,7 @@ char CommMLOA()
 		{
 			g_MacroStepNo = 6;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 6)
 		break;
 
 	case 6:
@@ -3472,7 +3511,7 @@ char CommShake()
 		{
 			g_MacroStepNo = 10;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 		//
@@ -3505,7 +3544,7 @@ char CommShake()
 		{
 			g_MacroStepNo = 14;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 14)
 		break;
 
 		// shake. X축을 +/-방향으로 이동
@@ -3542,7 +3581,7 @@ char CommShake()
 			delay_count = g_ShakeTiltDelay; // get_var(VAR_DELAY_MOVE);
 			g_MacroStepNo = 17;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 17)
 		break;
 
 	case 17:
@@ -3578,7 +3617,7 @@ char CommShake()
 		{
 			g_MacroStepNo = 23;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -3675,7 +3714,7 @@ char CommShakeUsingPD6()
 		{
 			g_MacroStepNo = 10;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 		//
@@ -3708,7 +3747,7 @@ char CommShakeUsingPD6()
 		{
 			g_MacroStepNo = 14;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 14)
 		break;
 
 	case 14:
@@ -3730,7 +3769,7 @@ char CommShakeUsingPD6()
 		{
 			g_MacroStepNo = 20;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 20)
 		break;
 
 		// shake. X축을 +/-방향으로 이동
@@ -3767,7 +3806,7 @@ char CommShakeUsingPD6()
 			delay_count = g_ShakeTiltDelay; // get_var(VAR_DELAY_MOVE);
 			g_MacroStepNo = 23;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -3802,7 +3841,7 @@ char CommShakeUsingPD6()
 		{
 			g_MacroStepNo = 33;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 33)
 		break;
 
 	case 33:
@@ -3823,7 +3862,7 @@ char CommShakeUsingPD6()
 		{
 			g_MacroStepNo = 40;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 40)
 		break;
 
 		// 종료
@@ -3908,7 +3947,7 @@ char CommWaste()
 		{
 			g_MacroStepNo = 10;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 	case 10:
@@ -3936,7 +3975,7 @@ char CommWaste()
 		{
 			g_MacroStepNo = 14;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 14)
 		break;
 
 		// pd8로 이동 (y축)
@@ -3960,7 +3999,7 @@ char CommWaste()
 			delay_count = get_var(VAR_NUM_WASTE_DELAY);
 			g_MacroStepNo = 17;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 17)
 		break;
 
 		// delay
@@ -3995,7 +4034,7 @@ char CommWaste()
 		{
 			g_MacroStepNo = 21;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 21)
 		break;
 
 		// new load 위치(pd15)로 이동. x축
@@ -4018,7 +4057,7 @@ char CommWaste()
 		{
 			g_MacroStepNo = 24;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 24)
 		break;
 
 	case 24:
@@ -4132,7 +4171,7 @@ char CommAsyncWaste()
 		{
 			g_MacroStepNo = 11;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11)
 		break;
 
 		// pd8로 이동 (x축)
@@ -4155,7 +4194,7 @@ char CommAsyncWaste()
 		{
 			g_MacroStepNo = 14;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 14)
 		break;
 
 		// pd11로 이동 (y축)
@@ -4178,7 +4217,7 @@ char CommAsyncWaste()
 			delay_count = get_var(VAR_NUM_ASYNC_DELAY);
 			g_MacroStepNo = 17;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 17)
 		break;
 
 		// y축 이동 후 Async signal on
@@ -4239,7 +4278,7 @@ char CommAsyncWaste()
 			delay_count = get_var(VAR_NUM_WASTE_DELAY);
 			g_MacroStepNo = 23;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 23)
 		break;
 
 		// delay
@@ -4274,7 +4313,7 @@ char CommAsyncWaste()
 		{
 			g_MacroStepNo = 27;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 27)
 		break;
 
 		// load 위치(pd3)로 이동. x축 -> pd15
@@ -4298,7 +4337,7 @@ char CommAsyncWaste()
 		{
 			g_MacroStepNo = 30;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 30)
 		break;
 
 	case 30:
@@ -4381,7 +4420,7 @@ char CommReadyWaste()
 		{
 			g_MacroStepNo = 10;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 		// X축 (PD8) 이동
@@ -4403,7 +4442,7 @@ char CommReadyWaste()
 		{
 			g_MacroStepNo = 13;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 13)
 		break;
 
 		// Y축 (PD11) 이동
@@ -4425,7 +4464,7 @@ char CommReadyWaste()
 		{
 			g_MacroStepNo = 16;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 16)
 		break;
 
 	case 16:
@@ -4502,7 +4541,7 @@ char CommPourWaste()
 			delay_count = get_var(VAR_NUM_WASTE_DELAY);
 			g_MacroStepNo = 3;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 3)
 		break;
 
 		// delay
@@ -4537,7 +4576,7 @@ char CommPourWaste()
 		{
 			g_MacroStepNo = 7;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 7)
 		break;
 
 		// load 위치(pd3)로 이동. x축
@@ -4560,7 +4599,7 @@ char CommPourWaste()
 		{
 			g_MacroStepNo = 10;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 10)
 		break;
 
 	case 10: // 14:
@@ -4656,7 +4695,7 @@ char CommSeparate()
 		{
 			g_MacroStepNo = 11;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11)
 		break;
 
 		// pd9 로 이동 (x,y 동시)
@@ -4680,7 +4719,7 @@ char CommSeparate()
 			delay_count = get_var(VAR_DELAY_SEP);
 			g_MacroStepNo = 14;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 14)
 		break;
 
 	case 14:
@@ -4722,7 +4761,7 @@ char CommSeparate()
 			delay_count = get_var(VAR_DELAY_MOV);
 			g_MacroStepNo = 18;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 18)
 		break;
 
 	case 18:
@@ -4758,7 +4797,7 @@ char CommSeparate()
 			delay_count = get_var(VAR_DELAY_MOV);
 			g_MacroStepNo = 22;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 22)
 		break;
 
 	case 22:
@@ -4791,7 +4830,7 @@ char CommSeparate()
 		{
 			g_MacroStepNo = 26;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 26)
 		break;
 
 	case 26:
@@ -4887,7 +4926,7 @@ char CommSeparateLongSide()
 		{
 			g_MacroStepNo = 11;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11)
 		break;
 
 		// pd9로 이동. xy 동시
@@ -4911,7 +4950,7 @@ char CommSeparateLongSide()
 			delay_count = get_var(VAR_DELAY_SEP);
 			g_MacroStepNo = 14;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 14)
 		break;
 
 		// 용액이 나누어 질때까지 대기
@@ -4959,7 +4998,7 @@ char CommSeparateLongSide()
 			delay_count = get_var(VAR_DELAY_SEP2);
 			g_MacroStepNo = 23;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -4994,7 +5033,7 @@ char CommSeparateLongSide()
 			delay_count = get_var(VAR_DELAY_SEP);
 			g_MacroStepNo = 33;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 33)
 		break;
 
 	case 33:
@@ -5090,7 +5129,7 @@ char CommSeparateShortSide()
 		{
 			g_MacroStepNo = 11;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11)
 		break;
 
 		// pd10로 이동. x 축만
@@ -5114,7 +5153,7 @@ char CommSeparateShortSide()
 			delay_count = get_var(VAR_DELAY_SEP);
 			g_MacroStepNo = 14;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 14)
 		break;
 
 		// 용액이 나누어 질때까지 대기
@@ -5157,7 +5196,10 @@ char CommSeparateShortSide()
 				g_MacroStepNo = 20;
 			}
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, (get_var(VAR_HW_TYPE) == 0 ? 30 : 20))
+		break;
+
+		// PD 1
 		break;
 
 		// PD 14 (Tilt) 위치로 이동
@@ -5181,7 +5223,7 @@ char CommSeparateShortSide()
 			delay_count = get_var(VAR_DELAY_SEP2);
 			g_MacroStepNo = 23;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -5202,7 +5244,7 @@ char CommSeparateShortSide()
 			delay_count = get_var(VAR_DELAY_SEP2);
 			g_MacroStepNo++;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 31)
 		break;
 	case 31:
 		if (--delay_count > 0)
@@ -5236,7 +5278,7 @@ char CommSeparateShortSide()
 			delay_count = 100; // get_var(VAR_DELAY_MOV);
 			g_MacroStepNo = 35;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 35)
 		break;
 
 	case 35:
@@ -5271,7 +5313,7 @@ char CommSeparateShortSide()
 		{
 			g_MacroStepNo = 39;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 39)
 		break;
 
 	case 39:
@@ -5372,7 +5414,7 @@ char CommSWIRL()
 		{
 			g_MacroStepNo = 11;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11)
 		break;
 
 		// ready 위치로 이동
@@ -5394,7 +5436,7 @@ char CommSWIRL()
 		{
 			g_MacroStepNo = 14;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 14)
 		break;
 
 	case 14:
@@ -5415,7 +5457,7 @@ char CommSWIRL()
 		{
 			g_MacroStepNo =  20;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 20)
 		break;
 
 		///////////////////////////////////////////////
@@ -5588,7 +5630,7 @@ char CommMAMV()
 		{
 			g_MacroStepNo = 10;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 	case 10:
@@ -5613,7 +5655,7 @@ char CommMAMV()
 		{
 			g_MacroStepNo = 13;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 	case 13:
@@ -5686,7 +5728,7 @@ char CommRAMV()
 		{
 			g_MacroStepNo = 10;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 		// REGRIP 위치로 X축 이동
@@ -5712,7 +5754,7 @@ char CommRAMV()
 		{
 			g_MacroStepNo = 13;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 		// Gripper Ungrip. PD7번의 Z축 위치로 이동
@@ -5813,7 +5855,7 @@ char CommRAMV()
 		{
 			g_MacroStepNo = 23;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -5898,7 +5940,7 @@ char CommMRGI()
 		{
 			g_MacroStepNo = 10;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 		// REGRIP 위치로 X, Y축 이동
@@ -5921,7 +5963,7 @@ char CommMRGI()
 		{
 			g_MacroStepNo = 13;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 		// Gripper Ungrip. PD7번의 Z축 위치로 이동
@@ -6020,7 +6062,7 @@ char CommMRGI()
 		{
 			g_MacroStepNo = 23;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -6105,7 +6147,7 @@ char CommRASP()
 		{
 			g_MacroStepNo = 10;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 		// REGRIP 위치로 X축 이동
@@ -6131,7 +6173,7 @@ char CommRASP()
 		{
 			g_MacroStepNo = 13;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 		// Gripper Ungrip. PD7번의 Z축 위치로 이동
@@ -6237,7 +6279,7 @@ char CommRASP()
 		{
 			g_MacroStepNo = 23;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount)
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -6298,7 +6340,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		{
 			step = 5;
 		}
-		CHECK_MOVE_TIMEOUT2(timeoutCount)
+		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x03, step, 5)
 		break;
 
 	case 5:
@@ -6327,7 +6369,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		{
 			step = 8;
 		}
-		CHECK_MOVE_TIMEOUT2(timeoutCount)
+		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x02, step, 8)
 		break;
 	case 8:
 		step = 10;
@@ -6362,7 +6404,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 			delay_count = g_ShakeTiltDelay; // get_var(VAR_DELAY_MOVE);
 			step = 14;
 		}
-		CHECK_MOVE_TIMEOUT2(timeoutCount)
+		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x01, step, 14)
 		break;
 
 	case 14:
@@ -6395,7 +6437,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 			delay_count = g_ShakeTiltDelay; // get_var(VAR_DELAY_MOVE);
 			step = 18;
 		}
-		CHECK_MOVE_TIMEOUT2(timeoutCount)
+		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x01, step, 18)
 		break;
 
 	case 18:
@@ -6428,7 +6470,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 			delay_count = 1; // g_ShakeTiltDelay; //get_var(VAR_DELAY_MOVE);
 			step = 33;
 		}
-		CHECK_MOVE_TIMEOUT2(timeoutCount)
+		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x01, step, 33)
 		break;
 
 	case 33:
@@ -6465,7 +6507,7 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		{
 			step = 38;
 		}
-		CHECK_MOVE_TIMEOUT2(timeoutCount)
+		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x03, step, 38)
 		break;
 	case 38:
 		step = 0;
@@ -6501,12 +6543,15 @@ int move_pd(int pd_no, char sel_axis)
 			{
 			case X_AXIS:
 				g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+				g_TargetPosition[axis] = pd.x;
 				break;
 			case Y_AXIS:
 				g_MoveOffset[axis] = (pd.y - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+				g_TargetPosition[axis] = pd.y;
 				break;
 			case Z_AXIS:
 				g_MoveOffset[axis] = (pd.z - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+				g_TargetPosition[axis] = pd.z;
 				break;
 			}
 			// g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
@@ -6549,12 +6594,15 @@ int move_pd_with_speed(int pd_no, int sel_axis, int spd_type)
 			{
 			case X_AXIS:
 				g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+				g_TargetPosition[axis] = pd.x;
 				break;
 			case Y_AXIS:
 				g_MoveOffset[axis] = (pd.y - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+				g_TargetPosition[axis] = pd.y;
 				break;
 			case Z_AXIS:
 				g_MoveOffset[axis] = (pd.z - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+				g_TargetPosition[axis] = pd.z;
 				break;
 			}
 			// g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
@@ -6597,12 +6645,15 @@ int move_pd_with_speed_ratio(int pd_no, int sel_axis, int spd_type, int spd_rati
 			{
 			case X_AXIS:
 				g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+				g_TargetPosition[axis] = pd.x;
 				break;
 			case Y_AXIS:
 				g_MoveOffset[axis] = (pd.y - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+				g_TargetPosition[axis] = pd.y;
 				break;
 			case Z_AXIS:
 				g_MoveOffset[axis] = (pd.z - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+				g_TargetPosition[axis] = pd.z;
 				break;
 			}
 			// g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
@@ -6647,12 +6698,15 @@ int move_pd_with_speed_ratio_xy_offset(int pd_no, int sel_axis, int spd_type, in
 			{
 			case X_AXIS:
 				g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+				g_TargetPosition[axis] = pd.x;
 				break;
 			case Y_AXIS:
 				g_MoveOffset[axis] = (pd.y - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+				g_TargetPosition[axis] = pd.y;
 				break;
 			case Z_AXIS:
 				g_MoveOffset[axis] = (pd.z - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+				g_TargetPosition[axis] = pd.z;
 				break;
 			}
 			// g_MoveOffset[axis] = (pd.x - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
@@ -6724,6 +6778,7 @@ int move_abs(int sel_axis, float dist[], int spd_type, int spd_ratio)
 		if ((sel_axis & mask) == mask)
 		{
 			g_MoveOffset[axis] = (dist[axis] - get_motor_pos(axis)) / g_MotionParam[axis].m_fScaleFactor;
+			g_TargetPosition[axis] = dist[axis];
 
 			if (g_MoveOffset[axis] != 0)
 			{

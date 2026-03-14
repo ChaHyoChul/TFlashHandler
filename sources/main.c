@@ -2305,6 +2305,11 @@ void DoCmd(char *cmd)
 		sprintf(str, "GMCC %d, %d\r\n", g_MotionCommand, g_MotionCommandBackup);
 		send(str);
 	}
+	else if (IS_COMMAND_N(cmd, "GTPS"))
+	{
+		sprintf(str, "GTPS %.2f,%.2f,%.2f\r\n", g_TargetPosition[0], g_TargetPosition[1], g_TargetPosition[2]);
+		send(str);
+	}
 	
 	// COMM_PTP 명령으로 이동하는 동안 10ms 간격으로 데이터 저장
 	// ERPC : xy_pulse_count_index 리셋
