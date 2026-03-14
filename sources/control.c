@@ -1508,7 +1508,7 @@ char CommOrigin()
 
 		// Z축 HOME 기능 제거 
 	case 3:
-		step = 6; 
+		g_MacroStepNo = 6; 
 		break;
 
 	case 6:
@@ -2778,17 +2778,17 @@ char CommHome()
 		///////////////////////////////////////////////////////
 		// v1.2.6 Flask가 있으면 Grip 한다. Demo mode와 관련 없이 동작 한다
 	case 110:
-		if (!IsExistFlask()) { step = 120; }
-		else { step = 111; }
+		if (!IsExistFlask()) { g_MacroStepNo = 120; }
+		else { g_MacroStepNo = 111; }
 		break;
 	case 111:
-		if (IsGrip(TRUE)) { step = 120; }
-		else { step = 112; }
+		if (IsGrip(TRUE)) { g_MacroStepNo = 120; }
+		else { g_MacroStepNo = 112; }
 	case 112:
 		// Z축을 Grip
 		Grip();
 		IsTimeoutGripUngrip(1, 1);
-		step = 113;
+		g_MacroStepNo = 113;
 		break;
 	case 113:
 		// if (IsGrip(TRUE))
@@ -2813,14 +2813,14 @@ char CommHome()
 		// Grip Timeout 시간 동안 대기 
 		if (IsTimeoutGripUngrip(0, 1) != 0)
 		{
-			if (IsGrip(TRUE)) { step = 114; break; }
-			else { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
+			if (IsGrip(TRUE)) { g_MacroStepNo = 114; break; }
+			else { SetErrorCode(ERR_GRIP_ERROR); g_MacroStepNo = 91; return NORMAL_RUNNING; }
 		}
 		// if (GetDIBit(1, DI_SENS_GRIP) == 1) { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
 		break;
 
 	case 114:
-		step = 116;
+		g_MacroStepNo = 116;
 		break;
 	case 116:
 		g_MacroStepNo = 120;
@@ -5775,7 +5775,7 @@ char CommRAMV()
 			if (get_var(is_demo_mode_var) == 0) {
 				if (IsExistFlask() == 0) {
 					SetErrorCode(ERR_GRIP_ERROR);
-					step = 91;
+					g_MacroStepNo = 91;
 					return NORMAL_RUNNING;
 				}
 			}
@@ -5928,7 +5928,7 @@ char CommMRGI()
 	case 13: 
 		Ungrip();
 		IsTimeoutGripUngrip(1, 1);
-		step++; 
+		g_MacroStepNo++; 
 		break; 
 	case 14:
 		if (IsUngrip())
@@ -5984,7 +5984,7 @@ char CommMRGI()
 			if (get_var(is_demo_mode_var) == 0) {
 				if (IsExistFlask() == 0) {
 					SetErrorCode(ERR_GRIP_ERROR);
-					step = 91;
+					g_MacroStepNo = 91;
 					return NORMAL_RUNNING;
 				}
 			}
@@ -6679,7 +6679,7 @@ int move_pd_with_speed_ratio_xy_offset(int pd_no, int sel_axis, int spd_type, in
 	return 0;
 }
 
-// 선택된 축에 대해서, dist 거리 만큼 이동 한다
+// 선택된 축에 대해서, dist 거리 만큼 이동 한다 => 사용 안함 
 int move_inc(int sel_axis, float dist[], int spd_type, int spd_ratio)
 {
 	char axis;
@@ -6698,7 +6698,7 @@ int move_inc(int sel_axis, float dist[], int spd_type, int spd_ratio)
 				g_MoveStartErrorCode[axis] = MoveStart(axis);
 				if (g_MoveStartErrorCode[axis])
 				{
-					return g_MoveStartErrorCode[axis];
+					return g_MoveStartErrorCode[axis]; 
 				}
 			}
 		}
