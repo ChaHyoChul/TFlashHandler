@@ -204,6 +204,7 @@ unsigned char get_axis_sensor_state(char axis, char type)
                 	return NORMAL_RUNNING;      		\
 				}										\
 				else {									\
+					StopMotors();						\
 					STEP_VAR = STEP_NO;					\
 				}										\
             }                               			\
@@ -231,6 +232,7 @@ unsigned char get_axis_sensor_state(char axis, char type)
                 	return 3;					\
                 }								\
 				else {							\
+					StopMotors();				\
 					STEP_VAR = STEP_NO;			\
 				}								\
             }                               	\
