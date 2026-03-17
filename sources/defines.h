@@ -119,6 +119,9 @@
     // 3. MoveDone() 체크시 Timeout 체크 (VAR V24에 시간 저장. ERR_TIME_OVER(3) 에러 발생. COMM_HOME::CommHome() 함수 제외. 아래 함수만 적용)
     // 4. Encoder 체크 기능 추가 버전을 2.0.0으로 변경 
 
+    // * 엔코더 모터 버전을 v2.0.0으로 변경 
+    // * 엔코더 버전에 1.5.7 버전을 합쳐서 v2.0.1로 수정 
+
 // Settings
 #define COMPORT_BAUDRATE (57600)
 
