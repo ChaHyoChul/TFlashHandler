@@ -133,7 +133,7 @@ int _tmain(void)
 
 	InitHardware();
 	UartInit(UART_PORT0, 9600);
-	UartInit(UART_PORT1, 9600);
+	UartInit(UART_PORT1, 115200);
 
 	load_all();
 	init_data();
@@ -2362,6 +2362,22 @@ void DoCmd(char *cmd)
 	//	//	pulse_count_axis = 1;
 	//	// send("SPRY\r\n");
 	//}
+	else if (IS_COMMAND_N(cmd, "TIFO"))
+    {
+        sprintf(str, "TIFO char(%d), int(%d), long(%d), unsigned long long(%d), float(%d), double(%d)\r\n", 
+            sizeof(char), sizeof(int), sizeof(long), sizeof(unsigned long long), 
+            sizeof(float), sizeof(double)
+        );
+        send(str);
+    }
+    else if (IS_COMMAND_N(cmd, "TMAX"))
+    {
+        sprintf(str, "TIFO char(%d), int(%d), long(%d), unsigned long long(%d), float(%d), double(%d)\r\n", 
+            sizeof(char), sizeof(int), sizeof(long), sizeof(unsigned long long), 
+            sizeof(float), sizeof(double)
+        );
+        send(str);
+    }
 	else
 	{
 		if (strlen(cmd) > 0)

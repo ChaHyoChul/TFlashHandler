@@ -113,7 +113,7 @@
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.6-a" // 0129-0850. 통신이 들어오는 동안 encoder check timer 함수 skip =>  g_TimerIsr_Skip=0 위치 변경
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.6-b" // 0129-1400. Main loop에 Encoder 체크 기능 추가. ASP/DISP 명령일 때 만 Encoder 에러 신호 출력 
 // #define SOFTWARE_VERSION "TFLASK-H 1.5.7" // 
-#define SOFTWARE_VERSION "TFLASK-H 2.0.1" // 
+// #define SOFTWARE_VERSION "TFLASK-H 2.0.1" // 
     // 1. DRT 명령 실행전 매크로 실행중인지 확인 (매크로 실행중이면 IN_RUNNING 에러 리턴) 
     // 2. Macro step 변수를 static에서 global 변수로 변경 (SetControlCommand() 함수에서 초기화. MainControl() 함수에서 사용중인 함수에만 적용)
     // 3. MoveDone() 체크시 Timeout 체크 (VAR V24에 시간 저장. ERR_TIME_OVER(3) 에러 발생. COMM_HOME::CommHome() 함수 제외. 아래 함수만 적용)
@@ -121,6 +121,10 @@
 
     // * 엔코더 모터 버전을 v2.0.0으로 변경 
     // * 엔코더 버전에 1.5.7 버전을 합쳐서 v2.0.1로 수정 
+
+#define SOFTWARE_VERSION "TFLASK-H 2.0.2" // 
+    // 1. Timeout 시간에 이동 속도 비율 적용 
+    
 
 // Settings
 #define COMPORT_BAUDRATE (57600)

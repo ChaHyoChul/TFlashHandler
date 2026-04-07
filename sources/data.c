@@ -759,6 +759,10 @@ void reset_system_var()
 	set_var(20, 100);  // 2번축 허용 오차
 	set_var(21, 500);  // IDLE 상태 체크 주기
 	set_var(22, 500);  // MACRO RUN 상태 체크 주기
+
+	set_var(23, 500);	// 엔코더 에러일 때, 겐트리로 보내는 신로 길이 
+	set_var(24, 10);	// Move timeout 시간 (sec)
+	set_var(25, 20);	// Move timeout이 발생했을 때, Target 위치와 현재 위치 차이 (2.0mm)
 }
 
 void reset_encoder_xy(int axis)

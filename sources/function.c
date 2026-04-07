@@ -551,7 +551,7 @@ void send_dbg(char* format, ...)
 	vsnprintf(buffer, 128, format, args);
 	va_end(args);
 	
-	SerialWriteBytes(UART_PORT0, buffer, strlen(buffer));
+	SerialWriteBytes(UART_PORT1, buffer, strlen(buffer));
 }
 
 INTS get_param(int type)
