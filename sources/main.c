@@ -133,7 +133,7 @@ int _tmain(void)
 
 	InitHardware();
 	UartInit(UART_PORT0, 9600);
-	UartInit(UART_PORT1, 9600);
+	UartInit(UART_PORT1, 115200);
 
 	load_all();
 	init_data();
@@ -1736,7 +1736,7 @@ void DoCmd(char *cmd)
 		if ((g_MoveRatio <= 0 || g_MoveRatio > 100) ||
 			(g_fRegripXPos < 1.0 || g_fRegripXPos > 90.0) ||
 			(g_fRegripYPos < 0.0 || g_fRegripYPos > 90.0) ||
-			(g_fRegripZPos < 1.0 || g_fRegripZPos > 10.0) ||
+			// (g_fRegripZPos < 1.0 || g_fRegripZPos > 10.0) ||
 			(g_nRegripDelay < 1) ||
 			(fabs(g_fMASPOffset[0]) > 45.0) ||
 			(fabs(g_fMASPOffset[1]) > 45.0))
@@ -2023,7 +2023,7 @@ void DoCmd(char *cmd)
 		if ((g_MoveRatio <= 0 || g_MoveRatio > 100) ||
 			(g_fRegripXPos < 1.0 || g_fRegripXPos > 90.0) ||
 			(g_fRegripYPos < 0.0 || g_fRegripYPos > 90.0) ||
-			(g_fRegripZPos < 1.0 || g_fRegripZPos > 10.0) ||
+			// (g_fRegripZPos < 1.0 || g_fRegripZPos > 10.0) ||
 			(g_nRegripDelay < 1) ||
 			(g_fMoveXPos < 0.0 || g_fMoveXPos > 90.0) ||
 			(g_fMoveYPos < 0.0 || g_fMoveYPos > 90.0))

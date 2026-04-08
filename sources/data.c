@@ -181,10 +181,14 @@ void clear_error()
 	signed int x_counter = 0;
 	signed int y_counter = 0;
 
+	if (g_ErrorCode != 0)
+	{
+		g_OriginCompleted = 0;
+	}
 	g_ErrorCode = 0;
 	g_MotionCommand = 0;
 	g_MotionCommandBackup = 0;
-	g_OriginCompleted = 0;
+	// g_OriginCompleted = 0;
 	g_OriginRunning = 0;
 	g_PointDataCommandState = CMD_READY;
 
@@ -752,6 +756,9 @@ void reset_system_var()
 	set_var(21, 100); 	// X축 Encoder 측정 주기 (미사용)
 	set_var(22, 100); 	// Y축 Encoder 측정 주기 (미사용)
 	set_var(23, 1000); 	// Gentry error signal 유지 시간 
+
+	set_var(24, 10); 	// Move Timeout 
+	set_var(25, 20); 	// Move Timeout Tolorance 
 
 	set_var(91, 0);		// Demo Mode (Flask 유무 센서 미사용. 0:사용, 1:미사용)
 	set_var(90, 300); 	// 브레이크 동작 delay (브레이크 풀고 delay 후 동작 시작. 동작 완료 후 delay 시간 후 브레이크 잡는다) 

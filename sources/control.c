@@ -26,6 +26,7 @@ int g_MovePointDataNo = 0;
 int g_MoveRatio = 100;
 int g_MoveRatioSeparate = 100;
 int g_MoveRatio_Rotation = 100;
+int g_MoveRatioForPD15 = 100;
 int g_ShakeCount = 0;
 int g_ShakeAngle = 0;
 int g_MoveOffset[MAX_AXIS] = {0, 0, 0};
@@ -42,6 +43,9 @@ int g_nRegripDelay = 0;
 double g_fMASPOffset[2] = {0.0, 0.0};
 
 int g_MotorEncoderErrorOutpSignalTime = 0;
+
+unsigned int g_dbg_timeout = 0;
+
 
 STATUS g_Status = {
 	0,
@@ -180,18 +184,27 @@ unsigned char get_axis_sensor_state(char axis, char type)
 		return NORMAL_FINISHED; \
 	}
 
-#define CHECK_MOVE_TIMEOUT(VAR, MASK, STEP_VAR, STEP_NO)	\
+#define CHECK_MOVE_TIMEOUT(VAR, MASK, STEP_VAR, STEP_NO, MOVE_RATION_VAR)	\
         if (get_var(24) != 0)           				\
         {                   							\
+			double ftemp = get_var(25) / 10; 			\
 			char is_error = 0;            				\
 			int axis = 0x01; 							\
 			int i = 0;									\
+			int timeout = get_var(24) * 1000;           \
+            int timeout100 = timeout;    				\
+            if (MOVE_RATION_VAR < 100) {                \
+                if (MOVE_RATION_VAR <= 0) { MOVE_RATION_VAR = 1; }    \
+                else if (MOVE_RATION_VAR > 100) { MOVE_RATION_VAR = 100; }    \
+                timeout = (int)((float)timeout100 * ((100.0 / (float)MOVE_RATION_VAR)) + 0.5);    \
+            }                                           \
+            g_dbg_timeout = timeout;   					\
             VAR += 1;                   				\
-            if (VAR > get_var(24))      				\
+            if (VAR > timeout)      					\
             {                               			\
 				for (i = 0; i<MAX_AXIS; i++) { 			\
 					if ((axis & MASK) != 0) { 			\
-						if (fabs(get_motor_pos(i) - g_TargetPosition[i]) > 3.0) {	\
+						if (fabs(get_motor_pos(i) - g_TargetPosition[i]) > ftemp) {	\
 							is_error = 1;				\
 							break;						\
 						}								\
@@ -210,18 +223,27 @@ unsigned char get_axis_sensor_state(char axis, char type)
             }                               			\
         }
 
-#define CHECK_MOVE_TIMEOUT2(VAR, MASK, STEP_VAR, STEP_NO)			\
+#define CHECK_MOVE_TIMEOUT2(VAR, MASK, STEP_VAR, STEP_NO, MOVE_RATION_VAR)			\
         if (get_var(24) != 0)           		\
         {                               		\
+			double ftemp = get_var(25) / 10.0;  \
 			char is_error = 0;            		\
 			int axis = 0x01; 					\
 			int i = 0;							\
+			int timeout = get_var(24) * 1000;   \
+            int timeout100 = timeout;    		\
+            if (MOVE_RATION_VAR < 100) {        \
+                if (MOVE_RATION_VAR <= 0) { MOVE_RATION_VAR = 1; }    \
+                else if (MOVE_RATION_VAR > 100) { MOVE_RATION_VAR = 100; }    \
+                timeout = (int)((float)timeout100 * ((100.0 / (float)MOVE_RATION_VAR)) + 0.5);    \
+            }                                                \
+            g_dbg_timeout = timeout;    \
             VAR += 1;                   		\
-            if (VAR > get_var(24))      		\
+            if (VAR > timeout)      		\
             {                               	\
                 for (i = 0; i<MAX_AXIS; i++) {	\
 					if ((axis & MASK) != 0) {	\
-						if (fabs(get_motor_pos(i) - g_TargetPosition[i]) > 3.0) {	\
+						if (fabs(get_motor_pos(i) - g_TargetPosition[i]) > ftemp) {	\
 							is_error = 1;		\
 							break;				\
 						}						\
@@ -244,6 +266,11 @@ static char g_idi_buffer[256] = "";
 
 static volatile char g_ido_send = 0;
 static char g_ido_buffer[256] = "";
+
+void DBG_TIMEOUT()
+{
+    send_dbg("timeout: %ld\r\n", g_dbg_timeout);
+}
 
 void SetIdiBuffer(char *str)
 {
@@ -2331,7 +2358,7 @@ void SetSpeed(char axis, int type)
 		switch (axis)
 		{
 		case X_AXIS:
-			MovVar[axis].m_uVmax = get_var(11);
+			MovVar[axis].m_uVmax = g_MotionParam[axis].m_uNorVmax;    //get_var(11);
 			break;
 		default:
 			MovVar[axis].m_uVmax = g_MotionParam[axis].m_uNorVmax;
@@ -2923,7 +2950,9 @@ char CommMMLD()
 
 		// y축을 PD15번 위치로 이동 한다
 	case 1:
-		move_start = move_pd(15, 0x02);
+		// move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -2936,11 +2965,11 @@ char CommMMLD()
 		g_MacroStepNo++;
 		break;
 	case 2:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 3, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 3;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 3)
 		break;
 	case 3:
 		g_MacroStepNo = 10;
@@ -2964,11 +2993,11 @@ char CommMMLD()
 		break;
 
 	case 11:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			g_MacroStepNo = 13;
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 	case 13:
@@ -3144,7 +3173,10 @@ char CommMoveXY()
 		}
 		break;
 	case 1:
-		move_start = move_pd(15, 0x02);
+		// move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
+
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -3157,11 +3189,12 @@ char CommMoveXY()
 		g_MacroStepNo++;
 		break;
 	case 2:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 10;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 	case 10:
@@ -3187,11 +3220,12 @@ char CommMoveXY()
 		break;
 
 	case 11:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			g_MacroStepNo = 13;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 	case 13:
@@ -3265,7 +3299,9 @@ char CommMoveXY_With_Offset()
 		break;
 		// y축을 PD15번 위치로 이동 한다
 	case 1:
-		move_start = move_pd(15, 0x02);
+		// move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -3278,11 +3314,12 @@ char CommMoveXY_With_Offset()
 		g_MacroStepNo++;
 		break;
 	case 2:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10, g_MoveRatioForPD15)		
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 10;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)		
 		break;
 
 	case 10:
@@ -3313,11 +3350,12 @@ char CommMoveXY_With_Offset()
 		break;
 
 	case 11:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			g_MacroStepNo = 13;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 	case 13:
@@ -3388,11 +3426,12 @@ char CommMLOA()
 		break;
 
 	case 1:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 3, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			g_MacroStepNo = 3;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 3)
 		break;
 
 	case 3:
@@ -3409,11 +3448,12 @@ char CommMLOA()
 		g_MacroStepNo++;
 		break;
 	case 4:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 6, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 6;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 6)
 		break;
 
 	case 6:
@@ -3496,7 +3536,9 @@ char CommShake()
 		break;
 		// y축을 PD15번 위치로 이동 한다
 	case 1:
-		move_start = move_pd(15, 0x02);
+		//move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -3509,11 +3551,12 @@ char CommShake()
 		g_MacroStepNo++;
 		break;
 	case 2:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 10;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 		//
@@ -3542,11 +3585,12 @@ char CommShake()
 		break;
 
 	case 12:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 14, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			g_MacroStepNo = 14;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 14)
 		break;
 
 		// shake. X축을 +/-방향으로 이동
@@ -3578,12 +3622,13 @@ char CommShake()
 		break;
 
 	case 15:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 17, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = g_ShakeTiltDelay; // get_var(VAR_DELAY_MOVE);
 			g_MacroStepNo = 17;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 17)
 		break;
 
 	case 17:
@@ -3615,11 +3660,12 @@ char CommShake()
 		break;
 
 	case 21:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 23, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			g_MacroStepNo = 23;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -3699,7 +3745,9 @@ char CommShakeUsingPD6()
 		break;
 		// y축을 PD15번 위치로 이동 한다
 	case 1:
-		move_start = move_pd(15, 0x02);
+		// move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -3712,11 +3760,12 @@ char CommShakeUsingPD6()
 		g_MacroStepNo++;
 		break;
 	case 2:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 10;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 		//
@@ -3745,11 +3794,12 @@ char CommShakeUsingPD6()
 		break;
 
 	case 12:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 14, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			g_MacroStepNo = 14;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 14)
 		break;
 
 	case 14:
@@ -3767,11 +3817,12 @@ char CommShakeUsingPD6()
 		break;
 
 	case 15:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 20, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 20;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 20)
 		break;
 
 		// shake. X축을 +/-방향으로 이동
@@ -3803,12 +3854,13 @@ char CommShakeUsingPD6()
 		break;
 
 	case 21:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 23, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = g_ShakeTiltDelay; // get_var(VAR_DELAY_MOVE);
 			g_MacroStepNo = 23;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -3839,11 +3891,12 @@ char CommShakeUsingPD6()
 		break;
 
 	case 31:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 33, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			g_MacroStepNo = 33;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 33)
 		break;
 
 	case 33:
@@ -3860,11 +3913,12 @@ char CommShakeUsingPD6()
 		g_MacroStepNo++;
 		break;
 	case 34:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 40, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 40;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 40)
 		break;
 
 		// 종료
@@ -3932,7 +3986,9 @@ char CommWaste()
 		break;
 		// y축을 PD15번 위치로 이동 한다
 	case 1:
-		move_start = move_pd(15, 0x02);
+		// move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -3945,11 +4001,12 @@ char CommWaste()
 		g_MacroStepNo++;
 		break;
 	case 2:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 10;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 	case 10:
@@ -3973,11 +4030,12 @@ char CommWaste()
 		break;
 
 	case 12:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 14, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			g_MacroStepNo = 14;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 14)
 		break;
 
 		// pd8로 이동 (y축)
@@ -3996,12 +4054,13 @@ char CommWaste()
 		break;
 
 	case 15:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 17, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			delay_count = get_var(VAR_NUM_WASTE_DELAY);
 			g_MacroStepNo = 17;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 17)
 		break;
 
 		// delay
@@ -4032,11 +4091,12 @@ char CommWaste()
 		break;
 
 	case 19:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 21, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 21;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 21)
 		break;
 
 		// new load 위치(pd15)로 이동. x축
@@ -4055,11 +4115,12 @@ char CommWaste()
 		break;
 
 	case 22:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 24, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			g_MacroStepNo = 24;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 24)
 		break;
 
 	case 24:
@@ -4156,7 +4217,9 @@ char CommAsyncWaste()
 
 		// y축을 PD15번 위치로 이동 한다
 	case 2:
-		move_start = move_pd(15, 0x02);
+		// move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -4169,11 +4232,12 @@ char CommAsyncWaste()
 		g_MacroStepNo++;
 		break;
 	case 3:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 11;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11)
 		break;
 
 		// pd8로 이동 (x축)
@@ -4192,11 +4256,12 @@ char CommAsyncWaste()
 		break;
 
 	case 12:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 14, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			g_MacroStepNo = 14;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 14)
 		break;
 
 		// pd11로 이동 (y축)
@@ -4214,12 +4279,13 @@ char CommAsyncWaste()
 		g_MacroStepNo++;
 		break;
 	case 15:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 17, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			delay_count = get_var(VAR_NUM_ASYNC_DELAY);
 			g_MacroStepNo = 17;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 17)
 		break;
 
 		// y축 이동 후 Async signal on
@@ -4275,12 +4341,13 @@ char CommAsyncWaste()
 		break;
 
 	case 21:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 23, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			delay_count = get_var(VAR_NUM_WASTE_DELAY);
 			g_MacroStepNo = 23;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 23)
 		break;
 
 		// delay
@@ -4311,11 +4378,12 @@ char CommAsyncWaste()
 		break;
 
 	case 25:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 27, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 27;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 27)
 		break;
 
 		// load 위치(pd3)로 이동. x축 -> pd15
@@ -4335,11 +4403,12 @@ char CommAsyncWaste()
 		break;
 
 	case 28:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 30, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			g_MacroStepNo = 30;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 30)
 		break;
 
 	case 30:
@@ -4405,7 +4474,9 @@ char CommReadyWaste()
 
 		// y축을 PD15번 위치로 이동 한다
 	case 1:
-		move_start = move_pd(15, 0x02);
+		//move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -4418,11 +4489,12 @@ char CommReadyWaste()
 		g_MacroStepNo++;
 		break;
 	case 2:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 10;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 		// X축 (PD8) 이동
@@ -4440,11 +4512,12 @@ char CommReadyWaste()
 		g_MacroStepNo++;
 		break;
 	case 11:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 13, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			g_MacroStepNo = 13;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 13)
 		break;
 
 		// Y축 (PD11) 이동
@@ -4462,11 +4535,12 @@ char CommReadyWaste()
 		g_MacroStepNo++;
 		break;
 	case 14:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 16, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 16;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 16)
 		break;
 
 	case 16:
@@ -4538,12 +4612,13 @@ char CommPourWaste()
 		break;
 
 	case 1: // 5:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 3, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			delay_count = get_var(VAR_NUM_WASTE_DELAY);
 			g_MacroStepNo = 3;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 3)
 		break;
 
 		// delay
@@ -4574,11 +4649,12 @@ char CommPourWaste()
 		break;
 
 	case 5: // 9:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 7, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 7;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 7)
 		break;
 
 		// load 위치(pd3)로 이동. x축
@@ -4597,11 +4673,12 @@ char CommPourWaste()
 		break;
 
 	case 8: // 12:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 10, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			g_MacroStepNo = 10;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 10)
 		break;
 
 	case 10: // 14:
@@ -4680,7 +4757,9 @@ char CommSeparate()
 		break;
 		// y축을 PD15번 위치로 이동 한다
 	case 2:
-		move_start = move_pd(15, 0x02);
+		// move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -4693,11 +4772,12 @@ char CommSeparate()
 		g_MacroStepNo++;
 		break;
 	case 3:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 11;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11)
 		break;
 
 		// pd9 로 이동 (x,y 동시)
@@ -4716,12 +4796,13 @@ char CommSeparate()
 		break;
 
 	case 12:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 14, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
 			g_MacroStepNo = 14;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 14)
 		break;
 
 	case 14:
@@ -4758,12 +4839,13 @@ char CommSeparate()
 		break;
 
 	case 16:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 18, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_MOV);
 			g_MacroStepNo = 18;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 18)
 		break;
 
 	case 18:
@@ -4794,12 +4876,13 @@ char CommSeparate()
 		break;
 
 	case 20:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 22, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_MOV);
 			g_MacroStepNo = 22;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 22)
 		break;
 
 	case 22:
@@ -4828,11 +4911,12 @@ char CommSeparate()
 		break;
 
 	case 24:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 26, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 26;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 26)
 		break;
 
 	case 26:
@@ -4911,7 +4995,9 @@ char CommSeparateLongSide()
 
 		// y축을 PD15번 위치로 이동 한다
 	case 2:
-		move_start = move_pd(15, 0x02);
+		//move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -4924,11 +5010,12 @@ char CommSeparateLongSide()
 		g_MacroStepNo++;
 		break;
 	case 3:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 11;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11)
 		break;
 
 		// pd9로 이동. xy 동시
@@ -4947,12 +5034,13 @@ char CommSeparateLongSide()
 		break;
 
 	case 12:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 14, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
 			g_MacroStepNo = 14;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 14)
 		break;
 
 		// 용액이 나누어 질때까지 대기
@@ -4995,12 +5083,13 @@ char CommSeparateLongSide()
 		break;
 
 	case 21:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 23, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP2);
 			g_MacroStepNo = 23;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -5030,12 +5119,13 @@ char CommSeparateLongSide()
 		break;
 
 	case 31:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 33, g_MoveRatioSeparate)
 		if (move_done(0x03) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
 			g_MacroStepNo = 33;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 33)
 		break;
 
 	case 33:
@@ -5114,7 +5204,9 @@ char CommSeparateShortSide()
 
 		// y축을 PD15번 위치로 이동 한다
 	case 2:
-		move_start = move_pd(15, 0x02);
+		//move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -5127,11 +5219,12 @@ char CommSeparateShortSide()
 		g_MacroStepNo++;
 		break;
 	case 3:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 11;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11)
 		break;
 
 		// pd10로 이동. x 축만
@@ -5150,12 +5243,13 @@ char CommSeparateShortSide()
 		break;
 
 	case 12:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 14, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP);
 			g_MacroStepNo = 14;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 14)
 		break;
 
 		// 용액이 나누어 질때까지 대기
@@ -5186,19 +5280,21 @@ char CommSeparateShortSide()
 		break;
 
 	case 16:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, (get_var(VAR_HW_TYPE) == 0 ? 30 : 20), g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			timeoutCount = 0;
 			if (get_var(VAR_HW_TYPE) == 0)
 			{
 				g_MacroStepNo = 30;
+				DBG_TIMEOUT();
 			}
 			else
 			{
 				g_MacroStepNo = 20;
+				DBG_TIMEOUT();
 			}
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, (get_var(VAR_HW_TYPE) == 0 ? 30 : 20))
 		break;
 
 		// PD 1
@@ -5220,12 +5316,13 @@ char CommSeparateShortSide()
 		break;
 
 	case 21:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 23, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP2);
 			g_MacroStepNo = 23;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -5241,12 +5338,13 @@ char CommSeparateShortSide()
 
 		//
 	case 30:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 31, g_MoveRatio)
 		if (IsStopped())
 		{
 			delay_count = get_var(VAR_DELAY_SEP2);
 			g_MacroStepNo++;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 31)
 		break;
 	case 31:
 		if (--delay_count > 0)
@@ -5275,12 +5373,13 @@ char CommSeparateShortSide()
 		break;
 
 	case 33:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 35, g_MoveRatioSeparate)
 		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = 100; // get_var(VAR_DELAY_MOV);
 			g_MacroStepNo = 35;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 35)
 		break;
 
 	case 35:
@@ -5311,11 +5410,12 @@ char CommSeparateShortSide()
 		break;
 
 	case 37:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 39, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 39;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 39)
 		break;
 
 	case 39:
@@ -5399,7 +5499,9 @@ char CommSWIRL()
 
 		// y축을 PD15번 위치로 이동 한다
 	case 2:
-		move_start = move_pd(15, 0x02);
+		// move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -5412,11 +5514,12 @@ char CommSWIRL()
 		g_MacroStepNo++;
 		break;
 	case 3:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 11;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 11)
 		break;
 
 		// ready 위치로 이동
@@ -5434,11 +5537,12 @@ char CommSWIRL()
 		g_MacroStepNo = 12;
 		break;
 	case 12:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 14, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			g_MacroStepNo = 14;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x01, g_MacroStepNo, 14)
 		break;
 
 	case 14:
@@ -5455,11 +5559,12 @@ char CommSWIRL()
 		g_MacroStepNo = 15;
 		break;
 	case 15:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 20, g_MoveRatio)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo =  20;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 20)
 		break;
 
 		///////////////////////////////////////////////
@@ -5615,7 +5720,9 @@ char CommMAMV()
 
 		// y축을 PD15번 위치로 이동 한다
 	case 1:
-		move_start = move_pd(15, 0x02);
+		//move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -5628,11 +5735,12 @@ char CommMAMV()
 		g_MacroStepNo++;
 		break;
 	case 2:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 10;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 	case 10:
@@ -5653,11 +5761,12 @@ char CommMAMV()
 		break;
 
 	case 11:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			g_MacroStepNo = 13;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 	case 13:
@@ -5713,7 +5822,9 @@ char CommRAMV()
 
 		// y축을 PD15번 위치로 이동 한다
 	case 1:
-		move_start = move_pd(15, 0x02);
+		// move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -5726,11 +5837,12 @@ char CommRAMV()
 		g_MacroStepNo++;
 		break;
 	case 2:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 10;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 		// REGRIP 위치로 X축 이동
@@ -5752,11 +5864,12 @@ char CommRAMV()
 		break;
 
 	case 11:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			g_MacroStepNo = 13;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 		// Gripper Ungrip. PD7번의 Z축 위치로 이동
@@ -5853,11 +5966,12 @@ char CommRAMV()
 		break;
 
 	case 21:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 23, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			g_MacroStepNo = 23;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -5925,7 +6039,9 @@ char CommMRGI()
 
 		// y축을 PD15번 위치로 이동 한다
 	case 1:
-		move_start = move_pd(15, 0x02);
+		// move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -5938,11 +6054,12 @@ char CommMRGI()
 		g_MacroStepNo++;
 		break;
 	case 2:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 10;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 		// REGRIP 위치로 X, Y축 이동
@@ -5961,11 +6078,12 @@ char CommMRGI()
 		break;
 
 	case 11:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13, g_MoveRatio)
 		if (move_done(0x03) & IsStopped())
 		{
 			g_MacroStepNo = 13;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 		// Gripper Ungrip. PD7번의 Z축 위치로 이동
@@ -6060,11 +6178,12 @@ char CommMRGI()
 		break;
 
 	case 21:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 23, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			g_MacroStepNo = 23;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -6132,7 +6251,9 @@ char CommRASP()
 
 		// y축을 PD15번 위치로 이동 한다
 	case 1:
-		move_start = move_pd(15, 0x02);
+		// move_start = move_pd(15, 0x02);
+		g_MoveRatioForPD15 = 100;
+		move_start = move_pd_with_speed_ratio(15, 0x02, SPEED_NORMAL, g_MoveRatioForPD15);
 		g_MoveStartErrorLine = __LINE__;
 		if (move_start)
 		{
@@ -6145,11 +6266,12 @@ char CommRASP()
 		g_MacroStepNo++;
 		break;
 	case 2:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10, g_MoveRatioForPD15)
 		if (move_done(0x02) && IsStopped())
 		{
 			g_MacroStepNo = 10;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x02, g_MacroStepNo, 10)
 		break;
 
 		// REGRIP 위치로 X축 이동
@@ -6171,11 +6293,12 @@ char CommRASP()
 		break;
 
 	case 11:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			g_MacroStepNo = 13;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 13)
 		break;
 
 		// Gripper Ungrip. PD7번의 Z축 위치로 이동
@@ -6277,11 +6400,12 @@ char CommRASP()
 		break;
 
 	case 21:
+		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 23, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			g_MacroStepNo = 23;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT(timeoutCount, 0x03, g_MacroStepNo, 23)
 		break;
 
 	case 23:
@@ -6338,11 +6462,12 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		timeoutCount = 0;
 		step++;
 	case 3:
+		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x03, step, 5, g_MoveRatio)
 		if (move_done(0x03) && IsStopped())
 		{
 			step = 5;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x03, step, 5)
 		break;
 
 	case 5:
@@ -6367,11 +6492,12 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		}
 		break;
 	case 6:
+		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x02, step, 8, g_MoveRatio_Rotation)
 		if (move_done(0x02) & IsStopped())
 		{
 			step = 8;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x02, step, 8)
 		break;
 	case 8:
 		step = 10;
@@ -6401,12 +6527,13 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		step++;
 		break;
 	case 12:
+		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x01, step, 14, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = g_ShakeTiltDelay; // get_var(VAR_DELAY_MOVE);
 			step = 14;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x01, step, 14)
 		break;
 
 	case 14:
@@ -6434,12 +6561,13 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		break;
 
 	case 16:
+		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x01, step, 18, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = g_ShakeTiltDelay; // get_var(VAR_DELAY_MOVE);
 			step = 18;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x01, step, 18)
 		break;
 
 	case 18:
@@ -6467,12 +6595,13 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		step++;
 		break;
 	case 31:
+		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x01, step, 33, g_MoveRatio)
 		if (move_done(0x01) && IsStopped())
 		{
 			delay_count = 1; // g_ShakeTiltDelay; //get_var(VAR_DELAY_MOVE);
 			step = 33;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x01, step, 33)
 		break;
 
 	case 33:
@@ -6505,11 +6634,12 @@ int do_shake_xy(char reset_step, int axis, int angle, int count)
 		step++;
 		break;
 	case 36:
+		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x03, step, 38, g_MoveRatio_Rotation)
 		if (move_done(0x03) && IsStopped())
 		{
 			step = 38;
+			DBG_TIMEOUT();
 		}
-		CHECK_MOVE_TIMEOUT2(timeoutCount, 0x03, step, 38)
 		break;
 	case 38:
 		step = 0;
@@ -6970,7 +7100,14 @@ char IsGrip(char check_sensor)
 
 char IsUngrip()
 {
+	char is_demo_mode_var = 91;
 	char b = (char)GetDIBit(1, DI_SENS_UNGRIP);
+
+	if (get_var(is_demo_mode_var) != 0) 
+	{
+		return 1;
+	}
+
 	return b;
 }
 
