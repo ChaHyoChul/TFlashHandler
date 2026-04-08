@@ -181,10 +181,14 @@ void clear_error()
 	signed int x_counter = 0;
 	signed int y_counter = 0;
 
+	if (g_ErrorCode != 0) 
+	{
+		g_OriginCompleted = 0;
+	}
 	g_ErrorCode = 0;
 	g_MotionCommand = 0;
 	g_MotionCommandBackup = 0;
-	g_OriginCompleted = 0;
+	// g_OriginCompleted = 0;
 	g_OriginRunning = 0;
 	g_PointDataCommandState = CMD_READY;
 
