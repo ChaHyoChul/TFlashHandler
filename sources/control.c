@@ -7091,13 +7091,16 @@ char IsGrip(char check_sensor)
 	}
 	else 
 	{
-		// output과 sensor 모두 확인 
+		// output과 sensor 모두 확인. sensor는 grip/ungrip가 모두 off이면 grip 임 
+		// grip 센서가 flask가 있을 경우, 감지 되지 않기 때문에 
+		// 모두 감지 되지 않아야 grip로 판단 함
 		ret = (outp == 0 && inp_grip == 0 && inp_ungrip == 0) ? 1 : 0;
 	}
 
 	return ret;
 }
 
+// ungrip 센서 확인 
 char IsUngrip()
 {
 	char is_demo_mode_var = 91;

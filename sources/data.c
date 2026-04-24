@@ -668,7 +668,7 @@ void reset_motion_param()
 
 	// AEN. Enclode Pulse
 	g_MotionParam[X_AXIS].m_ucEncPulse = 853333;
-	g_MotionParam[Y_AXIS].m_ucEncPulse = 266666;
+	g_MotionParam[Y_AXIS].m_ucEncPulse = 462222; // 공압핸드 버전 수정	//266666;
 	g_MotionParam[Z_AXIS].m_ucEncPulse = 4800;
 
 	g_MotionParam[X_AXIS].m_fScaleFactor = g_MotionParam[X_AXIS].m_fLead / g_MotionParam[X_AXIS].m_ucEncPulse;
