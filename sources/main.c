@@ -147,6 +147,11 @@ int _tmain(void)
 	g_MaxEncoderDeviationY = 0;
 	g_MotorEncoderErrorOutpSignalTime = 0;
 
+	g_YEEPulseCount = 0;
+	g_YEEEncoderCount = 0;
+	g_YEEPulseCount = 0;
+	g_YEEEncoderCount = 0;
+
 	//	sprintf(str, "Robots and Design Co., Ltd. - PreAlignerV400\r\n");
 	//	SerialWriteBytes(UART_PORT0, str, strlen(str));
 
@@ -2308,6 +2313,14 @@ void DoCmd(char *cmd)
 	else if (IS_COMMAND_N(cmd, "GTPS"))
 	{
 		sprintf(str, "GTPS %.2f,%.2f,%.2f\r\n", g_TargetPosition[0], g_TargetPosition[1], g_TargetPosition[2]);
+		send(str);
+	}
+	// 2026.05.04. 엔코더 에러가 발생했을 때의 pulse와 encoder를 리턴 한다. DRT 명령 실행될 때, Encoder 에러가 있을 경우, 각 _Count는 리셋 된다 
+	else if (IS_COMMAND_N(cmd, "RECE"))
+	{
+		sprintf(str, "RECE %d,%d,%d,%d\r\n", 
+			g_XEEPulseCount, g_XEEEncoderCount, 
+			g_YEEPulseCount, g_YEEEncoderCount);
 		send(str);
 	}
 	

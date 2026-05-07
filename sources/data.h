@@ -41,6 +41,13 @@ extern double g_EncoderScaleY;
 extern g_MaxEncoderDeviationX;
 extern g_MaxEncoderDeviationY;
 
+// 2026.05.04 Encoder Error log 
+extern signed int g_XEEPulseCount;
+extern signed int g_XEEEncoderCount;
+extern signed int g_YEEPulseCount;
+extern signed int g_YEEEncoderCount;
+
+
 typedef struct _POINT_DATA
 {
 	union

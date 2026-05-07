@@ -44,6 +44,13 @@ double g_EncoderScaleY = 2.0;
 int g_MaxEncoderDeviationX = 0;
 int g_MaxEncoderDeviationY = 0;
 
+// 2026.05.04 Encoder Error log 
+int signed g_XEEPulseCount = 0;
+int signed g_XEEEncoderCount = 0;
+int signed g_YEEPulseCount = 0;
+int signed g_YEEEncoderCount = 0;
+
+
 static int g_OriginOffset[MAX_AXIS] = {0, 0, 0};
 static int g_Vars[MAX_VARS] = {
 	0,
@@ -780,9 +787,14 @@ void reset_encoder_xy(int axis)
 		EncoderWrite(axis, 0);
 		if (axis == X_AXIS) {
 			g_MaxEncoderDeviationX = 0;
+			g_XEEPulseCount = 0;
+			g_XEEEncoderCount = 0;
+
 		}
 		else {
 			g_MaxEncoderDeviationY = 0;
+			g_YEEPulseCount = 0;
+			g_YEEEncoderCount = 0;
 		}
 	}
 }

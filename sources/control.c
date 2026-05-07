@@ -944,6 +944,10 @@ void CheckEncoderEx()
 					// StopMotors();
 					// // 에러 Output On
 					// SetDO(error_signal_no, 1);
+
+					g_XEEPulseCount = counter;
+					g_XEEEncoderCount = encoder;
+
 					encoderErrorPcoc(X_AXIS);
 					g_MotorEncoderErrorOutpSignalTime = get_var(23);
 				}
@@ -977,6 +981,10 @@ void CheckEncoderEx()
 					// StopMotors();
 					// // 에러 Output On
 					// SetDO(error_signal_no, 1);
+
+					g_YEEPulseCount = counter;
+					g_YEEEncoderCount = encoder;
+
 					encoderErrorPcoc(Y_AXIS);
 					g_MotorEncoderErrorOutpSignalTime = get_var(23);
 				}
