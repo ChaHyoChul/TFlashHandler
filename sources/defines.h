@@ -120,9 +120,11 @@
 
 // #define SOFTWARE_VERSION "TFLASK-H 3.2.0" // 
     // Timeout 시간에 이동 속도 비율 적용 
-#define SOFTWARE_VERSION "TFLASK-H 3.2.1" // 
+// #define SOFTWARE_VERSION "TFLASK-H 3.2.1" // 
     // Encoder 에러 발생 로그 보완 (에러 발생했을 때, count와 encoder 데이터 저정 및 조회 명령 추가)
-
+#define SOFTWARE_VERSION "TFLASK-H 3.2.2" // 
+    // Homing 중 엔코더 체크 안함 
+    // GMEC 명령의 응답에 global step 변수 값 추가 (SetErrorCode() 함수에 step번호 설정 기능 추가)
 
 // Settings
 #define COMPORT_BAUDRATE (57600)

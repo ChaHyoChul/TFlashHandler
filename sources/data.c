@@ -38,6 +38,7 @@ int g_OriginCompletedAxes[MAX_AXIS] = {0, 0, 0};
 char g_BreakReleaseStepNo = 0;
 int g_MacroStepNo = 0;
 double g_TargetPosition[3] = {0.0, 0.0, 0.0};
+int g_ErrorMacroStepNo = 0;
 
 double g_EncoderScaleX = 2.0;
 double g_EncoderScaleY = 2.0;

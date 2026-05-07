@@ -363,6 +363,8 @@ void SetErrorCode(int err)
 	{
 		g_ErrorCode = err;
 	}
+
+	g_ErrorMacroStepNo = g_MacroStepNo;
 }
 
 char SetControlCommand(char cmd)
@@ -374,6 +376,7 @@ char SetControlCommand(char cmd)
 		g_MotionCommand = cmd;
 		g_MotionCommandBackup = cmd;
 		g_MacroStepNo = 0;
+		g_ErrorMacroStepNo = 0;
 	}
 
 	return prev;
@@ -678,6 +681,7 @@ void MainControl()
 			g_MotionCommand = COMM_ERROR_STOP;
 			g_MotionCommandBackup = COMM_ERROR_STOP;
 			g_MacroStepNo = 0;
+			g_ErrorMacroStepNo = 0;
 			g_GoToError = 0;
 		}
 	}
@@ -912,7 +916,9 @@ void CheckEncoderEx()
 				(g_MotionCommand == COMM_ORIGIN_A) || 
 				(g_MotionCommand == COMM_HOME);
 
-	if ((IsOriginCompleted() || is_homing) && 
+	//if ((IsOriginCompleted() || is_homing) && 
+	if (IsOriginCompleted() && 
+		!is_homing && 
 		!IsCommError(g_ErrorCode) &&
 		!(g_ErrorCode == ERR_ENCODER_ERROR_X || g_ErrorCode == ERR_ENCODER_ERROR_Y))
 	{
