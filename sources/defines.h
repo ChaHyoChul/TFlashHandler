@@ -121,10 +121,11 @@
 
     // * 엔코더 모터 버전을 v2.0.0으로 변경 
     // * 엔코더 버전에 1.5.7 버전을 합쳐서 v2.0.1로 수정 
-
-#define SOFTWARE_VERSION "TFLASK-H 2.0.2" // 
+// #define SOFTWARE_VERSION "TFLASK-H 2.0.2" // 
     // 1. Timeout 시간에 이동 속도 비율 적용 
-    
+
+#define SOFTWARE_VERSION "TFLASK-H 2.0.3" // 
+    // 1. reset_encoder_xy() 함수에서 Z축도 초기화 하도록 수정
 
 // Settings
 #define COMPORT_BAUDRATE (57600)

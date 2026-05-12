@@ -771,9 +771,10 @@ void reset_system_var()
 
 void reset_encoder_xy(int axis)
 {
+	CounterReset(axis);
 	if (axis == X_AXIS || axis == Y_AXIS)
 	{
-		CounterReset(axis);
+		// CounterReset(axis);
 		EncoderReset(axis);
 		EncoderWrite(axis, 0);
 		if (axis == X_AXIS) {
