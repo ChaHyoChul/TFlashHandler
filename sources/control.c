@@ -3098,6 +3098,13 @@ char CommGripUngrip()
 			if (IsGrip(TRUE)) { g_MacroStepNo = 30; break; } 
 			else { SetErrorCode(ERR_GRIP_ERROR); g_MacroStepNo = 91; return NORMAL_RUNNING; }
 		}
+		// grip/ungrip 센서 모두 감지 되는지 확인
+		if (IsGripUngripAllSensing() != 0) 
+		{
+			SetErrorCode(ERR_GRIP_UNGRIP_ALL_SENSING);
+			g_MacroStepNo = 91; 
+			return NORMAL_RUNNING;
+		}
 		// if (GetDIBit(1, DI_SENS_GRIP) == 1) { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
 		break; 
 
@@ -3108,6 +3115,14 @@ char CommGripUngrip()
 		g_MacroStepNo++;
 		break;
 	case 11:
+		// grip/ungrip 센서 모두 감지 되는지 확인
+		if (IsGripUngripAllSensing() != 0) 
+		{
+			SetErrorCode(ERR_GRIP_UNGRIP_ALL_SENSING);
+			g_MacroStepNo = 91; 
+			return NORMAL_RUNNING;
+		}
+		// ungrip 센서 확인 
 		if (IsUngrip())
 		{
 			g_MacroStepNo = 30;
@@ -7094,8 +7109,8 @@ char IsGrip(char check_sensor)
 
 	char is_demo_mode_var = 91;
 	char outp = (char)GetDOBit(1, DO_GRIP_UNGRIP);
-	char inp_grip  = (char)GetDIBit(1, DI_SENS_GRIP);
-	char inp_ungrip  = (char)GetDIBit(1, DI_SENS_UNGRIP);
+	char inp_grip = (char)GetDIBit(1, DI_SENS_GRIP);
+	char inp_ungrip = (char)GetDIBit(1, DI_SENS_UNGRIP);
 	char ret = 0;
 
 	if (check_sensor == 0 || get_var(is_demo_mode_var) != 0) 
@@ -7132,7 +7147,6 @@ char IsTimeoutGripUngrip(char is_first, int delay_ms)
 {
 	static unsigned int timeout_count = 0;
 
-	DelayMS(delay_ms);
 	if (is_first == 1) { timeout_count = 0; }
 	else { 
 		timeout_count += delay_ms;
@@ -7143,4 +7157,22 @@ char IsTimeoutGripUngrip(char is_first, int delay_ms)
 	}
 
 	return 0;	
+}
+
+// grip 센서와 ungrip 센서 모두 감지 되면 1 리턴, 그렇지 않으면 0 리턴
+char IsGripUngripAllSensing()
+{
+	char is_demo_mode_var = 91;
+	char inp_grip = (char)GetDIBit(1, DI_SENS_GRIP);
+	char inp_ungrip = (char)GetDIBit(1, DI_SENS_UNGRIP);
+
+//	if (get_var(is_demo_mode_var) == 0) 
+	{
+		if (inp_grip == 1 && inp_ungrip == 1)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
 }
