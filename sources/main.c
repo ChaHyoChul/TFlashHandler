@@ -2325,7 +2325,70 @@ void DoCmd(char *cmd)
 			g_YEEPulseCount, g_YEEEncoderCount);
 		send(str);
 	}
+	// 2026.05.21 
+	else if (IS_COMMAND_N(cmd, "SCEE"))
+	{
+		start_encoder_check();
+		set_custom_hold_torque_yaxis();
+		send("SCEE\r\n");
+	}
+	else if (IS_COMMAND_N(cmd, "TCEE"))
+	{
+		stop_encoder_check();
+		SetHoldTorque(Y_AXIS);
+		send("TCEE\r\n");
+	}
+	else if (IS_COMMAND_N(cmd, "CEST"))
+	{
+		signed int cx = (signed int)CounterRead(0);
+		signed int cy = (signed int)CounterRead(1);
+		signed int ex = (signed int)EncoderRead(0);
+		signed int ey = (signed int)EncoderRead(1);
+		ex *= g_EncoderScaleX;
+		ey *= g_EncoderScaleY;
+
+		sprintf(str, "CEST %d,%d,%d,%d,%d\r\n", 
+			is_check_encoder(), 
+			cx, cy, 
+			ex, ey 
+		);
+		send(str);
+	}
+	else if (IS_COMMAND(cmd, "STEE")) // Encoder 값을 변경한다 
+	{
+		int ex = 0, ey = 0;
+		ch = strstr(cmd, "STEE");
+		ch = ch + 4;
+		ints = str_to_ints(ch);
 	
+		//g_MoveRatio = ints.val[0];
+		//g_fMoveXPos = dbls.val[1];
+		//g_fMoveYPos = dbls.val[2];
+		ex = (int)((int)ints.val[0] / (int)(g_EncoderScaleX));
+		ey = (int)((int)ints.val[1] / (int)(g_EncoderScaleY));
+
+		EncoderReset(X_AXIS);
+		EncoderWrite(X_AXIS, ex);
+		EncoderReset(Y_AXIS);
+		EncoderWrite(Y_AXIS, ey);
+
+		send("STEE\r\n");
+	}
+	//else if (IS_COMMAND(cmd, "XXXX")) // Encoder 값을 변경한다 
+	//{
+	//	int hq = 0;
+	//	ch = strstr(cmd, "XXXX");
+	//	ch = ch + 4;
+	//	ints = str_to_ints(ch);
+	//
+	//	hq = (int)ints.val[0];
+	//	MovVar[X_AXIS].m_ucHoldTorq = hq;
+	//	SetHoldTorque(X_AXIS);
+	//	
+	//	sprintf(str, "Hold Torque X-axis set to %d\r\n", MovVar[X_AXIS].m_ucHoldTorq);
+	//	send(str);
+	//}
+
 	// COMM_PTP 명령으로 이동하는 동안 10ms 간격으로 데이터 저장
 	// ERPC : xy_pulse_count_index 리셋
 	// GRPC : xy_pulse_count_index 개수 리턴
@@ -2362,7 +2425,7 @@ void DoCmd(char *cmd)
 	//{
 	//	// send("GXEC ");
 	//	//	for (i = 0; i < pulse_count_index; i++)
-	//	//	{
+	//	//	{ 
 	//	//		sprintf(str, "%d,", encoder_count[i] * 2);
 	//	//		send(str);
 	//	//	}

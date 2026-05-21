@@ -377,6 +377,8 @@ char SetControlCommand(char cmd)
 		g_MotionCommandBackup = cmd;
 		g_MacroStepNo = 0;
 		g_ErrorMacroStepNo = 0;
+
+		stop_encoder_check();	// 2026.05.20 encoder 체크 중지
 	}
 
 	return prev;
@@ -917,7 +919,8 @@ void CheckEncoderEx()
 				(g_MotionCommand == COMM_HOME);
 
 	//if ((IsOriginCompleted() || is_homing) && 
-	if (IsOriginCompleted() && 
+	if (is_check_encoder() &&
+		IsOriginCompleted() && 
 		!is_homing && 
 		!IsCommError(g_ErrorCode) &&
 		!(g_ErrorCode == ERR_ENCODER_ERROR_X || g_ErrorCode == ERR_ENCODER_ERROR_Y))
@@ -3394,6 +3397,20 @@ char CommMoveXY_With_Offset()
 			g_MovePointDataNo = 0;
 			g_MoveOffset[axis] = 0;
 		}
+		g_MacroStepNo = 14;
+		break; 
+
+	case 14:
+		// 2026.05.20 MASP 명령일 경우, encoder 체크 시작
+		if (g_MotionCommand == COMM_MASP)
+		{
+			start_encoder_check();	
+			set_custom_hold_torque_yaxis();
+		}
+		g_MacroStepNo = 15;
+		break; 
+
+	case 15:
 		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 

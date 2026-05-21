@@ -51,7 +51,7 @@ int signed g_XEEEncoderCount = 0;
 int signed g_YEEPulseCount = 0;
 int signed g_YEEEncoderCount = 0;
 
-
+//
 static int g_OriginOffset[MAX_AXIS] = {0, 0, 0};
 static int g_Vars[MAX_VARS] = {
 	0,
@@ -767,6 +767,7 @@ void reset_system_var()
 
 	set_var(24, 10); 	// Move Timeout 
 	set_var(25, 20); 	// Move Timeout Tolorance 
+	set_var(26, 5); 	// MASP 명령 후 Hold Torque 값 (충돌에 대비해 낮은 토크로 유지)
 
 	set_var(91, 0);		// Demo Mode (Flask 유무 센서 미사용. 0:사용, 1:미사용)
 	set_var(90, 300); 	// 브레이크 동작 delay (브레이크 풀고 delay 후 동작 시작. 동작 완료 후 delay 시간 후 브레이크 잡는다) 
@@ -781,9 +782,9 @@ void reset_system_var()
 
 void reset_encoder_xy(int axis)
 {
+	CounterReset(axis);
 	if (axis == X_AXIS || axis == Y_AXIS)
 	{
-		CounterReset(axis);
 		EncoderReset(axis);
 		EncoderWrite(axis, 0);
 		if (axis == X_AXIS) {
@@ -798,4 +799,46 @@ void reset_encoder_xy(int axis)
 			g_YEEEncoderCount = 0;
 		}
 	}
+}
+
+//
+// 2026.05.20 encoder 체크를 시작하고 종료 한다 
+// 2026.05.20 MASP 명령에서만 엔코더 에러 체크 
+char g_isCheckEncoder = 0; 	// 1: 이면 엔코더 체크 
+
+char is_check_encoder()
+{
+	return g_isCheckEncoder;
+}
+
+void start_encoder_check()
+{
+	// 엔코더 값을 현재 pulse 값으로 리셋 
+	signed int x_counter = (signed int)(CounterRead(X_AXIS)) / 2.0;
+	signed int y_counter = (signed int)(CounterRead(Y_AXIS)) / 2.0;
+
+	EncoderReset(X_AXIS);
+	EncoderWrite(X_AXIS, x_counter);
+	EncoderReset(Y_AXIS);
+	EncoderWrite(Y_AXIS, y_counter);
+
+	// 엔코더 체크 플래그 ON 
+	g_isCheckEncoder = 1;
+}
+
+void stop_encoder_check()
+{
+	// 엔코더 체크 플래그 OFF 
+	g_isCheckEncoder = 0;
+}
+
+void set_custom_hold_torque_yaxis()
+{
+	int y_torq = get_var(26); // MASP 명령 후 Hold Torque 값 (충돌에 대비해 낮은 토크로 유지)
+	int old_torq = MovVar[Y_AXIS].m_ucHoldTorq;
+
+	MovVar[Y_AXIS].m_ucHoldTorq = y_torq;
+	SetHoldTorque(Y_AXIS);
+	
+	MovVar[Y_AXIS].m_ucHoldTorq = old_torq;
 }

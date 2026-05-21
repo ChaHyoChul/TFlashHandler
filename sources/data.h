@@ -162,4 +162,10 @@ void reset_system_var();
 
 void reset_encoder_xy(int axis);
 
+// 2026.05.20 encoder 체크를 시작하고 종료 한다 
+char is_check_encoder();
+void start_encoder_check();
+void stop_encoder_check();
+void set_custom_hold_torque_yaxis();
+
 #endif // #ifndef _DATA_H_

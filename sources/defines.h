@@ -125,9 +125,11 @@
 //#define SOFTWARE_VERSION "TFLASK-H 3.2.2" // 
     // Homing 중 엔코더 체크 안함 
     // GMEC 명령의 응답에 global step 변수 값 추가 (SetErrorCode() 함수에 step번호 설정 기능 추가)
-#define SOFTWARE_VERSION "TFLASK-H 3.2.3" // 
+//#define SOFTWARE_VERSION "TFLASK-H 3.2.3" // 
     // Grip / Ungrip wait 함수에서 delay(1ms) 제거 (IsTimeoutGripUngrip 함수에서 delay 제거)
     // Grip / Ungrip 센서가 동시에 감지되는 경우, 에러 처리 (ERR_GRIP_UNGRIP_ALL_SENSING 017) 
+#define SOFTWARE_VERSION "TFLASK-H 3.2.4" // 
+    // MASP 명령일때만 Encoder 에러 체크 
 
 // Settings
 #define COMPORT_BAUDRATE (57600)
