@@ -234,5 +234,6 @@ void Ungrip();
 char IsGrip(char check_sensor);
 char IsUngrip();
 char IsTimeoutGripUngrip(char is_first, int delay_ms); 
+char IsGripUngripAllSensing();
 
 #endif /* _CONTROL_H */

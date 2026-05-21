@@ -118,8 +118,18 @@
     // 2. Macro step 변수를 static에서 global 변수로 변경 (SetControlCommand() 함수에서 초기화. MainControl() 함수에서 사용중인 함수에만 적용)
     // 3. MoveDone() 체크시 Timeout 체크 (VAR V24에 시간 저장. ERR_TIME_OVER(3) 에러 발생. COMM_HOME::CommHome() 함수 제외. 아래 함수만 적용)
 
-#define SOFTWARE_VERSION "TFLASK-H 3.2.0" // 
+// #define SOFTWARE_VERSION "TFLASK-H 3.2.0" // 
     // Timeout 시간에 이동 속도 비율 적용 
+// #define SOFTWARE_VERSION "TFLASK-H 3.2.1" // 
+    // Encoder 에러 발생 로그 보완 (에러 발생했을 때, count와 encoder 데이터 저정 및 조회 명령 추가)
+//#define SOFTWARE_VERSION "TFLASK-H 3.2.2" // 
+    // Homing 중 엔코더 체크 안함 
+    // GMEC 명령의 응답에 global step 변수 값 추가 (SetErrorCode() 함수에 step번호 설정 기능 추가)
+//#define SOFTWARE_VERSION "TFLASK-H 3.2.3" // 
+    // Grip / Ungrip wait 함수에서 delay(1ms) 제거 (IsTimeoutGripUngrip 함수에서 delay 제거)
+    // Grip / Ungrip 센서가 동시에 감지되는 경우, 에러 처리 (ERR_GRIP_UNGRIP_ALL_SENSING 017) 
+#define SOFTWARE_VERSION "TFLASK-H 3.2.4" // 
+    // MASP 명령일때만 Encoder 에러 체크 
 
 // Settings
 #define COMPORT_BAUDRATE (57600)
@@ -158,6 +168,7 @@
 #define ERR_ENCODER_ERROR_X (14)
 #define ERR_ENCODER_ERROR_Y (15)
 #define ERR_GRIP_UNGRIP_TIMEOUT (16)
+#define ERR_GRIP_UNGRIP_ALL_SENSING (17)
 
 #define ERR_RANGE_OVER (215)
 #define ERR_SAMPLING_ERROR (216)

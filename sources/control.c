@@ -363,6 +363,8 @@ void SetErrorCode(int err)
 	{
 		g_ErrorCode = err;
 	}
+
+	g_ErrorMacroStepNo = g_MacroStepNo;
 }
 
 char SetControlCommand(char cmd)
@@ -374,6 +376,9 @@ char SetControlCommand(char cmd)
 		g_MotionCommand = cmd;
 		g_MotionCommandBackup = cmd;
 		g_MacroStepNo = 0;
+		g_ErrorMacroStepNo = 0;
+
+		stop_encoder_check();	// 2026.05.20 encoder 체크 중지
 	}
 
 	return prev;
@@ -678,6 +683,7 @@ void MainControl()
 			g_MotionCommand = COMM_ERROR_STOP;
 			g_MotionCommandBackup = COMM_ERROR_STOP;
 			g_MacroStepNo = 0;
+			g_ErrorMacroStepNo = 0;
 			g_GoToError = 0;
 		}
 	}
@@ -912,7 +918,10 @@ void CheckEncoderEx()
 				(g_MotionCommand == COMM_ORIGIN_A) || 
 				(g_MotionCommand == COMM_HOME);
 
-	if ((IsOriginCompleted() || is_homing) && 
+	//if ((IsOriginCompleted() || is_homing) && 
+	if (is_check_encoder() &&
+		IsOriginCompleted() && 
+		!is_homing && 
 		!IsCommError(g_ErrorCode) &&
 		!(g_ErrorCode == ERR_ENCODER_ERROR_X || g_ErrorCode == ERR_ENCODER_ERROR_Y))
 	{
@@ -944,6 +953,10 @@ void CheckEncoderEx()
 					// StopMotors();
 					// // 에러 Output On
 					// SetDO(error_signal_no, 1);
+
+					g_XEEPulseCount = counter;
+					g_XEEEncoderCount = encoder;
+
 					encoderErrorPcoc(X_AXIS);
 					g_MotorEncoderErrorOutpSignalTime = get_var(23);
 				}
@@ -977,6 +990,10 @@ void CheckEncoderEx()
 					// StopMotors();
 					// // 에러 Output On
 					// SetDO(error_signal_no, 1);
+
+					g_YEEPulseCount = counter;
+					g_YEEEncoderCount = encoder;
+
 					encoderErrorPcoc(Y_AXIS);
 					g_MotorEncoderErrorOutpSignalTime = get_var(23);
 				}
@@ -3084,6 +3101,13 @@ char CommGripUngrip()
 			if (IsGrip(TRUE)) { g_MacroStepNo = 30; break; } 
 			else { SetErrorCode(ERR_GRIP_ERROR); g_MacroStepNo = 91; return NORMAL_RUNNING; }
 		}
+		// grip/ungrip 센서 모두 감지 되는지 확인
+		if (IsGripUngripAllSensing() != 0) 
+		{
+			SetErrorCode(ERR_GRIP_UNGRIP_ALL_SENSING);
+			g_MacroStepNo = 91; 
+			return NORMAL_RUNNING;
+		}
 		// if (GetDIBit(1, DI_SENS_GRIP) == 1) { SetErrorCode(ERR_GRIP_ERROR); step = 91; return NORMAL_RUNNING; }
 		break; 
 
@@ -3094,6 +3118,14 @@ char CommGripUngrip()
 		g_MacroStepNo++;
 		break;
 	case 11:
+		// grip/ungrip 센서 모두 감지 되는지 확인
+		if (IsGripUngripAllSensing() != 0) 
+		{
+			SetErrorCode(ERR_GRIP_UNGRIP_ALL_SENSING);
+			g_MacroStepNo = 91; 
+			return NORMAL_RUNNING;
+		}
+		// ungrip 센서 확인 
 		if (IsUngrip())
 		{
 			g_MacroStepNo = 30;
@@ -3365,6 +3397,20 @@ char CommMoveXY_With_Offset()
 			g_MovePointDataNo = 0;
 			g_MoveOffset[axis] = 0;
 		}
+		g_MacroStepNo = 14;
+		break; 
+
+	case 14:
+		// 2026.05.20 MASP 명령일 경우, encoder 체크 시작
+		if (g_MotionCommand == COMM_MASP)
+		{
+			start_encoder_check();	
+			set_custom_hold_torque_yaxis();
+		}
+		g_MacroStepNo = 15;
+		break; 
+
+	case 15:
 		g_MacroStepNo = 0;
 		return NORMAL_FINISHED;
 
@@ -7080,8 +7126,8 @@ char IsGrip(char check_sensor)
 
 	char is_demo_mode_var = 91;
 	char outp = (char)GetDOBit(1, DO_GRIP_UNGRIP);
-	char inp_grip  = (char)GetDIBit(1, DI_SENS_GRIP);
-	char inp_ungrip  = (char)GetDIBit(1, DI_SENS_UNGRIP);
+	char inp_grip = (char)GetDIBit(1, DI_SENS_GRIP);
+	char inp_ungrip = (char)GetDIBit(1, DI_SENS_UNGRIP);
 	char ret = 0;
 
 	if (check_sensor == 0 || get_var(is_demo_mode_var) != 0) 
@@ -7118,7 +7164,6 @@ char IsTimeoutGripUngrip(char is_first, int delay_ms)
 {
 	static unsigned int timeout_count = 0;
 
-	DelayMS(delay_ms);
 	if (is_first == 1) { timeout_count = 0; }
 	else { 
 		timeout_count += delay_ms;
@@ -7129,4 +7174,22 @@ char IsTimeoutGripUngrip(char is_first, int delay_ms)
 	}
 
 	return 0;	
+}
+
+// grip 센서와 ungrip 센서 모두 감지 되면 1 리턴, 그렇지 않으면 0 리턴
+char IsGripUngripAllSensing()
+{
+	char is_demo_mode_var = 91;
+	char inp_grip = (char)GetDIBit(1, DI_SENS_GRIP);
+	char inp_ungrip = (char)GetDIBit(1, DI_SENS_UNGRIP);
+
+//	if (get_var(is_demo_mode_var) == 0) 
+	{
+		if (inp_grip == 1 && inp_ungrip == 1)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
 }

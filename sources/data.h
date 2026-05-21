@@ -34,12 +34,19 @@ extern int g_OverRun_LimitCount;
 extern char g_BreakReleaseStepNo;
 extern int g_MacroStepNo;
 extern double g_TargetPosition[3];
-
+extern int g_ErrorMacroStepNo;
 
 extern double g_EncoderScaleX;
 extern double g_EncoderScaleY;
 extern g_MaxEncoderDeviationX;
 extern g_MaxEncoderDeviationY;
+
+// 2026.05.04 Encoder Error log 
+extern signed int g_XEEPulseCount;
+extern signed int g_XEEEncoderCount;
+extern signed int g_YEEPulseCount;
+extern signed int g_YEEEncoderCount;
+
 
 typedef struct _POINT_DATA
 {
@@ -154,5 +161,11 @@ void reset_point_data();
 void reset_system_var();
 
 void reset_encoder_xy(int axis);
+
+// 2026.05.20 encoder 체크를 시작하고 종료 한다 
+char is_check_encoder();
+void start_encoder_check();
+void stop_encoder_check();
+void set_custom_hold_torque_yaxis();
 
 #endif // #ifndef _DATA_H_
