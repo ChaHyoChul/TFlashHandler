@@ -767,7 +767,7 @@ void reset_system_var()
 
 	set_var(24, 10); 	// Move Timeout 
 	set_var(25, 20); 	// Move Timeout Tolorance 
-	set_var(26, 5); 	// MASP 명령 후 Hold Torque 값 (충돌에 대비해 낮은 토크로 유지)
+	set_var(26, 4); 	// MASP 명령 후 Hold Torque 값 (충돌에 대비해 낮은 토크로 유지)
 
 	set_var(91, 0);		// Demo Mode (Flask 유무 센서 미사용. 0:사용, 1:미사용)
 	set_var(90, 300); 	// 브레이크 동작 delay (브레이크 풀고 delay 후 동작 시작. 동작 완료 후 delay 시간 후 브레이크 잡는다) 
