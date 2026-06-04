@@ -493,7 +493,7 @@ void DoCmd(char *cmd)
         }
 
 		clear_error();
-		AsyncWasteOff();	
+		// AsyncWasteOff();	
 		SetDO(5, 0);
 		send("DRT\r\n");
 	}
@@ -2215,24 +2215,24 @@ void DoCmd(char *cmd)
 		g_ResponseSend = 1;
 		send("MWPR\r\n");
 	}
-	else if (IS_COMMAND_N(cmd, "AWAS")) // Async Waste
-	{
-		originComplete = 1;
-		stopped = 1;
-		error = 1;
-		releaseBreak = 1;
-		existFlask = 1;
-		gripperGrip = 1;
-		if (!checkBeforeRun("AWAS", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip))
-		{
-			return;
-		}
-
-		SetCommand("AWAS");
-		SetControlCommand(COMM_AWAS);
-		g_ResponseSend = 1;
-		send("AWAS\r\n");
-	}
+//	else if (IS_COMMAND_N(cmd, "AWAS")) // Async Waste
+//	{
+//		originComplete = 1;
+//		stopped = 1;
+//		error = 1;
+//		releaseBreak = 1;
+//		existFlask = 1;
+//		gripperGrip = 1;
+//		if (!checkBeforeRun("AWAS", originComplete, stopped, error, releaseBreak, existFlask, gripperGrip))
+//		{
+//			return;
+//		}
+//
+//		SetCommand("AWAS");
+//		SetControlCommand(COMM_AWAS);
+//		g_ResponseSend = 1;
+//		send("AWAS\r\n");
+//	}
 	else if (IS_COMMAND_N(cmd, "GMEC")) // g_MotorErrorCode를 리턴한다
 	{
 		sprintf(str, "GMEC %d,%d,%d,%d,%d\r\n",

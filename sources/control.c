@@ -597,12 +597,12 @@ void MainControl()
 		res = CommWaste(); // Encoder 부분 체크
 		UpdateState(res);
 		break;
-	case COMM_AWAS:
-		if (breakRelease() == 0)
-			break;
-		res = CommAsyncWaste(); // Encoder 부분 체크
-		UpdateState(res);
-		break;
+//	case COMM_AWAS:
+//		if (breakRelease() == 0)
+//			break;
+//		res = CommAsyncWaste(); // Encoder 부분 체크
+//		UpdateState(res);
+//		break;
 	case COMM_MWRD:
 		if (breakRelease() == 0)
 			break;
@@ -7041,12 +7041,12 @@ char IsExistFlask()
 
 char AsyncWasteOn()
 {
-	SetDOBit(1, 6, 1);
+//	SetDOBit(1, 6, 1);
 }
 
 char AsyncWasteOff()
 {
-	SetDOBit(1, 6, 0);
+//	SetDOBit(1, 6, 0);
 }
 
 // VAR13 번에 bit 번호를 입력 하고, 그 Bit를 사용한다

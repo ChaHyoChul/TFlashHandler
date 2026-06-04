@@ -130,8 +130,10 @@
     // Grip / Ungrip 센서가 동시에 감지되는 경우, 에러 처리 (ERR_GRIP_UNGRIP_ALL_SENSING 017) 
 //#define SOFTWARE_VERSION "TFLASK-H 3.2.4" // 
     // MASP 명령일때만 Encoder 에러 체크 
-#define SOFTWARE_VERSION "TFLASK-H 3.2.5" // 
+//#define SOFTWARE_VERSION "TFLASK-H 3.2.5" // 
     // MASP 명령일때 HTQ 값 변경. V26=5 -> V26=4 
+#define SOFTWARE_VERSION "TFLASK-H 3.2.6" // 
+    // AsyncWaste 기능 제거. signal output이 grip 동작의 output과 겹침. 그래서 에러 클리어할 때 grip 동작 함 
 
 // Settings
 #define COMPORT_BAUDRATE (57600)
